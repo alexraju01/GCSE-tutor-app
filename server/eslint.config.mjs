@@ -43,7 +43,7 @@ export default tseslint.config(
       // --- MAINTENANCE ---
       "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
       "@typescript-eslint/explicit-function-return-type": "off",
-      "prettier/prettier": ["error", { endOfLine: "lf" }],
+      "prettier/prettier": ["error", { endOfLine: "auto" }],
 
       // --- NATIVE IMPORT SORTING ---
       "perfectionist/sort-imports": [
