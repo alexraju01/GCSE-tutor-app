@@ -1,7 +1,7 @@
 import "dotenv/config";
-import { BLUE, RESET } from "@utils";
 import express from "express";
 import morgan from "morgan";
+import { BLUE, RESET } from "./utils/colours.js";
 
 const app = express();
 const { PORT } = process.env || 5000;
