@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "nodemon --exec tsx src/server.ts",
     "start": "tsc && cross-env NODE_ENV=production node ./dist/server.js",
+    "seed": "tsx src/db/seed/seed.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },
@@ -25,6 +26,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@faker-js/faker": "^10.4.0",
     "@types/express": "^5.0.6",
     "@types/morgan": "^1.9.10",
     "@types/node": "^25.9.1",

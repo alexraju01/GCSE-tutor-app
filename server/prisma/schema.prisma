@@ -21,6 +21,15 @@ enum BookingStatus {
   COMPLETED
 }
 
+enum Subject {
+  MATHEMATICS       @map("Mathematics")
+  PHYSICS           @map("Physics")
+  CHEMISTRY         @map("Chemistry")
+  BIOLOGY           @map("Biology")
+  ENGLISH_LITERATURE @map("English Literature")
+  COMPUTER_SCIENCE   @map("Computer Science")
+}
+
 enum Level {
   GCSE
   A_LEVEL
@@ -53,7 +62,7 @@ model Teacher {
   bio            String         @db.Text
   qualifications String         @db.Text
   hourlyRate     Float
-  subjects       String[]       
+  subjects       Subject[]       
   levels         Level[]        
   rating         Float          @default(5.0)
   totalEarnings  Float          @default(0.0)
