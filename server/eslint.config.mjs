@@ -5,6 +5,10 @@ import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended"
 import perfectionist from "eslint-plugin-perfectionist";
 
 export default tseslint.config(
+  {
+    ignores: ["prisma.config.ts", "dist/", "node_modules/", ".build/"],
+  },
+
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   eslintPluginPrettierRecommended,
