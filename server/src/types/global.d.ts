@@ -1,0 +1,3 @@
+interface UserParams {
+  id: string;
+}

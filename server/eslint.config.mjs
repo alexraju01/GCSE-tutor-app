@@ -40,7 +40,6 @@ export default tseslint.config(
       "object-shorthand": ["error", "always"],
 
       // --- FUNCTION RULES ---
-      "consistent-return": "error",
       "prefer-arrow-callback": ["error", { allowNamedFunctions: false }],
       "func-style": ["error", "expression"],
 
