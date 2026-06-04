@@ -15,6 +15,7 @@
     "paths": {
       "@controllers/*": ["./src/controllers/*"],
       "@routes/*": ["./src/routes/*"],
+      "@routes": ["./src/routes/index.ts"],
       "@utils/*": ["./src/utils/*"],
       "@generated/*": ["./src/generated/prisma/*"],
       "@db/*": ["./src/db/*"]
