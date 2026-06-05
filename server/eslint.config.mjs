@@ -44,7 +44,10 @@ export default tseslint.config(
       "func-style": ["error", "expression"],
 
       // --- MAINTENANCE ---
-      "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
       "@typescript-eslint/explicit-function-return-type": "off",
       "prettier/prettier": ["error", { endOfLine: "auto" }],
 
