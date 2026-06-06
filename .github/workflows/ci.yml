@@ -30,7 +30,7 @@ jobs:
       - name: Generate Prisma Client
         run: npx prisma generate
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/mock-db"
 
       - name: Run Linter
         run: npm run lint
