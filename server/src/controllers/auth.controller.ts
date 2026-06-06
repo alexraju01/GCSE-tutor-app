@@ -1,6 +1,7 @@
 import { prisma } from "@db/prisma.js";
 import { Prisma, type User } from "@generated/client.js";
 import { Role, Subject } from "@generated/enums.js";
+import { AppError } from "@utils/AppError.js";
 import bcrypt from "bcrypt";
 import jwt, { type Secret, type SignOptions } from "jsonwebtoken";
 import type { Request, Response, CookieOptions, NextFunction } from "express";
@@ -45,44 +46,30 @@ export const signUp = async (
   const { name, email, password, passwordConfirm, role, ...profileData } = req.body;
 
   if (password !== passwordConfirm) {
-    return res
-      .status(400)
-      .json({ status: "fail", message: "Passwords and confirm password do not match" });
+    return next(new AppError("Passwords and confirm password do not match", 400));
   }
 
   const hashedPassword = await bcrypt.hash(password, 12);
 
-  try {
-    const newUser = await prisma.user.create({
-      data: {
-        name,
-        email,
-        password: hashedPassword,
-        role: role || Role.STUDENT,
-        ...getProfileData(role || Role.STUDENT, profileData),
-      },
-    });
+  const newUser = await prisma.user.create({
+    data: {
+      name,
+      email,
+      password: hashedPassword,
+      role: role || Role.STUDENT,
+      ...getProfileData(role || Role.STUDENT, profileData),
+    },
+  });
 
-    createSendToken(newUser, 201, res);
-  } catch (error: unknown) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      if (error.code === "P2002") {
-        return res.status(400).json({ status: "fail", message: "Email already exists" });
-      }
-    }
-    next(error);
-  }
+  createSendToken(newUser, 201, res);
 };
 
-export const login = async (req: Request, res: Response) => {
+export const login = async (req: Request, res: Response, next: NextFunction) => {
   const { email, password } = req.body;
 
-  // 1. Validation check
+  // 1. Validation check using AppError
   if (!email || !password) {
-    return res.status(400).json({
-      status: "fail",
-      message: "Please provide email and password!",
-    });
+    return next(new AppError("Please provide email and password!", 400));
   }
 
   // 2. Database lookup
@@ -90,22 +77,16 @@ export const login = async (req: Request, res: Response) => {
     where: { email },
   });
 
-  // 3. Authentication check
-  // We check if user exists AND if the password field is populated
+  // 3. Authentication check using AppError
+  // We use 401 Unauthorized for login failures
   if (!user || !user.password) {
-    return res.status(401).json({
-      status: "fail",
-      message: "Incorrect email or password",
-    });
+    return next(new AppError("Incorrect email or password", 401));
   }
 
   // 4. Password comparison
   const isPasswordCorrect = await bcrypt.compare(password, user.password);
   if (!isPasswordCorrect) {
-    return res.status(401).json({
-      status: "fail",
-      message: "Incorrect email or password",
-    });
+    return next(new AppError("Incorrect email or password", 401));
   }
 
   // 5. Success
