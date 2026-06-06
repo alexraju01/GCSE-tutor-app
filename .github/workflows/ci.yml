@@ -27,9 +27,14 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
+      - name: Generate Prisma Client
+        run: npx prisma generate
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/mock-db"
+
       - name: Run Linter
         run: npm run lint
         continue-on-error: false
 
       - name: Verify TypeScript Compilation
-        run: npm start
+        run: npm run build

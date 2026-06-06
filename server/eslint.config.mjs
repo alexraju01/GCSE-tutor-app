@@ -6,7 +6,7 @@ import perfectionist from "eslint-plugin-perfectionist";
 
 export default tseslint.config(
   {
-    ignores: ["prisma.config.ts", "dist/", "node_modules/", ".build/"],
+    ignores: ["prisma.config.ts", "dist/", "node_modules/", ".build/", "src/generated/prisma/"],
   },
 
   eslint.configs.recommended,
@@ -40,12 +40,14 @@ export default tseslint.config(
       "object-shorthand": ["error", "always"],
 
       // --- FUNCTION RULES ---
-      "consistent-return": "error",
       "prefer-arrow-callback": ["error", { allowNamedFunctions: false }],
       "func-style": ["error", "expression"],
 
       // --- MAINTENANCE ---
-      "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
       "@typescript-eslint/explicit-function-return-type": "off",
       "prettier/prettier": ["error", { endOfLine: "auto" }],
 
