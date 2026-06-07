@@ -1,8 +1,8 @@
 import "dotenv/config";
-import { userRouter } from "@routes";
+import { globalErrorHandler } from "@controllers/error.controller.js";
+import { teacherRouter, userRouter } from "@routes";
 import express from "express";
 import morgan from "morgan";
-import { globalErrorHandler } from "./controllers/error.controller.js";
 import { BLUE, RESET } from "./utils/colours.js";
 
 const app = express();
@@ -13,6 +13,7 @@ app.use(morgan("dev"));
 
 // Resource Routing
 app.use("/api/v1/users", userRouter);
+app.use("/api/v1/teachers", teacherRouter);
 
 app.use(globalErrorHandler);
 

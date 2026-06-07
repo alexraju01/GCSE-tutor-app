@@ -1,2 +1,3 @@
 // src/routes/index.ts
-export * from "./user.route.js"; // Adjust the filename based on your actual file
+export * from "./user.route.js";
+export * from "./teacher.route.js";
