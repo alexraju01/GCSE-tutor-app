@@ -99,10 +99,12 @@ model Availability {
 
 model Booking {
   id             String        @id @default(uuid())
+  
   teacherId      String
-  teacher        Teacher       @relation(fields: [teacherId], references: [id])
+  teacher        Teacher       @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  
   studentId      String
-  student        Student       @relation(fields: [studentId], references: [id])
+  student        Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
   
   availabilityId String
   availability   Availability  @relation(fields: [availabilityId], references: [id], onDelete: Cascade)
@@ -113,6 +115,7 @@ model Booking {
   notes          String?       @db.Text
   createdAt      DateTime      @default(now())
 
+  // If a booking is deleted, the classroom must be removed
   classroom      Classroom?
 
   @@map("bookings")
