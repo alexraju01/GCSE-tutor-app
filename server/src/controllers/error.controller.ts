@@ -1,5 +1,6 @@
 import { Prisma } from "@generated/client.js";
 import { AppError } from "@utils/AppError.js";
+import { ZodError } from "zod";
 import type { NextFunction, Request, Response } from "express";
 
 interface ErrorMiddleware extends Error {
@@ -10,6 +11,12 @@ interface ErrorMiddleware extends Error {
   name: string;
   isOperational?: boolean;
 }
+
+const handleZodError = (err: ZodError) => {
+  // Joins all clear validation messages together cleanly
+  const message = err.issues.map((i) => i.message).join(", ");
+  return new AppError(message, 400);
+};
 
 const sendErrorDev = (err: ErrorMiddleware, res: Response) => {
   res.status(err.statusCode || 500).json({
@@ -80,7 +87,9 @@ export const globalErrorHandler = (
   error.status = err.status || "error";
 
   // 2. INTERCEPT & RE-FORMAT CRITICAL INTERFACES FIRST
-  if (err instanceof Prisma.PrismaClientValidationError) {
+  if (err instanceof ZodError) {
+    error = handleZodError(err);
+  } else if (err instanceof Prisma.PrismaClientValidationError) {
     error = handlePrismaValidationError();
   } else if (err instanceof Prisma.PrismaClientKnownRequestError) {
     if (err.code === "P2002") {
