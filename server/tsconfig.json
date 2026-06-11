@@ -15,6 +15,8 @@
     "paths": {
       "@controllers/*": ["./src/controllers/*"],
       "@controller": ["./src/controllers/index.ts"],
+      "@middleware/*": ["./src/middleware/*"],
+      "@middleware": ["./src/middleware/index.ts"],
       "@routes/*": ["./src/routes/*"],
       "@routes": ["./src/routes/index.ts"],
       "@utils/*": ["./src/utils/*"],

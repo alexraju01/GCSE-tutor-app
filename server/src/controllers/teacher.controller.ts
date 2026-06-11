@@ -46,12 +46,12 @@ export const getOneTeacher: GetOneHandler<Teacher> = async (req, res) => {
 };
 
 export const updateTeacher: UpdateHandler<Teacher> = async (req, res) => {
-  const { id } = req.params;
+  const { id: teacherId } = req.user;
 
   const updateData = req.body as UpdateTeacherInput;
 
   const updatedProfile = await prisma.teacher.update({
-    where: { id },
+    where: { userId: teacherId },
     data: updateData,
   });
 
@@ -59,8 +59,8 @@ export const updateTeacher: UpdateHandler<Teacher> = async (req, res) => {
 };
 
 export const deleteTeacher: DeleteHandler = async (req, res) => {
-  const { id } = req.params;
+  const { id } = req.user;
 
-  await prisma.teacher.delete({ where: { id } });
+  await prisma.teacher.delete({ where: { userId: id } });
   res.status(204).json({ status: "success", data: null });
 };

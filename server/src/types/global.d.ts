@@ -24,4 +24,12 @@ declare global {
   type DeleteHandler<P = { id: string }> = ExpressHandler<P, ApiResponse<null>>;
 }
 
+declare global {
+  namespace Express {
+    interface Request {
+      user?: User;
+    }
+  }
+}
+
 export {};
