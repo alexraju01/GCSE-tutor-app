@@ -105,4 +105,5 @@ export const globalErrorHandler = (
   } else {
     sendErrorProd(error, req, res);
   }
+  next();
 };

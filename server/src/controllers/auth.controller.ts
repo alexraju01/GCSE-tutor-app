@@ -1,11 +1,11 @@
 import { prisma } from "@db/prisma.js";
-import { Prisma, type User } from "@generated/client.js";
-import { Role, Subject } from "@generated/enums.js";
+import { type User } from "@generated/client.js";
+import { Role, Subject, type Level } from "@generated/enums.js";
 import { AppError } from "@utils/AppError.js";
 import bcrypt from "bcrypt";
 import jwt, { type Secret, type SignOptions } from "jsonwebtoken";
-import type { UserInput } from "../schemas/user.schema.js";
-import type { Request, Response, CookieOptions, NextFunction, RequestHandler } from "express";
+import type { UserInput } from "../schemas/auth.schema.js";
+import type { Response, CookieOptions, RequestHandler } from "express";
 
 // Extract only the credentials payload from your Zod union
 type CredentialsInput = Extract<UserInput, { provider: "credentials" }>;
@@ -16,6 +16,7 @@ interface TeacherFieldsPayload {
   qualifications?: string;
   hourlyRate?: number;
   subjects?: Subject[];
+  levels?: Level[];
 }
 
 export const getProfileData = (role: Role, body: TeacherFieldsPayload) => {
@@ -28,6 +29,7 @@ export const getProfileData = (role: Role, body: TeacherFieldsPayload) => {
             qualifications: body.qualifications || "",
             hourlyRate: body.hourlyRate || 0,
             subjects: body.subjects || [],
+            levels: body.levels || [],
           },
         },
       };
@@ -46,18 +48,21 @@ export const signUp: RequestHandler = async (req, res, next) => {
     return next(new AppError("Only credentials registration is supported right now.", 400));
   }
 
-  // Type Narrowing: Safe assertion now that we know provider is definitively 'credentials'
   const credentialsData = validatedData as CredentialsInput;
 
-  // Destructure safely now that TypeScript knows the exact subset structural options
   const { name, email, password, role } = credentialsData;
   const hashedPassword = await bcrypt.hash(password, 12);
 
-  // If role is STUDENT, these will safely destructure as undefined, matching the helper signature
-  const { bio, qualifications, hourlyRate, subjects } =
+  const { bio, qualifications, hourlyRate, subjects, levels } =
     credentialsData as Partial<TeacherFieldsPayload>;
 
-  const profileRelation = getProfileData(role, { bio, qualifications, hourlyRate, subjects });
+  const profileRelation = getProfileData(role, {
+    bio,
+    qualifications,
+    hourlyRate,
+    subjects,
+    levels,
+  });
 
   const newUser = await prisma.user.create({
     data: {
@@ -112,7 +117,7 @@ const createSendToken = (user: User, statusCode: number, res: Response) => {
 
   const { password: _, ...safeUser } = user;
 
-  res.status(statusCode).json({ status: "success", token, data: { user: safeUser } });
+  res.status(statusCode).json({ status: "success", token, data: safeUser });
 };
 
 const signToken = (id: string): string => {
