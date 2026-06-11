@@ -1,4 +1,4 @@
-import { signUp, login } from "@controllers/auth.controller.js";
+import { signUp, login, logout } from "@controllers/auth.controller.js";
 import { getAllUsers, getOneUser, deleteUser } from "@controllers/user.controller.js";
 import { Router } from "express";
 import { validate } from "../middleware/validate.js";
@@ -10,3 +10,4 @@ userRouter.route("/").get(getAllUsers);
 userRouter.route("/:id").get(getOneUser).delete(deleteUser);
 userRouter.route("/signup").post(validate(registrationSchema), signUp);
 userRouter.route("/login").post(login);
+userRouter.route("/logout").post(logout);

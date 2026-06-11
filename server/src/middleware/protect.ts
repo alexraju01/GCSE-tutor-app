@@ -18,7 +18,7 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
     token = req.cookies.JWT;
   }
 
-  if (token === "loggedout")
+  if (!token || token === "loggedout" || token === "")
     return next(new AppError("You are not logged in! Please login to get access.", 401));
 
   if (!token) return next(new AppError("Your are not logged in! Please login to get access.", 401));

@@ -126,3 +126,19 @@ const signToken = (id: string): string => {
   const options: SignOptions = { expiresIn };
   return jwt.sign({ id }, secret, options);
 };
+
+export const logout: LogoutHandler = (req, res) => {
+  const isProduction = process.env.NODE_ENV === "production";
+
+  res.clearCookie("JWT", {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
+  });
+
+  res.status(200).json({
+    status: "success",
+    message: "Logged out successfully",
+    data: null,
+  });
+};

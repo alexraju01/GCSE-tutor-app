@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { globalErrorHandler } from "@controllers/error.controller.js";
 import { teacherRouter, userRouter } from "@routes";
+import cookieParser from "cookie-parser";
 import express from "express";
 import morgan from "morgan";
 import { BLUE, RESET } from "./utils/colours.js";
@@ -9,6 +10,7 @@ const app = express();
 const { PORT } = process.env || 5000;
 
 app.use(express.json());
+app.use(cookieParser());
 app.use(morgan("dev"));
 
 // Resource Routing
