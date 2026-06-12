@@ -34,3 +34,87 @@ export const getAllAvailabilities: GetAllHandler<Availability> = async (req, res
     data: teacherWithAvailabilities.availabilities,
   });
 };
+
+interface CreateAvailabilityDto {
+  startIsoString: string;
+  durationInMinutes: number; // Dynamic duration: e.g., 60, 90, 120
+}
+
+export const createAvailabilities: CreateHandler<Availability, CreateAvailabilityDto> = async (
+  req,
+  res,
+  next,
+) => {
+  const userId = req.user?.id;
+  const { startIsoString, durationInMinutes } = req.body;
+
+  if (!startIsoString || !durationInMinutes) {
+    return next(
+      new AppError(
+        "Missing required parameters: startIsoString and durationInMinutes are required.",
+        400,
+      ),
+    );
+  }
+
+  const allowedDurations = [60, 90, 120];
+  if (!allowedDurations.includes(durationInMinutes)) {
+    return next(
+      new AppError("Invalid duration selection. Please select 60, 90, or 120 minutes.", 400),
+    );
+  }
+
+  const teacher = await prisma.teacher.findUnique({ where: { userId } });
+  if (!teacher) {
+    return next(
+      new AppError("Access Denied. Only registered tutors can create availability timelines.", 403),
+    );
+  }
+
+  const startTime = new Date(startIsoString);
+
+  if (startTime < new Date()) {
+    return next(
+      new AppError(
+        "Cannot create availability in the past. Please select a future date and time.",
+        400,
+      ),
+    );
+  }
+
+  const endTime = new Date(startTime.getTime() + durationInMinutes * 60 * 1000);
+
+  const explicitOverlap = await prisma.availability.findFirst({
+    where: {
+      teacherId: teacher.id,
+      OR: [
+        {
+          startTime: { lt: endTime },
+          endTime: { gt: startTime },
+        },
+      ],
+    },
+  });
+
+  if (explicitOverlap) {
+    return next(
+      new AppError(
+        "Scheduling block collision: This slot overlaps with an existing availability frame.",
+        409,
+      ),
+    );
+  }
+
+  const newAvailability = await prisma.availability.create({
+    data: {
+      teacherId: teacher.id,
+      startTime,
+      endTime,
+    },
+  });
+
+  return res.status(201).json({
+    status: "success",
+    data: newAvailability,
+  });
+};
