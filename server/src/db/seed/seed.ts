@@ -1,14 +1,16 @@
 import { faker } from "@faker-js/faker";
 import { Role, BookingStatus, Level, Subject } from "@generated/client.js";
 import { GREEN, BLUE, RED, RESET } from "@utils/colours.js";
+import bcrypt from "bcrypt";
 import { prisma } from "../prisma.js";
 import type { Availability } from "@generated/client.js";
 
 // --- CONSTANTS ---
-
 const TOTAL_TEACHERS = 5;
 const TOTAL_STUDENTS = 10;
 const TOTAL_BOOKINGS = 8;
+const DEFAULT_PASSWORD = "password123";
+const SESSION_DURATION_MS = 60 * 60 * 1000; // Standard 1-hour session format
 
 const getRandomSubjects = (): Subject[] => {
   const allSubjects = Object.values(Subject);
@@ -26,28 +28,18 @@ const clearDatabase = async (): Promise<void> => {
   await prisma.user.deleteMany();
 };
 
-// Provisions the default administrative operational account
-const seedAdminAccount = async (): Promise<void> => {
-  await prisma.user.create({
-    data: {
-      email: "admin@gcsestudents.com",
-      name: "Admin Administrator",
-      role: Role.ADMIN,
-      provider: "credentials",
-    },
-  });
-};
-
-// Generates a single mock teacher and links their profile
-const createMockTeacher = async () => {
+// Generates a single mock teacher and links their profile (with optional custom email)
+const createMockTeacher = async (passwordHash: string, customEmail?: string) => {
   const firstName = faker.person.firstName();
   const lastName = faker.person.lastName();
+  const email = customEmail || faker.internet.email({ firstName, lastName }).toLowerCase();
 
   return prisma.user.create({
     data: {
-      email: faker.internet.email({ firstName, lastName }).toLowerCase(),
+      email,
       name: `${firstName} ${lastName}`,
       image: faker.image.avatar(),
+      password: passwordHash,
       role: Role.TEACHER,
       provider: "credentials",
       teacher: {
@@ -65,16 +57,18 @@ const createMockTeacher = async () => {
   });
 };
 
-// Generates a single mock student and links their profile
-const createMockStudent = async () => {
+// Generates a single mock student and links their profile (with optional custom email)
+const createMockStudent = async (passwordHash: string, customEmail?: string) => {
   const firstName = faker.person.firstName();
   const lastName = faker.person.lastName();
+  const email = customEmail || faker.internet.email({ firstName, lastName }).toLowerCase();
 
   return prisma.user.create({
     data: {
-      email: faker.internet.email({ firstName, lastName }).toLowerCase(),
+      email,
       name: `${firstName} ${lastName}`,
       image: faker.image.avatar(),
+      password: passwordHash,
       role: Role.STUDENT,
       provider: "credentials",
       student: { create: {} },
@@ -83,43 +77,50 @@ const createMockStudent = async () => {
   });
 };
 
-// Generates recurring available time blocks for a specific instructor
+// Senior Refactor: Generates distinct calendar-date slots based on the new DateTime schema
 const createTeacherAvailabilities = async (teacherId: string) => {
-  const randomDays = faker.helpers.arrayElements([1, 2, 3, 4, 5, 6], 3); // Mon-Sat
+  // Generates 4 distinct upcoming dates over the next 7 days
+  const randomDates = Array.from({ length: 4 }, () => faker.date.soon({ days: 7 }));
 
-  const promises = randomDays.map((day) =>
-    prisma.availability.create({
+  const promises = randomDates.map((date) => {
+    // Standardize time slots to top-of-the-hour blocks (e.g., 14:00:00)
+    const startTime = new Date(date);
+    startTime.setMinutes(0, 0, 0);
+
+    // Automatically calculate the exact end time parameter
+    const endTime = new Date(startTime.getTime() + SESSION_DURATION_MS);
+
+    return prisma.availability.create({
       data: {
         teacherId,
-        dayOfWeek: day,
-        startTime: "16:00",
-        endTime: "17:00",
+        startTime,
+        endTime,
         isBooked: false,
       },
-    }),
-  );
+    });
+  });
+
   return Promise.all(promises);
 };
 
 // Handles execution contracts for creating bookings and physical live classrooms
 const processBookingAndClassroom = async (slot: Availability, studentId: string): Promise<void> => {
-  const startTime = faker.date.soon({ days: 7 });
-  const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // 1-hour session duration
   const status = faker.helpers.arrayElement([BookingStatus.PENDING, BookingStatus.CONFIRMED]);
 
-  // Lock out the availability block
+  // Lock out the discrete availability block
   await prisma.availability.update({
     where: { id: slot.id },
     data: { isBooked: true },
   });
 
+  // Keep schedules identical to the availability allocation window
   const booking = await prisma.booking.create({
     data: {
       teacherId: slot.teacherId,
       studentId,
       availabilityId: slot.id,
-      startTime,
-      endTime,
+      startTime: slot.startTime,
+      endTime: slot.endTime,
       status,
       notes: faker.lorem.sentence(),
     },
@@ -143,32 +144,58 @@ const main = async () => {
   await clearDatabase();
   console.info(`${BLUE}Database cleaned. Starting data seed execution...`);
 
-  await seedAdminAccount();
+  console.info(`${BLUE}Hashing default testing passwords...`);
+  const saltRounds = 10;
+  const passwordHash = await bcrypt.hash(DEFAULT_PASSWORD, saltRounds);
 
+  // 1. Seed Teachers (Forces the first one to use your static testing email)
   console.info(`${GREEN}Seeding ${TOTAL_TEACHERS} mock tutor profiles...`);
-  const teacherUsers = await Promise.all(Array.from({ length: TOTAL_TEACHERS }, createMockTeacher));
+  const teacherUsers = await Promise.all(
+    Array.from({ length: TOTAL_TEACHERS }, (_, index) =>
+      createMockTeacher(passwordHash, index === 0 ? "teacher@test.com" : undefined),
+    ),
+  );
   const teachers = teacherUsers.map((u) => u.teacher).filter(Boolean);
 
+  // 2. Seed Students (Forces the first one to use your static testing email)
   console.info(`${GREEN}Seeding ${TOTAL_STUDENTS} mock student profiles...`);
-  const studentUsers = await Promise.all(Array.from({ length: TOTAL_STUDENTS }, createMockStudent));
+  const studentUsers = await Promise.all(
+    Array.from({ length: TOTAL_STUDENTS }, (_, index) =>
+      createMockStudent(passwordHash, index === 0 ? "student@test.com" : undefined),
+    ),
+  );
   const students = studentUsers.map((u) => u.student).filter(Boolean);
 
+  // 3. Generate schedule blocks across all instructors (including your test teacher)
   console.info(`${GREEN}Generating weekly scheduling timelines for tutors...`);
   const availabilityNestedArrays = await Promise.all(
     teachers.map((t) => createTeacherAvailabilities(t!.id)),
   );
   const allAvailabilities = availabilityNestedArrays.flat();
 
+  // 4. Create bookings across all availabilities smoothly
   console.info(`${GREEN}Creating historical and active session bookings...`);
   const slotsToBook = faker.helpers.arrayElements(allAvailabilities, TOTAL_BOOKINGS);
 
-  // Sequential execution ensures clean data synchronization flags across shared relational blocks
   for (const slot of slotsToBook) {
     const randomStudent = faker.helpers.arrayElement(students);
     if (randomStudent) {
       await processBookingAndClassroom(slot, randomStudent.id);
     }
   }
+
+  // 5. Clean, accurate terminal interface
+  console.info("\n-------------------------------------------------------");
+  console.info(`${GREEN}🚀 Active Seed Accounts Ready for API Testing:`);
+  console.info(`\n👨‍🏫 TEST TEACHER (Has linked availabilities/bookings):`);
+  console.info(`   Name:     ${teacherUsers[0].name}`);
+  console.info(`   Email:    teacher@test.com`);
+  console.info(`   Password: ${DEFAULT_PASSWORD}`);
+  console.info(`\n🧑‍🎓 TEST STUDENT (Has linked bookings):`);
+  console.info(`   Name:     ${studentUsers[0].name}`);
+  console.info(`   Email:    student@test.com`);
+  console.info(`   Password: ${DEFAULT_PASSWORD}`);
+  console.info("-------------------------------------------------------\n");
 
   console.info(`${BLUE}Successfully seeded the database! ${RESET}`);
 };

@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { globalErrorHandler } from "@controllers/error.controller.js";
-import { teacherRouter, userRouter } from "@routes";
+import { teacherRouter, userRouter, availabilityRouter } from "@routes";
 import cookieParser from "cookie-parser";
 import express from "express";
 import morgan from "morgan";
@@ -16,6 +16,7 @@ app.use(morgan("dev"));
 // Resource Routing
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/teachers", teacherRouter);
+app.use("/api/v1/availability", availabilityRouter);
 
 app.use(globalErrorHandler);
 
