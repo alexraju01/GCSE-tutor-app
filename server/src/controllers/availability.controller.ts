@@ -80,7 +80,7 @@ export const createAvailabilities: CreateHandler<Availability, createAvailabilit
   if (explicitOverlap) {
     return next(
       new AppError(
-        "Scheduling block collision: This slot overlaps with an existing availability frame.",
+        "This time slot overlaps with an availability block you've already created. Please select a different time.",
         409,
       ),
     );

@@ -14,7 +14,7 @@ export const createAvailabilitySchema = z
         error: (issue) =>
           issue.input === undefined
             ? "Please specify how long this availability slot should last."
-            : "Invalid duration. Please select a valid length for your session.",
+            : "Invalid durationInMinutes. Please select a valid length for your session.",
       })
       .refine((val) => [60, 90, 120].includes(val), {
         error:
