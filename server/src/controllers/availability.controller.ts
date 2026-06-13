@@ -1,5 +1,6 @@
 import { AppError } from "@utils/AppError.js";
 import { prisma } from "../db/prisma.js";
+import type { createAvailabilityInput } from "../schemas/availability.schema.js";
 import type { Availability } from "@generated/client.js";
 
 export const getAllAvailabilities: GetAllHandler<Availability> = async (req, res, next) => {
@@ -35,34 +36,14 @@ export const getAllAvailabilities: GetAllHandler<Availability> = async (req, res
   });
 };
 
-interface CreateAvailabilityDto {
-  startIsoString: string;
-  durationInMinutes: number; // Dynamic duration: e.g., 60, 90, 120
-}
-
-export const createAvailabilities: CreateHandler<Availability, CreateAvailabilityDto> = async (
+export const createAvailabilities: CreateHandler<Availability, createAvailabilityInput> = async (
   req,
   res,
   next,
 ) => {
   const userId = req.user?.id;
-  const { startIsoString, durationInMinutes } = req.body;
 
-  if (!startIsoString || !durationInMinutes) {
-    return next(
-      new AppError(
-        "Missing required parameters: startIsoString and durationInMinutes are required.",
-        400,
-      ),
-    );
-  }
-
-  const allowedDurations = [60, 90, 120];
-  if (!allowedDurations.includes(durationInMinutes)) {
-    return next(
-      new AppError("Invalid duration selection. Please select 60, 90, or 120 minutes.", 400),
-    );
-  }
+  const { startTime: startIsoString, durationInMinutes } = req.body;
 
   const teacher = await prisma.teacher.findUnique({ where: { userId } });
   if (!teacher) {
