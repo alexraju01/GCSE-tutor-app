@@ -6,92 +6,87 @@ import type {
 } from "../schemas/availability.schema.js";
 import type { Availability } from "@generated/client.js";
 
-export const getAllAvailabilities: GetAllHandler<Availability> = async (req, res, next) => {
-  const userId = req.user?.id;
+const requireTeacherId = async (userId: string | undefined): Promise<string> => {
+  if (!userId) {
+    throw new AppError("Access denied. Authentication required.", 401);
+  }
 
-  const teacherWithAvailabilities = await prisma.teacher.findUnique({
+  const teacher = await prisma.teacher.findUnique({
     where: { userId },
-    include: {
-      availabilities: {
-        where: {
-          startTime: {
-            gte: new Date(),
-          },
-        },
-        orderBy: { startTime: "asc" },
-      },
-    },
+    select: { id: true },
   });
 
-  if (!teacherWithAvailabilities) {
-    return next(
-      new AppError(
-        "Access denied. Only registered tutors can view or manage availability timelines.",
-        403,
-      ),
+  if (!teacher)
+    throw new AppError("Access denied. Only registered tutors can manage availability.", 403);
+
+  return teacher.id;
+};
+
+const checkOverlap = async (
+  teacherId: string,
+  startTime: Date,
+  endTime: Date,
+  excludeAvailabilityId?: string,
+): Promise<void> => {
+  const overlap = await prisma.availability.findFirst({
+    where: {
+      teacherId,
+      ...(excludeAvailabilityId && { id: { not: excludeAvailabilityId } }),
+      startTime: { lt: endTime },
+      endTime: { gt: startTime },
+    },
+    select: { id: true }, // Optimized selection
+  });
+
+  if (overlap) {
+    throw new AppError(
+      "This time slot overlaps with an availability block you've already scheduled.",
+      409,
     );
   }
+};
+
+export const getAllAvailabilities: GetAllHandler<Availability> = async (req, res) => {
+  const userId = req.user?.id;
+  const teacherId = await requireTeacherId(userId);
+
+  const availabilities = await prisma.availability.findMany({
+    where: {
+      teacherId,
+      startTime: { gte: new Date() },
+    },
+    orderBy: { startTime: "asc" },
+  });
 
   return res.status(200).json({
     status: "success",
-    results: teacherWithAvailabilities.availabilities.length,
-    data: teacherWithAvailabilities.availabilities,
+    results: availabilities.length,
+    data: availabilities,
   });
 };
 
 export const createAvailabilities: CreateHandler<Availability, createAvailabilityInput> = async (
   req,
   res,
-  next,
 ) => {
   const userId = req.user?.id;
-
   const { startTime: startIsoString, durationInMinutes } = req.body;
 
-  const teacher = await prisma.teacher.findUnique({ where: { userId } });
-  if (!teacher) {
-    return next(
-      new AppError("Access Denied. Only registered tutors can create availability timelines.", 403),
-    );
-  }
-
+  const teacherId = await requireTeacherId(userId);
   const startTime = new Date(startIsoString);
 
   if (startTime < new Date()) {
-    return next(
-      new AppError(
-        "Cannot create availability in the past. Please select a future date and time.",
-        400,
-      ),
-    );
+    throw new AppError("Cannot create availability in the past. Please select a future time.", 400);
   }
 
   const endTime = new Date(startTime.getTime() + durationInMinutes * 60 * 1000);
 
-  const explicitOverlap = await prisma.availability.findFirst({
-    where: {
-      teacherId: teacher.id,
-      OR: [
-        {
-          startTime: { lt: endTime },
-          endTime: { gt: startTime },
-        },
-      ],
-    },
-  });
-
-  if (explicitOverlap) {
-    return next(
-      new AppError(
-        "This time slot overlaps with an availability block you've already created. Please select a different time.",
-        409,
-      ),
-    );
-  }
+  // Validate overlap
+  await checkOverlap(teacherId, startTime, endTime);
 
   const newAvailability = await prisma.availability.create({
     data: {
-      teacherId: teacher.id,
+      teacherId,
       startTime,
       endTime,
     },
@@ -102,7 +97,6 @@ export const createAvailabilities: CreateHandler<Availability, createAvailabilit
     data: newAvailability,
   });
 };
-
 export const updateAvailability: UpdateHandler<
   Availability,
   { id: string },
@@ -110,74 +104,34 @@ export const updateAvailability: UpdateHandler<
 > = async (req, res, next) => {
   const userId = req.user?.id;
   const { id: availabilityId } = req.params;
-  const { startTime: startIsoString, durationInMinutes } = req.body as updateAvailabilityInput;
+  const { startTime: startIsoString, durationInMinutes } = req.body;
 
-  if (!startIsoString && durationInMinutes === undefined) {
+  if (!startIsoString && durationInMinutes === undefined)
     return next(new AppError("Please provide at least one field to update.", 400));
-  }
-  const teacher = await prisma.teacher.findUnique({ where: { userId } });
 
-  if (!teacher)
-    return next(
-      new AppError("Access Denied. Only registered tutors can modify availability timelines.", 403),
-    );
+  const teacherId = await requireTeacherId(userId);
 
-  const existingAvailability = await prisma.availability.findFirst({
-    where: { id: availabilityId, teacherId: teacher.id },
+  const existing = await prisma.availability.findFirst({
+    where: { id: availabilityId, teacherId },
+    select: { startTime: true, endTime: true },
   });
 
-  if (!existingAvailability) {
-    return next(new AppError("Availability record not found or access denied.", 404));
-  }
+  if (!existing) return next(new AppError("Availability record not found or access denied.", 404));
 
-  let startTime = existingAvailability.startTime;
-  if (startIsoString) {
-    startTime = new Date(startIsoString);
-    if (startTime < new Date()) {
-      return next(
-        new AppError(
-          "Cannot schedule availability in the past. Please select a future date and time.",
-          400,
-        ),
-      );
-    }
-  }
+  const startTime = startIsoString ? new Date(startIsoString) : existing.startTime;
 
-  const currentDurationInMinutes =
-    (existingAvailability.endTime.getTime() - existingAvailability.startTime.getTime()) / 60 / 1000;
+  if (startIsoString && startTime < new Date())
+    next(new AppError("Cannot schedule availability in the past.", 400));
 
-  const finalDuration =
-    durationInMinutes !== undefined ? durationInMinutes : currentDurationInMinutes;
+  const currentDuration = (existing.endTime.getTime() - existing.startTime.getTime()) / 60000;
+  const finalDuration = durationInMinutes !== undefined ? durationInMinutes : currentDuration;
+  const endTime = new Date(startTime.getTime() + finalDuration * 60000);
 
-  const endTime = new Date(startTime.getTime() + finalDuration * 60 * 1000);
-
-  const explicitOverlap = await prisma.availability.findFirst({
-    where: {
-      teacherId: teacher.id,
-      id: { not: availabilityId },
-      OR: [
-        {
-          startTime: { lt: endTime },
-          endTime: { gt: startTime },
-        },
-      ],
-    },
-  });
-
-  if (explicitOverlap)
-    return next(
-      new AppError(
-        "This new time slot overlaps with another availability block you've already scheduled.",
-        409,
-      ),
-    );
+  await checkOverlap(teacherId, startTime, endTime, availabilityId);
 
   const updatedAvailability = await prisma.availability.update({
     where: { id: availabilityId },
-    data: {
-      startTime,
-      endTime,
-    },
+    data: { startTime, endTime },
   });
 
   return res.status(200).json({
