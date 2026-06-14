@@ -21,7 +21,11 @@ declare global {
   type GetAllHandler<T> = ExpressHandler<unknown, ApiResponse<T[]>>;
   type GetOneHandler<T, P = { id: string }> = ExpressHandler<P, ApiResponse<T | null>>;
   type CreateHandler<T, B = Partial<T>> = ExpressHandler<unknown, ApiResponse<T>, B>;
-  type UpdateHandler<T, P = { id: string }> = ExpressHandler<P, ApiResponse<T | null>, Partial<T>>;
+  type UpdateHandler<T, P = { id: string }, B = Partial<T>> = ExpressHandler<
+    P,
+    ApiResponse<T | null>,
+    B
+  >;
   type DeleteHandler<P = { id: string }> = ExpressHandler<P, ApiResponse<null>>;
 
   type LogoutHandler = ExpressHandler<unknown, ApiResponse<null>>;

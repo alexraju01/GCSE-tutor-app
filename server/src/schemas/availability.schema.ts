@@ -23,4 +23,7 @@ export const createAvailabilitySchema = z
   })
   .strict();
 
+export const updateAvailabilitySchema = createAvailabilitySchema.partial().strict();
+
 export type createAvailabilityInput = z.infer<typeof createAvailabilitySchema>;
+export type updateAvailabilityInput = z.infer<typeof updateAvailabilitySchema>;
