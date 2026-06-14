@@ -17,6 +17,8 @@
       "@controller": ["./src/controllers/index.ts"],
       "@middleware/*": ["./src/middleware/*"],
       "@middleware": ["./src/middleware/index.ts"],
+      "@schemas/*": ["./src/schemas/*"],
+      "@schemas": ["./src/schemas/index.ts"],
       "@routes/*": ["./src/routes/*"],
       "@routes": ["./src/routes/index.ts"],
       "@utils/*": ["./src/utils/*"],

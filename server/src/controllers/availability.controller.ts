@@ -1,10 +1,7 @@
+import { prisma } from "@db/prisma.js";
 import { AppError } from "@utils/AppError.js";
-import { prisma } from "../db/prisma.js";
-import type {
-  createAvailabilityInput,
-  updateAvailabilityInput,
-} from "../schemas/availability.schema.js";
 import type { Availability } from "@generated/client.js";
+import type { createAvailabilityInput, updateAvailabilityInput } from "@schemas";
 
 const requireTeacherId = async (userId: string | undefined): Promise<string> => {
   if (!userId) {
