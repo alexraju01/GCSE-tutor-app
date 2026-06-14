@@ -2,6 +2,7 @@ import {
   createAvailabilities,
   getAllAvailabilities,
   updateAvailability,
+  deleteAvailability,
 } from "@controllers/availability.controller.js";
 import { protect, authorize, validate } from "@middleware";
 import { Router } from "express";
@@ -26,3 +27,5 @@ availabilityRouter.patch(
   validate(updateAvailabilitySchema),
   updateAvailability,
 );
+
+availabilityRouter.delete("/:id", protect, authorize("TEACHER"), deleteAvailability);

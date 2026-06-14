@@ -139,3 +139,22 @@ export const updateAvailability: UpdateHandler<
     data: updatedAvailability,
   });
 };
+
+export const deleteAvailability: DeleteHandler = async (req, res) => {
+  const { id: userId } = req.user;
+  const { id: availabilityId } = req.params;
+
+  const teacherId = await requireTeacherId(userId);
+
+  await prisma.availability.delete({
+    where: {
+      id: availabilityId,
+      teacherId,
+    },
+  });
+
+  return res.status(204).json({
+    status: "success",
+    data: null,
+  });
+};
