@@ -4,10 +4,6 @@ import type { Availability } from "@generated/client.js";
 import type { createAvailabilityInput, updateAvailabilityInput } from "@schemas";
 
 const requireTeacherId = async (userId: string | undefined): Promise<string> => {
-  if (!userId) {
-    throw new AppError("Access denied. Authentication required.", 401);
-  }
-
   const teacher = await prisma.teacher.findUnique({
     where: { userId },
     select: { id: true },
