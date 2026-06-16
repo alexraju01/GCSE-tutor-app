@@ -17,4 +17,4 @@ teacherRouter.route("/:id").get(getOneTeacher);
 teacherRouter
   .route("/me")
   .patch(protect, authorize("TEACHER"), validate(updateTeacherFieldsSchema), updateTeacher)
-  .delete(protect, authorize("TEACHER"), deleteTeacher); // 👈 Added safely here
+  .delete(protect, authorize("TEACHER"), deleteTeacher);
