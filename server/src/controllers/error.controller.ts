@@ -13,9 +13,28 @@ interface ErrorMiddleware extends Error {
 }
 
 const handleZodError = (err: ZodError) => {
-  // Joins all clear validation messages together cleanly
-  const message = err.issues.map((i) => i.message).join(", ");
-  return new AppError(message, 400);
+  const messages = err.issues.map((issue) => {
+    // 1. Handle Unrecognized Keys (Zod v4 structure)
+    if (issue.code === "unrecognized_keys") {
+      const keys = issue.keys.join(", ");
+      return `"We couldn't process some of the information submitted (${keys}). Please refresh and try again." `;
+    }
+
+    if (issue.code === "invalid_value") {
+      if (issue.message.includes("expected")) {
+        const dynamicOptions = issue.message
+          .replace(/expected/i, "Expected one of:")
+          .replace(/"/g, "'");
+        return `Invalid option selected. ${dynamicOptions}`;
+      }
+    }
+
+    // 3. Fallback for all other errors (e.g., missing fields, wrong types)
+    return issue.message.replace(/"/g, "'");
+  });
+
+  const finalMessage = messages.join(", ");
+  return new AppError(finalMessage, 400);
 };
 
 const sendErrorDev = (err: ErrorMiddleware, res: Response) => {

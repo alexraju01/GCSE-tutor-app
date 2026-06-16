@@ -83,19 +83,34 @@ model Student {
   @@map("students")
 }
 
+
 model Availability {
   id        String   @id @default(uuid())
   teacherId String
   teacher   Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
-  dayOfWeek Int      // 0 (Sunday) to 6 (Saturday)
-  startTime String   // "09:00"
-  endTime   String   // "10:00"
-  isBooked  Boolean  @default(false)
   
+  startTime DateTime // e.g., 2026-06-24T16:00:00.000Z
+  endTime   DateTime // e.g., 2026-06-24T17:00:00.000Z
+  
+  isBooked  Boolean  @default(false)
   bookings  Booking[]
 
   @@map("availabilities")
 }
+
+// model Availability {
+//   id        String   @id @default(uuid())
+//   teacherId String
+//   teacher   Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+//   dayOfWeek Int      // 0 (Sunday) to 6 (Saturday)
+//   startTime String   // "09:00"
+//   endTime   String   // "10:00"
+//   isBooked  Boolean  @default(false)
+  
+//   bookings  Booking[]
+
+//   @@map("availabilities")
+// }
 
 model Booking {
   id             String        @id @default(uuid())
