@@ -99,3 +99,11 @@ export const getOneStudent: GetOneHandler<AllStudentsFlat> = async (req, res, ne
     data: flattenedStudent,
   });
 };
+
+export const deleteStudent: DeleteHandler = async (req, res) => {
+  const { id } = req.user;
+
+  await prisma.student.delete({ where: { userId: id } });
+
+  res.status(204).json({ status: "success", data: null });
+};

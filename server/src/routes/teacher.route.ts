@@ -4,6 +4,7 @@ import {
   updateTeacher,
   deleteTeacher,
 } from "@controllers/teacher.controller.js";
+import { Role } from "@generated/enums.js";
 import { protect, authorize } from "@middleware";
 import { Router } from "express";
 import { validate } from "../middleware/validate.js";
@@ -16,5 +17,5 @@ teacherRouter.route("/:id").get(getOneTeacher);
 
 teacherRouter
   .route("/me")
-  .patch(protect, authorize("TEACHER"), validate(updateTeacherFieldsSchema), updateTeacher)
-  .delete(protect, authorize("TEACHER"), deleteTeacher);
+  .patch(protect, authorize(Role.TEACHER), validate(updateTeacherFieldsSchema), updateTeacher)
+  .delete(protect, authorize(Role.TEACHER), deleteTeacher);
