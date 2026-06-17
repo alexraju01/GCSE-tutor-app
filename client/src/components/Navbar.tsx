@@ -29,7 +29,7 @@ export default async function Navbar() {
 			{/* LEFT SIDE */}
 			<div className='flex items-center gap-8'>
 				<Logo />
-				<ActiveLink href={ROUTES.TEACHERS}>Teachers</ActiveLink>
+				<ActiveLink href='/teachers'>Teachers</ActiveLink>
 			</div>
 
 			{/* RIGHT SIDE */}

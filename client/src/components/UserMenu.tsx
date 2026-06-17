@@ -17,7 +17,7 @@ const UserMenu = ({ user }: UserMenuProps) => {
 		return (
 			<div className='flex items-center px-4'>
 				<Link
-					href={ROUTES.SIGN_IN}
+					href='/sign-in'
 					className='bg-custom-accent text-white px-6 py-2 rounded-md font-medium hover:opacity-90 transition-opacity text-sm lg:text-base'>
 					Login
 				</Link>
