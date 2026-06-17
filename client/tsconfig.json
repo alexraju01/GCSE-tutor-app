@@ -23,7 +23,8 @@
 			"@components": ["./src/components"],
 			"@components/*": ["./src/components/*"],
 			"@constants/*": ["./src/constants/*"],
-			"@utils/*": ["./src/utils/*"]
+			"@utils/*": ["./src/utils/*"],
+			"@auth": ["./auth.ts"]
 		}
 	},
 	"include": [
