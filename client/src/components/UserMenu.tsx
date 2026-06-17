@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ROUTES } from "@constants/routes";
-import Avatar from "@components/Avatar";
+import { Avatar } from "@components";
 
 interface UserMenuProps {
 	user: undefined | null;
