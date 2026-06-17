@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { LayoutDashboard } from "lucide-react";
-import { ROUTES } from "@constants/routes";
 import { ActiveLink, UserMenu, Logo } from "@components";
 
 const MOCK_USER_STATES = {
@@ -37,7 +36,7 @@ export default async function Navbar() {
 				{user ? (
 					<>
 						<ActiveLink
-							href={user.role === "TEACHER" ? ROUTES.DASHBOARD.TEACHER : ROUTES.DASHBOARD.STUDENT}>
+							href={user.role === "TEACHER" ? "/dashboard/teacher" : "/dashboard/student"}>
 							<LayoutDashboard size={16} className='opacity-80' />
 							Dashboard
 						</ActiveLink>
@@ -45,7 +44,7 @@ export default async function Navbar() {
 					</>
 				) : (
 					<Link
-						href={ROUTES.SIGN_IN}
+						href='/sign-in'
 						className='bg-blue-600 text-white px-5 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors'>
 						Get Started
 					</Link>
