@@ -1,7 +1,7 @@
 "use client";
 
 const SignIn = () => {
-	return <></>;
+  return <></>;
 };
 
 export default SignIn;

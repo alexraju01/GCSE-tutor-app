@@ -1,7 +1,7 @@
 "use client";
 
 const SignUp = () => {
-	return <></>;
+  return <></>;
 };
 
 export default SignUp;
