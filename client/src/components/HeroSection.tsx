@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { ArrowRight, Sparkles, CheckCircle2 } from "lucide-react";
+import Link from "next/link";
 
 export default function HeroSection() {
   return (
@@ -16,8 +16,8 @@ export default function HeroSection() {
             Next-Gen GCSE Learning Platform
           </span>
           <span className="relative flex size-2">
-            <span className="absolute inset-0 animate-ping rounded-full bg-blue-400 opacity-75"></span>
-            <span className="relative inline-flex size-2 rounded-full bg-blue-500"></span>
+            <span className="absolute inset-0 animate-ping rounded-full bg-blue-400 opacity-75" />
+            <span className="relative inline-flex size-2 rounded-full bg-blue-500" />
           </span>
         </div>
         <div className="flex items-center justify-between rounded-xl bg-blue-500 p-4 text-center font-bold text-white shadow-lg hover:bg-blue-700 md:p-6">

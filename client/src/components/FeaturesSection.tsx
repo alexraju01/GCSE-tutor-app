@@ -1,5 +1,6 @@
-import { FeatureCard } from "@components";
 import { Calendar, Video, PenTool, Users } from "lucide-react";
+
+import { FeatureCard } from "@components";
 
 export default function FeaturesSection() {
   return (

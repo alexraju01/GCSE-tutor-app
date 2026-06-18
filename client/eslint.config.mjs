@@ -10,7 +10,35 @@ const eslintConfig = defineConfig([
 
   globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts"]),
 
+  // 1. GLOBAL SETTINGS: Silences the Tailwind v4 config-path spam
   {
+    settings: {
+      tailwindcss: {
+        callees: ["classnames", "clsx", "ctl"],
+        config: {}, // Prevents plugin from looking for legacy v3 config files
+      },
+    },
+  },
+
+  // 2. META CONFIG FILES: Bypasses strict tsconfig requirements for build tools
+  {
+    files: ["*.config.js", "*.config.mjs", "*.config.ts"],
+    languageOptions: {
+      parserOptions: {
+        project: null,
+      },
+    },
+  },
+
+  // 3. SOURCE CODE RULES: Type-aware linting for your components
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    languageOptions: {
+      parserOptions: {
+        project: "./tsconfig.json",
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
     rules: {
       // === React Component Structure ===
       "react/function-component-definition": [
@@ -22,7 +50,7 @@ const eslintConfig = defineConfig([
       ],
 
       // === TypeScript & Code Quality ===
-      "@typescript-eslint/no-any": "error",
+      "@typescript-eslint/no-explicit-any": "error",
       "no-unused-vars": "off",
       "@typescript-eslint/no-unused-vars": [
         "error",
@@ -35,7 +63,7 @@ const eslintConfig = defineConfig([
       "object-shorthand": ["warn", "always"],
       eqeqeq: ["error", "always"],
 
-      // New Async Defenses
+      // === Async Defenses ===
       "@typescript-eslint/await-thenable": "error",
       "@typescript-eslint/no-floating-promises": "error",
 
