@@ -30,7 +30,7 @@ export default function Avatar({ user, setIsOpen }: AvatarProps) {
       <div
         className="fixed inset-0 z-10 cursor-default"
         onClick={() => setIsOpen(false)}
-       />
+      />
 
       <div className="absolute top-full right-0 z-20 mt-3 w-60 origin-top-right transform overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl transition-all duration-200">
         <div className="border-b border-slate-100 bg-slate-50 px-4 py-3.5">
