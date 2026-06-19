@@ -1,7 +1,7 @@
 import { ArrowRight, Sparkles, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 
-export default function HeroSection() {
+export const HeroSection = () => {
   return (
     <section className="relative flex flex-col items-center justify-center overflow-hidden pt-32 pb-24 md:pt-44 md:pb-36">
       <div className="pointer-events-none absolute top-[-10%] left-1/2 h-75 w-150 -translate-x-1/2 rounded-full bg-blue-500/10 blur-[120px] filter dark:bg-blue-600/10" />
@@ -74,4 +74,6 @@ export default function HeroSection() {
       </div>
     </section>
   );
-}
+};
+
+export default HeroSection;
