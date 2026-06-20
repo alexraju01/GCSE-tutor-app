@@ -9,9 +9,7 @@ export const metadata: Metadata = {
   title: "GCSE Ace",
   description: "Master your GCSEs with elite 1-on-1 expert tutors",
 };
-export const RootLayout = ({
-  children,
-}: Readonly<{ children: React.ReactNode }>) => {
+const RootLayout = ({ children }: Readonly<{ children: React.ReactNode }>) => {
   return (
     <html lang="en">
       <body

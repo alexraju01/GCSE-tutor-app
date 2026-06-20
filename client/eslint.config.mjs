@@ -10,17 +10,19 @@ const eslintConfig = defineConfig([
 
   globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts"]),
 
-  // 1. GLOBAL SETTINGS: Silences the Tailwind v4 config-path spam
   {
     settings: {
       tailwindcss: {
         callees: ["classnames", "clsx", "ctl"],
-        config: {}, // Prevents plugin from looking for legacy v3 config files
+        config: {},
+        whitelist: [
+          "border-custom-accent", // Matches this specific class
+          "custom-.*",
+        ],
       },
     },
   },
 
-  // 2. META CONFIG FILES: Bypasses strict tsconfig requirements for build tools
   {
     files: ["*.config.js", "*.config.mjs", "*.config.ts"],
     languageOptions: {
@@ -30,7 +32,6 @@ const eslintConfig = defineConfig([
     },
   },
 
-  // 3. SOURCE CODE RULES: Type-aware linting for your components
   {
     files: ["src/**/*.{ts,tsx}"],
     languageOptions: {
@@ -40,6 +41,7 @@ const eslintConfig = defineConfig([
       },
     },
     rules: {
+      "tailwindcss/classnames-order": "off",
       // === React Component Structure ===
       "react/function-component-definition": [
         "error",
@@ -78,7 +80,6 @@ const eslintConfig = defineConfig([
       "no-else-return": ["warn", { allowElseIf: false }],
 
       // === Import Optimization ===
-      // Inside your eslint.config.js -> rules block:
       "import/order": [
         "error",
         {

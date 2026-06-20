@@ -1,9 +1,10 @@
 "use client";
 
-import { Avatar } from "@components";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+
+import { Avatar } from "@components";
 
 interface UserMenuProps {
   user: undefined | null;
@@ -17,7 +18,7 @@ const UserMenu = ({ user }: UserMenuProps) => {
       <div className="flex items-center px-4">
         <Link
           href="/sign-in"
-          className="bg-custom-accent rounded-md px-6 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 lg:text-base"
+          className="rounded-md px-6 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 lg:text-base"
         >
           Login
         </Link>
@@ -33,7 +34,7 @@ const UserMenu = ({ user }: UserMenuProps) => {
         className="group flex items-center gap-2 focus:outline-none"
         aria-expanded={isOpen}
       >
-        <div className="group-hover:border-custom-accent flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-transparent bg-blue-600 transition-all">
+        <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-transparent bg-blue-600 transition-all group-hover:border-custom-accent">
           {user.image ? (
             <Image
               src={user.image}

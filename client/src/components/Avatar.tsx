@@ -4,8 +4,14 @@ import { LayoutDashboard, LogOut } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 
+interface User {
+  name?: string | null;
+  email?: string | null;
+  role: "TEACHER" | "STUDENT";
+}
+
 interface AvatarProps {
-  user: any;
+  user: User;
   setIsOpen: (open: boolean) => void;
 }
 
