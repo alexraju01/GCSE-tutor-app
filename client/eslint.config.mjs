@@ -89,6 +89,19 @@ const eslintConfig = defineConfig([
             "sibling",
             "index",
           ],
+          pathGroups: [
+            {
+              pattern: "next",
+              group: "external",
+              position: "before",
+            },
+            {
+              pattern: "@constants/**",
+              group: "internal",
+              position: "before",
+            },
+          ],
+          pathGroupsExcludedImportTypes: ["type"],
           "newlines-between": "always",
           alphabetize: { order: "asc", caseInsensitive: true },
         },

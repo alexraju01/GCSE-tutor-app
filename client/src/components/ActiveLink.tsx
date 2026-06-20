@@ -1,20 +1,17 @@
 "use client";
 
+import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ReactNode } from "react";
 
 interface ActiveLinkProps {
-  href: string;
+  href: Route;
   children: ReactNode;
   className?: string;
 }
 
-export default function ActiveLink({
-  href,
-  children,
-  className = "",
-}: ActiveLinkProps) {
+const ActiveLink = ({ href, children, className = "" }: ActiveLinkProps) => {
   const pathname = usePathname();
   const isActive = pathname === href;
 
@@ -30,4 +27,6 @@ export default function ActiveLink({
       {children}
     </Link>
   );
-}
+};
+
+export default ActiveLink;

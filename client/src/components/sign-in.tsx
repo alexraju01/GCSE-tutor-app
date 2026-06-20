@@ -1,6 +1,6 @@
 import { signIn } from "@auth";
 
-export default function SignIn() {
+const SignIn = () => {
   return (
     <form
       action={async () => {
@@ -11,4 +11,5 @@ export default function SignIn() {
       <button type="submit">Signin with Google</button>
     </form>
   );
-}
+};
+export default SignIn;

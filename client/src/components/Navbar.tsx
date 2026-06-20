@@ -21,7 +21,7 @@ const MOCK_USER_STATES = {
 
 const CURRENT_MOCK_STATE: "TEACHER" | "STUDENT" | "GUEST" = "TEACHER";
 
-export default async function Navbar() {
+const Navbar = async () => {
   const user = MOCK_USER_STATES[CURRENT_MOCK_STATE];
 
   return (
@@ -59,4 +59,6 @@ export default async function Navbar() {
       </div>
     </nav>
   );
-}
+};
+
+export default Navbar;

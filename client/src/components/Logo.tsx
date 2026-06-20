@@ -1,8 +1,6 @@
 import { GraduationCap } from "lucide-react";
 import Link from "next/link";
 
-import { ROUTES } from "@constants/routes";
-
 const Logo = () => {
   return (
     <Link

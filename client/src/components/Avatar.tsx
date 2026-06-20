@@ -1,23 +1,20 @@
 "use client";
 
 import { LogOut, LayoutDashboard } from "lucide-react";
+import type { Route } from "next";
 import Link from "next/link";
-
-import { ROUTES } from "@constants/routes";
 
 interface AvatarProps {
   user: any;
   setIsOpen: (open: boolean) => void;
 }
 
-export default function Avatar({ user, setIsOpen }: AvatarProps) {
+const Avatar = ({ user, setIsOpen }: AvatarProps) => {
   const formattedRole =
     user?.role === "TEACHER" ? "Teacher Account" : "Student Account";
 
-  const dashboardLink =
-    user?.role === "TEACHER"
-      ? ROUTES.DASHBOARD.TEACHER
-      : ROUTES.DASHBOARD.STUDENT;
+  const dashboardLink: Route =
+    user?.role === "TEACHER" ? "/dashboard/teacher" : "/dashboard/student";
 
   const handleFakeSignOut = () => {
     setIsOpen(false);
@@ -76,4 +73,6 @@ export default function Avatar({ user, setIsOpen }: AvatarProps) {
       </div>
     </>
   );
-}
+};
+
+export default Avatar;

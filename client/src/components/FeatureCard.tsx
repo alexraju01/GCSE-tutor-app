@@ -6,13 +6,13 @@ interface FeatureCardProps {
   themeColor: "blue" | "indigo" | "purple";
 }
 
-export default function FeatureCard({
+const FeatureCard = ({
   icon,
   title,
   description,
   className = "",
   themeColor,
-}: FeatureCardProps) {
+}: FeatureCardProps) => {
   // Maps color variants nicely to keep classes legible
   const themeMap = {
     blue: {
@@ -74,4 +74,6 @@ export default function FeatureCard({
       </div>
     </div>
   );
-}
+};
+
+export default FeatureCard;

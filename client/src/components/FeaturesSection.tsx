@@ -2,7 +2,7 @@ import { Calendar, Video, PenTool, Users } from "lucide-react";
 
 import { FeatureCard } from "@components";
 
-export default function FeaturesSection() {
+const FeaturesSection = () => {
   return (
     <section className="relative z-10 px-6 pb-32">
       <div className="mx-auto max-w-6xl">
@@ -86,4 +86,5 @@ export default function FeaturesSection() {
       </div>
     </section>
   );
-}
+};
+export default FeaturesSection;
