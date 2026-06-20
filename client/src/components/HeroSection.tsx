@@ -1,4 +1,4 @@
-import { ArrowRight, CheckCircle2, Sparkles } from "lucide-react";
+import { ArrowRight, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 
 export const HeroSection = () => {
@@ -7,22 +7,6 @@ export const HeroSection = () => {
       <div className="pointer-events-none absolute top-[-10%] left-1/2 h-75 w-150 -translate-x-1/2 rounded-full bg-blue-500/10 blur-[120px] filter dark:bg-blue-600/10" />
       <div className="pointer-events-none absolute top-[15%] left-1/3 size-100 animate-pulse rounded-full bg-indigo-500/10 blur-[140px] filter [animation-duration:8s] dark:bg-indigo-600/15" />{" "}
       <div className="relative z-10 mx-auto flex max-w-4xl flex-col items-center text-center">
-        <div className="group mb-8 inline-flex cursor-pointer items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-4 py-1.5 text-xs font-medium tracking-wide text-slate-600 shadow-sm backdrop-blur-md transition-all duration-300 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-300 dark:shadow-2xl dark:hover:border-slate-700">
-          <Sparkles
-            size={14}
-            className="text-blue-600 transition-transform group-hover:rotate-12 dark:text-blue-400"
-          />
-          <span className="bg-linear-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent dark:from-slate-200 dark:to-slate-400">
-            Next-Gen GCSE Learning Platform
-          </span>
-          <span className="relative flex size-2">
-            <span className="absolute inset-0 animate-ping rounded-full bg-blue-400 opacity-75" />
-            <span className="relative inline-flex size-2 rounded-full bg-blue-500" />
-          </span>
-        </div>
-        <div className="flex items-center justify-between rounded-xl bg-blue-500 p-4 text-center font-bold text-white shadow-lg hover:bg-blue-700 md:p-6">
-          Test Tailwind Sorting
-        </div>
         {/* Headline */}
         <h1 className="animate-fade-in-up max-w-3xl text-5xl leading-[1.1] font-extrabold tracking-tight text-slate-900 opacity-0 sm:text-6xl md:text-7xl dark:text-white">
           Master your GCSEs <br />
