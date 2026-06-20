@@ -1,7 +1,6 @@
+import { ActiveLink, Logo, UserMenu } from "@components";
 import { LayoutDashboard } from "lucide-react";
 import Link from "next/link";
-
-import { ActiveLink, UserMenu, Logo } from "@components";
 
 const MOCK_USER_STATES = {
   TEACHER: {

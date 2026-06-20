@@ -1,7 +1,7 @@
-import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
 import tailwind from "eslint-plugin-tailwindcss";
+import { defineConfig, globalIgnores } from "eslint/config";
 
 const eslintConfig = defineConfig([
   ...nextVitals,
@@ -78,32 +78,31 @@ const eslintConfig = defineConfig([
       "no-else-return": ["warn", { allowElseIf: false }],
 
       // === Import Optimization ===
+      // Inside your eslint.config.js -> rules block:
       "import/order": [
-        "warn",
+        "error",
         {
           groups: [
-            "builtin",
-            "external",
-            "internal",
-            "parent",
-            "sibling",
-            "index",
+            "builtin", // Built-in types are first
+            "external", // External libraries
+            "internal", // Internal modules
+            ["parent", "sibling"], // Parent and sibling types can be mingled together
+            "index", // Then the index file
+            "object", // Object imports
           ],
+          "newlines-between": "always",
           pathGroups: [
             {
-              pattern: "next",
+              pattern: "@app/**",
               group: "external",
-              position: "before",
-            },
-            {
-              pattern: "@constants/**",
-              group: "internal",
-              position: "before",
+              position: "after",
             },
           ],
-          pathGroupsExcludedImportTypes: ["type"],
-          "newlines-between": "always",
-          alphabetize: { order: "asc", caseInsensitive: true },
+          pathGroupsExcludedImportTypes: ["builtin"],
+          alphabetize: {
+            order: "asc",
+            caseInsensitive: true,
+          },
         },
       ],
     },

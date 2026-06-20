@@ -1,10 +1,9 @@
 "use client";
 
+import { Avatar } from "@components";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-
-import { Avatar } from "@components";
 
 interface UserMenuProps {
   user: undefined | null;

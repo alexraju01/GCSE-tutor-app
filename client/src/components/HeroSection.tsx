@@ -1,4 +1,4 @@
-import { ArrowRight, Sparkles, CheckCircle2 } from "lucide-react";
+import { ArrowRight, CheckCircle2, Sparkles } from "lucide-react";
 import Link from "next/link";
 
 export const HeroSection = () => {
