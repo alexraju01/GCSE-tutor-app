@@ -6,8 +6,16 @@ import { useState } from "react";
 
 import { Avatar } from "@components";
 
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: "TEACHER" | "STUDENT";
+  image: string;
+}
+
 interface UserMenuProps {
-  user: undefined | null;
+  user: User | undefined | null;
 }
 
 const UserMenu = ({ user }: UserMenuProps) => {

@@ -9,15 +9,17 @@ const MOCK_USER_STATES = {
     name: "Alex Raju",
     email: "alex@example.com",
     role: "TEACHER",
+    image: "",
   },
   STUDENT: {
     id: "mock-student-id",
     name: "John Doe",
     email: "john@example.com",
     role: "STUDENT",
+    image: "",
   },
   GUEST: null,
-};
+} as const;
 
 const CURRENT_MOCK_STATE: "TEACHER" | "STUDENT" | "GUEST" = "TEACHER";
 
