@@ -61,7 +61,7 @@ const eslintConfig = defineConfig([
           varsIgnorePattern: "^_",
         },
       ],
-      "no-console": ["warn", { allow: ["warn", "error"] }],
+      "no-console": ["warn", { allow: ["warn", "error", "info"] }],
       "object-shorthand": ["warn", "always"],
       eqeqeq: ["error", "always"],
 

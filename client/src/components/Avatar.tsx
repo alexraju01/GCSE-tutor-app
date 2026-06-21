@@ -3,6 +3,7 @@
 import { LayoutDashboard, LogOut } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
+import { signOut } from "next-auth/react";
 
 interface User {
   name?: string | null;
@@ -21,12 +22,6 @@ const Avatar = ({ user, setIsOpen }: AvatarProps) => {
 
   const dashboardLink: Route =
     user?.role === "TEACHER" ? "/dashboard/teacher" : "/dashboard/student";
-
-  const handleFakeSignOut = () => {
-    setIsOpen(false);
-    alert("Mock action: Logging out user and redirecting to homepage...");
-    window.location.href = "/";
-  };
 
   return (
     <>
@@ -66,7 +61,7 @@ const Avatar = ({ user, setIsOpen }: AvatarProps) => {
           <hr className="mx-1 my-1 border-slate-100" />
 
           <button
-            onClick={handleFakeSignOut}
+            onClick={() => signOut({ callbackUrl: "/" })}
             className="group flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-bold text-red-600 transition-colors hover:bg-red-50"
           >
             <LogOut

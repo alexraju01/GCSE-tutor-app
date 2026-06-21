@@ -1,10 +1,18 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as React from "react";
-import { Controller, useForm } from "react-hook-form";
+import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
+import Link from "next/link";
+import {
+  Controller,
+  useForm,
+  type DefaultValues,
+  type FieldValues,
+  type Path,
+  type SubmitHandler,
+} from "react-hook-form";
 import { toast } from "sonner";
-import * as z from "zod";
+import type { ZodType } from "zod";
+import type z from "zod";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -17,134 +25,147 @@ import {
 } from "@/components/ui/card";
 import {
   Field,
-  FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupText,
-  InputGroupTextarea,
-} from "@/components/ui/input-group";
 
-const formSchema = z.object({
-  title: z
-    .string()
-    .min(5, "Bug title must be at least 5 characters.")
-    .max(32, "Bug title must be at most 32 characters."),
-  description: z
-    .string()
-    .min(20, "Description must be at least 20 characters.")
-    .max(100, "Description must be at most 100 characters."),
-});
+interface AuthFormProps<T extends FieldValues> {
+  schema: ZodType<T>;
+  defaultValues: T;
+  onSubmit: (
+    data: T,
+  ) => Promise<{ success: boolean; data?: T; message?: string }>;
+  formType: "SIGN-IN" | "SIGN-UP";
+}
 
-export const BugReportForm = () => {
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      title: "",
-      description: "",
-    },
+const AuthForm = <T extends FieldValues>({
+  schema,
+  defaultValues,
+  formType,
+  onSubmit,
+}: AuthFormProps<T>) => {
+  const form = useForm<z.infer<typeof schema>>({
+    resolver: standardSchemaResolver(schema),
+    defaultValues: defaultValues as DefaultValues<T>,
   });
 
-  function onSubmit(data: z.infer<typeof formSchema>) {
-    toast("You submitted the following values:", {
-      description: (
-        <pre className="bg-code text-code-foreground mt-2 w-[320px] overflow-x-auto rounded-md p-4">
-          <code>{JSON.stringify(data, null, 2)}</code>
-        </pre>
-      ),
-      position: "bottom-right",
-      classNames: {
-        content: "flex flex-col gap-2",
-      },
-      style: {
-        "--border-radius": "calc(var(--radius)  + 4px)",
-      } as React.CSSProperties,
-    });
-  }
+  const handleSubmit: SubmitHandler<T> = async (data) => {
+    try {
+      const response = await onSubmit(data);
+
+      if (!response.success) {
+        toast.error(response.message || "Authentication failed.");
+        return;
+      }
+
+      toast.success(
+        formType === "SIGN-IN" ? "Successfully logged in!" : "Account created!",
+      );
+      console.info("Success payload returned to form:", response.data);
+    } catch (error) {
+      console.error("Auth submission error:", error);
+      toast.error("An unexpected error occurred.");
+    }
+  };
+
+  const isSignIn = formType === "SIGN-IN";
+  const buttonText = isSignIn ? "Login In" : "Sign Up";
+
+  const loadingText = isSignIn ? "Signing In..." : "Signing Up...";
+  const displayButtonContent = form.formState.isSubmitting
+    ? loadingText
+    : buttonText;
 
   return (
-    <Card className="w-full sm:max-w-md">
+    <Card className="w-full ring-0 sm:max-w-md">
       <CardHeader>
-        <CardTitle>Bug Report</CardTitle>
+        <CardTitle>{buttonText}</CardTitle>
         <CardDescription>
-          Help us improve by reporting bugs you encounter.
+          Login to review your favorite board games and manage your collection.
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <form id="form-rhf-demo" onSubmit={form.handleSubmit(onSubmit)}>
+      <CardContent className="mt-5">
+        <form id="form-rhf-demo" onSubmit={form.handleSubmit(handleSubmit)}>
           <FieldGroup>
-            <Controller
-              name="title"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor="form-rhf-demo-title">
-                    Bug Title
-                  </FieldLabel>
-                  <Input
-                    {...field}
-                    id="form-rhf-demo-title"
-                    aria-invalid={fieldState.invalid}
-                    placeholder="Login button not working on mobile"
-                    autoComplete="off"
-                  />
-                  {fieldState.invalid && (
-                    <FieldError errors={[fieldState.error]} />
-                  )}
-                </Field>
-              )}
-            />
-            <Controller
-              name="description"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor="form-rhf-demo-description">
-                    Description
-                  </FieldLabel>
-                  <InputGroup>
-                    <InputGroupTextarea
-                      {...field}
-                      id="form-rhf-demo-description"
-                      placeholder="I'm having an issue with the login button on mobile."
-                      rows={6}
-                      className="min-h-24 resize-none"
-                      aria-invalid={fieldState.invalid}
-                    />
-                    <InputGroupAddon align="block-end">
-                      <InputGroupText className="tabular-nums">
-                        {field.value.length}/100 characters
-                      </InputGroupText>
-                    </InputGroupAddon>
-                  </InputGroup>
-                  <FieldDescription>
-                    Include steps to reproduce, expected behavior, and what
-                    actually happened.
-                  </FieldDescription>
-                  {fieldState.invalid && (
-                    <FieldError errors={[fieldState.error]} />
-                  )}
-                </Field>
-              )}
-            />
+            {Object.keys(defaultValues).map((fieldName) => (
+              <Controller
+                key={fieldName}
+                name={fieldName as Path<T>}
+                control={form.control}
+                render={({ field, fieldState }) => {
+                  let inputType = "text";
+                  if (
+                    fieldName === "password" ||
+                    fieldName === "confirmPassword"
+                  ) {
+                    inputType = "password";
+                  } else if (fieldName === "email") {
+                    inputType = "email";
+                  }
+
+                  const fieldLabel =
+                    fieldName === "email"
+                      ? "Email Address"
+                      : fieldName.charAt(0).toUpperCase() + fieldName.slice(1);
+
+                  return (
+                    <Field data-invalid={fieldState.invalid}>
+                      <FieldLabel htmlFor={`auth-field-${fieldName}`}>
+                        {fieldLabel}
+                      </FieldLabel>
+                      <Input
+                        {...field}
+                        id={`auth-field-${fieldName}`}
+                        required
+                        type={inputType}
+                        className="w-full rounded-md border border-gray-300 px-4 py-6 transition outline-none focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-orange-500"
+                        aria-invalid={fieldState.invalid}
+                        placeholder={
+                          fieldName.charAt(0).toUpperCase() + fieldName.slice(1)
+                        }
+                        autoComplete="off"
+                      />
+                      {fieldState.invalid && (
+                        <FieldError errors={[fieldState.error]} />
+                      )}
+                    </Field>
+                  );
+                }}
+              />
+            ))}
           </FieldGroup>
         </form>
       </CardContent>
-      <CardFooter>
-        <Field orientation="horizontal">
-          <Button type="button" variant="outline" onClick={() => form.reset()}>
-            Reset
-          </Button>
-          <Button type="submit" form="form-rhf-demo">
-            Submit
-          </Button>
-        </Field>
+      <CardFooter className="flex-col gap-4 border-none bg-transparent">
+        <Button
+          disabled={form.formState.isSubmitting}
+          type="submit"
+          form="form-rhf-demo"
+          className="w-full rounded-md bg-[#e67e22] px-6 py-6 font-bold text-white shadow-md transition-colors hover:bg-[#d35400]"
+        >
+          {displayButtonContent}
+        </Button>
+
+        {isSignIn ? (
+          <p>
+            Don&apos;t have an account?{" "}
+            <Link href="/sign-up" className="text-soft">
+              Sign Up
+            </Link>
+          </p>
+        ) : (
+          <p>
+            Already have an account?{" "}
+            <Link href="/sign-in" className="text-soft">
+              Login In
+            </Link>
+          </p>
+        )}
       </CardFooter>
     </Card>
   );
 };
+
+export default AuthForm;

@@ -6,16 +6,11 @@ import { useState } from "react";
 
 import { Avatar } from "@components";
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: "TEACHER" | "STUDENT";
-  image: string;
-}
+import type { UserSession } from "../types/auth";
+// import type { UserSession } from "@types/auth";
 
 interface UserMenuProps {
-  user: User | undefined | null;
+  user: UserSession | undefined | null;
 }
 
 const UserMenu = ({ user }: UserMenuProps) => {

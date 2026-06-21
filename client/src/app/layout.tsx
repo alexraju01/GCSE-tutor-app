@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-
 import "./globals.css";
+import { Toaster } from "sonner";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -16,6 +16,7 @@ const RootLayout = ({ children }: Readonly<{ children: React.ReactNode }>) => {
         className={`${inter.className} bg-slate-50 text-slate-900 antialiased`}
       >
         {children}
+        <Toaster />
       </body>
     </html>
   );
