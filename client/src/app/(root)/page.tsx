@@ -1,5 +1,4 @@
 import { FeaturesSection, HeroSection } from "@components";
-import SignIn from "@components/sign-in";
 
 const HomePage = () => {
   return (

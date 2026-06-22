@@ -1,4 +1,4 @@
-import { Logo } from "@components";
+import Logo from "../../components/Logo";
 
 const AuthLayout = ({ children }: { children: React.ReactNode }) => {
   return (
@@ -7,8 +7,6 @@ const AuthLayout = ({ children }: { children: React.ReactNode }) => {
         <Logo />
 
         {children}
-
-        {/* <SocialAuthForm /> */}
       </section>
     </main>
   );

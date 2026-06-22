@@ -2,15 +2,15 @@ import { LayoutDashboard } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 
+import { auth } from "@auth";
+
 import ActiveLink from "./ActiveLink";
 import Logo from "./Logo";
 import UserMenu from "./UserMenu";
-import { auth } from "../../auth";
 
 const Navbar = async () => {
   const session = await auth();
   const user = session?.user;
-
   const dashboardHref: Route =
     user?.role === "TEACHER" ? "/dashboard/teacher" : "/dashboard/student";
 
@@ -35,7 +35,7 @@ const Navbar = async () => {
           </>
         ) : (
           <Link
-            href="/sign-in"
+            href="/sign-up"
             className="rounded-lg bg-blue-600 px-5 py-2 font-medium text-white transition-colors hover:bg-blue-700"
           >
             Get Started

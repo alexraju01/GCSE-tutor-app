@@ -7,10 +7,8 @@ import jwt, { type Secret, type SignOptions } from "jsonwebtoken";
 import type { UserInput } from "../schemas/auth.schema.js";
 import type { Response, CookieOptions, RequestHandler } from "express";
 
-// Extract only the credentials payload from your Zod union
 type CredentialsInput = Extract<UserInput, { provider: "credentials" }>;
 
-// Strict type checking for the mapper function payload
 interface TeacherFieldsPayload {
   bio?: string;
   qualifications?: string;
@@ -40,7 +38,6 @@ export const getProfileData = (role: Role, body: TeacherFieldsPayload) => {
   }
 };
 
-// Express v5 handles unhandled async rejections natively without try/catch wrapper loops
 export const signUp: RequestHandler = async (req, res, next) => {
   const validatedData = req.body as UserInput;
 
@@ -49,8 +46,11 @@ export const signUp: RequestHandler = async (req, res, next) => {
   }
 
   const credentialsData = validatedData as CredentialsInput;
-
   const { name, email, password, role } = credentialsData;
+
+  // 🚨 FIX 1: Lowercase and trim the email to normalize it in the database
+  const normalizedEmail = email.toLowerCase().trim();
+
   const hashedPassword = await bcrypt.hash(password, 12);
 
   const { bio, qualifications, hourlyRate, subjects, levels } =
@@ -67,7 +67,7 @@ export const signUp: RequestHandler = async (req, res, next) => {
   const newUser = await prisma.user.create({
     data: {
       name,
-      email,
+      email: normalizedEmail,
       password: hashedPassword,
       role,
       ...profileRelation,
@@ -84,8 +84,11 @@ export const login: RequestHandler = async (req, res, next) => {
     return next(new AppError("Please provide email and password!", 400));
   }
 
+  // 🚨 FIX 2: Lowercase and trim incoming emails on login to ensure match
+  const normalizedEmail = email.toLowerCase().trim();
+
   const user = await prisma.user.findUnique({
-    where: { email },
+    where: { email: normalizedEmail },
   });
 
   if (!user || !user.password) {
@@ -117,7 +120,12 @@ const createSendToken = (user: User, statusCode: number, res: Response) => {
 
   const { password: _, ...safeUser } = user;
 
-  res.status(statusCode).json({ status: "success", token, data: safeUser });
+  // 🚨 FIX 3: Nest user inside "data: { user: safeUser }" to match your Next.js auth.ts parsing
+  res.status(statusCode).json({
+    status: "success",
+    token,
+    data: { user: safeUser },
+  });
 };
 
 const signToken = (id: string): string => {
@@ -127,7 +135,7 @@ const signToken = (id: string): string => {
   return jwt.sign({ id }, secret, options);
 };
 
-export const logout: LogoutHandler = (req, res) => {
+export const logout: RequestHandler = (req, res) => {
   const isProduction = process.env.NODE_ENV === "production";
 
   res.clearCookie("JWT", {

@@ -1,6 +1,95 @@
 import NextAuth from "next-auth";
+import GitHub from "next-auth/providers/github";
 import Google from "next-auth/providers/google";
+import Credentials from "next-auth/providers/credentials";
+import { SignInSchema } from "@utils/validation";
+import { api } from "@utils/api";
 
-export const { handlers, signIn, signOut, auth } = NextAuth({
-  providers: [Google],
+export const { handlers, auth, signIn, signOut } = NextAuth({
+  trustHost: true,
+  providers: [
+    GitHub,
+    Google,
+    Credentials({
+      id: "credentials",
+      async authorize(credentials) {
+        if (!credentials) return null;
+
+        // Validate fields
+        const validated = SignInSchema.safeParse(credentials);
+        if (!validated.success) return null;
+
+        const { email, password } = validated.data;
+
+        try {
+          // Call backend login endpoint
+          const res = await api.auth.signIn({ email, password });
+          if (!res?.data?.user) return null;
+          const {
+            data: { user },
+            token,
+          } = res;
+          // Return user object with minimal required fields
+          return {
+            id: String(user.id),
+            name: user.name,
+            email: user.email,
+            image: user.image ?? null,
+            backendJwt: token,
+          };
+        } catch (err) {
+          console.error("Credentials authorize error:", err);
+          return null;
+        }
+      },
+    }),
+  ],
+  callbacks: {
+    async signIn({ user, account }) {
+      // Only sync if it's an OAuth provider
+      if (account && account.provider !== "credentials") {
+        if (!user.email || !user.name) return false;
+
+        try {
+          const syncedUser = await api.socialAuth.signInWithProvider(user, {
+            provider: account.provider,
+            providerAccountId: account.providerAccountId!,
+          });
+
+          // Store backend ID and JWT for the jwt callback
+          user.id = String(syncedUser.data.user.id);
+          user.backendJwt = syncedUser.token;
+
+          return true;
+        } catch (err) {
+          console.error("Social auth sync error:", err);
+          return false;
+        }
+      }
+
+      // ✅ Always allow credentials logins
+      return true;
+    },
+
+    async jwt({ token, user, account }) {
+      if (user) {
+        token.id = user.id;
+        token.backendJwt = user.backendJwt;
+      }
+
+      if (account) {
+        token.accessToken = account.access_token;
+      }
+
+      return token;
+    },
+
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.id = token.id as string;
+      }
+      session.backendToken = token.backendJwt as string;
+      return session;
+    },
+  },
 });

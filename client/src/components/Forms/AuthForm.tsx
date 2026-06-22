@@ -2,6 +2,7 @@
 
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Controller,
   useForm,
@@ -34,9 +35,7 @@ import { Input } from "@/components/ui/input";
 interface AuthFormProps<T extends FieldValues> {
   schema: ZodType<T>;
   defaultValues: T;
-  onSubmit: (
-    data: T,
-  ) => Promise<{ success: boolean; data?: T; message?: string }>;
+  onSubmit: (data: T) => Promise<APIResponse>;
   formType: "SIGN-IN" | "SIGN-UP";
 }
 
@@ -46,30 +45,29 @@ const AuthForm = <T extends FieldValues>({
   formType,
   onSubmit,
 }: AuthFormProps<T>) => {
+  const router = useRouter();
   const form = useForm<z.infer<typeof schema>>({
     resolver: standardSchemaResolver(schema),
     defaultValues: defaultValues as DefaultValues<T>,
   });
 
   const handleSubmit: SubmitHandler<T> = async (data) => {
-    try {
-      const response = await onSubmit(data);
+    const result = await onSubmit(data);
 
-      if (!response.success) {
-        toast.error(response.message || "Authentication failed.");
-        return;
-      }
-
-      toast.success(
-        formType === "SIGN-IN" ? "Successfully logged in!" : "Account created!",
-      );
-      console.info("Success payload returned to form:", response.data);
-    } catch (error) {
-      console.error("Auth submission error:", error);
-      toast.error("An unexpected error occurred.");
+    if (result?.status === "success") {
+      toast.success("Success", {
+        description:
+          formType === "SIGN-IN"
+            ? "Signed in successfully!"
+            : "Signed up successfully!",
+      });
+      router.push("/");
+    } else {
+      toast.error("Error", {
+        description: result?.message || "Something went wrong.",
+      });
     }
   };
-
   const isSignIn = formType === "SIGN-IN";
   const buttonText = isSignIn ? "Login In" : "Sign Up";
 
