@@ -118,7 +118,7 @@ const AuthForm = <T extends FieldValues>({
                         id={`auth-field-${fieldName}`}
                         required
                         type={inputType}
-                        className="w-full rounded-md border border-gray-300 px-4 py-6 transition outline-none focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-orange-500"
+                        className="w-full rounded-md border border-gray-300 px-4 py-6 transition outline-none focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-blue-500 data-[invalid=true]:border-red-500"
                         aria-invalid={fieldState.invalid}
                         placeholder={
                           fieldName.charAt(0).toUpperCase() + fieldName.slice(1)
@@ -126,7 +126,9 @@ const AuthForm = <T extends FieldValues>({
                         autoComplete="off"
                       />
                       {fieldState.invalid && (
-                        <FieldError errors={[fieldState.error]} />
+                        <div className="mt-1 text-sm font-medium text-red-500">
+                          <FieldError errors={[fieldState.error]} />
+                        </div>
                       )}
                     </Field>
                   );
@@ -141,22 +143,28 @@ const AuthForm = <T extends FieldValues>({
           disabled={form.formState.isSubmitting}
           type="submit"
           form="form-rhf-demo"
-          className="w-full rounded-md bg-[#e67e22] px-6 py-6 font-bold text-white shadow-md transition-colors hover:bg-[#d35400]"
+          className="w-full rounded-md bg-blue-600 px-6 py-6 font-bold text-white shadow-md transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
         >
           {displayButtonContent}
         </Button>
 
         {isSignIn ? (
-          <p>
+          <p className="text-sm text-gray-600">
             Don&apos;t have an account?{" "}
-            <Link href="/sign-up" className="text-soft">
+            <Link
+              href="/sign-up"
+              className="font-medium text-blue-600 hover:underline"
+            >
               Sign Up
             </Link>
           </p>
         ) : (
-          <p>
+          <p className="text-sm text-gray-600">
             Already have an account?{" "}
-            <Link href="/sign-in" className="text-soft">
+            <Link
+              href="/sign-in"
+              className="font-medium text-blue-600 hover:underline"
+            >
               Login In
             </Link>
           </p>
