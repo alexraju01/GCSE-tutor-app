@@ -90,4 +90,12 @@ export const registrationSchema = z
   })
   .pipe(baseDiscriminatedUnion);
 
+export const socialSyncSchema = z.object({
+  ...baseAuthFields,
+  ...socialFields,
+  role: z.enum([Role.STUDENT, Role.TEACHER]),
+});
+
+export type SocialSyncInput = z.infer<typeof socialSyncSchema>;
+
 export type UserInput = z.infer<typeof registrationSchema>;

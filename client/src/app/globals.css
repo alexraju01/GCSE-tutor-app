@@ -11,6 +11,9 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --color-dark-200: #15171c; /* Replace with your actual hex code */
+  --color-light-800: #e2e8f0; /* Replace with your actual hex code */
+  --color-light-900: #f8fafc; /* Replace with your actual hex code */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -43,11 +46,20 @@ body {
   }
 }
 
-.animate-fade-in-up {
-  /* Using a cinematic cubic-bezier for senior design aesthetics */
-  animation: fadeInUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
+@layer utilities {
+  .animate-fade-in-up {
+    /* Using a cinematic cubic-bezier for senior design aesthetics */
+    animation: fadeInUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
 
-.animate-shine {
-  animation: shine 0.8s ease-in-out;
+  .animate-shine {
+    animation: shine 0.8s ease-in-out;
+  }
+
+  .background-dark400_light900 {
+    @apply bg-light-900;
+  }
+  .text-dark200-light800 {
+    @apply text-dark-200 ;
+  }
 }

@@ -17,6 +17,21 @@ declare global {
     message?: string;
   }
 
+  interface SocialSyncBody {
+    email: string;
+    name: string;
+    image?: string;
+    provider: "google" | "github";
+    providerId: string;
+  }
+
+  // Map the signature: ExpressHandler<Params, ResBody, ReqBody, Query>
+  type SocialSyncHandler = ExpressHandler<
+    unknown,
+    ApiResponse<User>, // Assuming your Prisma model type is 'User'
+    SocialSyncBody
+  >;
+
   // Define helpers for specific scenarios
   type GetAllHandler<T> = ExpressHandler<unknown, ApiResponse<T[]>>;
   type GetOneHandler<T, P = { id: string }> = ExpressHandler<P, ApiResponse<T | null>>;

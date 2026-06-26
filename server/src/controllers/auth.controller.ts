@@ -150,3 +150,29 @@ export const logout: RequestHandler = (req, res) => {
     data: null,
   });
 };
+
+export const socialSync: SocialSyncHandler = async (req, res) => {
+  console.log("test controller");
+  const { email, name, image, provider, providerId } = req.body;
+
+  // 2. Perform the Upsert
+  const user = await prisma.user.upsert({
+    where: { email },
+    update: {
+      name,
+      image,
+      // Optional: update providerId if it wasn't there before
+      providerId,
+    },
+    create: {
+      email,
+      name,
+      image,
+      provider, // e.g., "google"
+      providerId,
+      // password is left undefined/null because it's optional in Prisma now
+    },
+  });
+
+  createSendToken(user, 200, res);
+};
