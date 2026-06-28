@@ -24,7 +24,6 @@ export const fetchData = async <T>(
     },
     body: body ? JSON.stringify(body) : undefined,
   });
-  console.log("response====:", response);
   if (response.status === 404) {
     const errorData = await response.json().catch(() => ({}));
     // Throwing a custom error will trigger the nearest error.tsx

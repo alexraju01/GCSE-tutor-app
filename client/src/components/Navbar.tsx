@@ -29,7 +29,7 @@ const Navbar = async () => {
             <ActiveLink href={dashboardHref}>
               {/* The component handles active states, but we can pass a dynamic icon style too */}
               <LayoutDashboard size={16} className="opacity-80" />
-              Dashboard
+              Dashboards
             </ActiveLink>
             <UserMenu user={user} />
           </>

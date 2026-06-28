@@ -35,6 +35,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             name: user.name,
             email: user.email,
             image: user.image ?? null,
+            role: user.role,
             backendJwt: token,
           };
         } catch (err) {
@@ -59,6 +60,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           // Store backend ID and JWT for the jwt callback
           user.id = String(syncedUser.data.user.id);
           user.backendJwt = syncedUser.token;
+          user.role = syncedUser.data.user.role;
 
           return true;
         } catch (err) {
@@ -75,6 +77,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user) {
         token.id = user.id;
         token.backendJwt = user.backendJwt;
+        token.role = user.role;
       }
 
       if (account) {
@@ -87,6 +90,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
+        session.user.role = token.role as "STUDENT" | "TEACHER";
       }
       session.backendToken = token.backendJwt as string;
       return session;

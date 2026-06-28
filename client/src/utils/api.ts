@@ -47,7 +47,6 @@ export const api = {
           body: payload,
         },
       );
-
       return res;
     },
   },
