@@ -1,11 +1,16 @@
 "use server";
 
-import { AuthError } from "next-auth"; // 1. Import AuthError to trap the framework exception
+import { redirect } from "next/navigation";
+import { AuthError } from "next-auth";
 
-import { signIn } from "@auth";
+import { signIn, signOut } from "@auth";
 import action from "@utils/actions/action";
 import { api } from "@utils/api";
-import { SignUpSchema, type AuthCredentials } from "@utils/validation";
+import {
+  SignInSchema,
+  SignUpSchema,
+  type AuthCredentials,
+} from "@utils/validation";
 
 export async function signUpWithCredentials(
   params: AuthCredentials,
@@ -49,7 +54,6 @@ export async function signUpWithCredentials(
 
       return { status: "success", message: "Account created successfully!" };
     } catch (loginError: unknown) {
-      // Auth.js triggers an error rejection loop intentionally on login failure
       if (loginError instanceof AuthError) {
         return {
           status: "error",
@@ -57,7 +61,6 @@ export async function signUpWithCredentials(
             "Account created, but automatic sign-in failed. Please log in manually.",
         };
       }
-      // Re-throw if it's a Next.js core redirect pipeline instruction
       throw loginError;
     }
   } catch (error: unknown) {
@@ -67,4 +70,62 @@ export async function signUpWithCredentials(
         error instanceof Error ? error.message : "An unexpected error occurred",
     };
   }
+}
+
+export async function signInWithCredentials(
+  params: Pick<AuthCredentials, "email" | "password">,
+): Promise<APIResponse> {
+  const validationResult = await action({
+    params,
+    schema: SignInSchema,
+  });
+
+  if (validationResult instanceof Error) {
+    return {
+      status: "error",
+      message: validationResult.message || "Invalid input",
+    };
+  }
+
+  const { email, password } = validationResult.params!;
+  let isSuccess = false;
+
+  try {
+    const loginResult = await signIn("credentials", {
+      email,
+      password,
+      redirect: false,
+    });
+
+    if (!loginResult || loginResult.error) {
+      return {
+        status: "error",
+        message: loginResult?.error || "Invalid email or password",
+      };
+    }
+
+    isSuccess = true;
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message === "NEXT_REDIRECT") {
+      throw error;
+    }
+    return {
+      status: "error",
+      message:
+        error instanceof Error ? error.message : "Unexpected error occurred",
+    };
+  }
+
+  if (isSuccess) redirect("/dashboard");
+
+  return {
+    status: "error",
+    message: "An unresolved login routing error occurred.",
+  };
+}
+
+export async function handleSignOut() {
+  await signOut({
+    redirectTo: "/",
+  });
 }

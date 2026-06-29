@@ -7,14 +7,12 @@ import { useState } from "react";
 import { Avatar } from "@components";
 
 import type { UserSession } from "../types/auth";
-// import type { UserSession } from "@types/auth";
 
 interface UserMenuProps {
   user: UserSession | undefined | null;
 }
 const UserMenu = ({ user }: UserMenuProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  console.log(user);
 
   if (!user) {
     return (

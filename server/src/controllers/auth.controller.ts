@@ -120,7 +120,6 @@ const createSendToken = (user: User, statusCode: number, res: Response) => {
 
   const { password: _, ...safeUser } = user;
 
-  // 🚨 FIX 3: Nest user inside "data: { user: safeUser }" to match your Next.js auth.ts parsing
   res.status(statusCode).json({
     status: "success",
     token,
@@ -152,7 +151,6 @@ export const logout: RequestHandler = (req, res) => {
 };
 
 export const socialSync: SocialSyncHandler = async (req, res) => {
-  console.log("test controller");
   const { email, name, image, provider, providerId } = req.body;
 
   // 2. Perform the Upsert
@@ -161,16 +159,14 @@ export const socialSync: SocialSyncHandler = async (req, res) => {
     update: {
       name,
       image,
-      // Optional: update providerId if it wasn't there before
       providerId,
     },
     create: {
       email,
       name,
       image,
-      provider, // e.g., "google"
+      provider,
       providerId,
-      // password is left undefined/null because it's optional in Prisma now
     },
   });
 

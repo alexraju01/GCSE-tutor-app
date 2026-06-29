@@ -116,7 +116,7 @@ const AuthForm = <T extends FieldValues>({
                       <Input
                         {...field}
                         id={`auth-field-${fieldName}`}
-                        required
+                        // required
                         type={inputType}
                         className="w-full rounded-md border border-gray-300 px-4 py-6 transition outline-none focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-blue-500 data-[invalid=true]:border-red-500"
                         aria-invalid={fieldState.invalid}
