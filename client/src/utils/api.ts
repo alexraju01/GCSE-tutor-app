@@ -50,4 +50,7 @@ export const api = {
       return res;
     },
   },
+  teacher: {
+    getAll: () => fetchData("/teachers"),
+  },
 };
