@@ -3,7 +3,7 @@ import type { UpdateTeacherInput } from "../schemas/teacher.schema.js";
 import type { Teacher, User } from "@generated/client.js";
 import type { RequestHandler } from "express";
 
-type UserDetails = Pick<User, "name" | "email">;
+type UserDetails = Pick<User, "name" | "email" | "image">;
 
 export type AllTeachers = Teacher & UserDetails;
 
@@ -14,6 +14,7 @@ export const getAllTeachers: GetAllHandler<AllTeachers> = async (_, res) => {
         select: {
           name: true,
           email: true,
+          image: true,
         },
       },
     },
@@ -27,6 +28,7 @@ export const getAllTeachers: GetAllHandler<AllTeachers> = async (_, res) => {
       userId,
       name: user.name,
       email: user.email,
+      image: user.image,
       ...restOfTeacherFields,
     };
   });
