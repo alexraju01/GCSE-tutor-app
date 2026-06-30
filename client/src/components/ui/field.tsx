@@ -2,9 +2,10 @@
 
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { cn } from "@utils/cn";
 import { cva, type VariantProps } from "class-variance-authority";
 import { useMemo } from "react";
+
+import { cn } from "@utils/cn";
 
 const FieldSet = ({
   className,

@@ -1,6 +1,9 @@
 "use server";
 
 import { signIn, signOut } from "@auth";
+import { AuthError } from "next-auth";
+import { redirect } from "next/navigation";
+
 import action from "@utils/actions/action";
 import { api } from "@utils/api";
 import {
@@ -8,8 +11,6 @@ import {
   SignInSchema,
   SignUpSchema,
 } from "@utils/validation";
-import { AuthError } from "next-auth";
-import { redirect } from "next/navigation";
 
 export async function signUpWithCredentials(
   params: AuthCredentials,
