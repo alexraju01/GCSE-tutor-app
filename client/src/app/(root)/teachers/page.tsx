@@ -1,4 +1,4 @@
-const TeachersPage = () => {
+const TeachersPage = async () => {
   return <>List of teacher</>;
 };
 

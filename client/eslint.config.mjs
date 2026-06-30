@@ -18,6 +18,7 @@ const eslintConfig = defineConfig([
         whitelist: [
           "border-custom-accent", // Matches this specific class
           "custom-.*",
+          "toaster",
         ],
       },
     },
@@ -61,7 +62,7 @@ const eslintConfig = defineConfig([
           varsIgnorePattern: "^_",
         },
       ],
-      "no-console": ["warn", { allow: ["warn", "error"] }],
+      "no-console": ["warn", { allow: ["warn", "error", "info"] }],
       "object-shorthand": ["warn", "always"],
       eqeqeq: ["error", "always"],
 
@@ -78,34 +79,6 @@ const eslintConfig = defineConfig([
       // === Maintainability & Layout Rules ===
       "no-nested-ternary": "error",
       "no-else-return": ["warn", { allowElseIf: false }],
-
-      // === Import Optimization ===
-      "import/order": [
-        "error",
-        {
-          groups: [
-            "builtin", // Built-in types are first
-            "external", // External libraries
-            "internal", // Internal modules
-            ["parent", "sibling"], // Parent and sibling types can be mingled together
-            "index", // Then the index file
-            "object", // Object imports
-          ],
-          "newlines-between": "always",
-          pathGroups: [
-            {
-              pattern: "@app/**",
-              group: "external",
-              position: "after",
-            },
-          ],
-          pathGroupsExcludedImportTypes: ["builtin"],
-          alphabetize: {
-            order: "asc",
-            caseInsensitive: true,
-          },
-        },
-      ],
     },
   },
 ]);

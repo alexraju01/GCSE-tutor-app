@@ -24,6 +24,8 @@
       "@components/*": ["./src/components/*"],
       "@constants/*": ["./src/constants/*"],
       "@utils/*": ["./src/utils/*"],
+      //   "@types": ["./src/types"],
+      "@types/*": ["./src/types/*"],
       "@auth": ["./auth.ts"]
     }
   },

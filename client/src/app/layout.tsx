@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { Toaster } from "sonner";
 
 import "./globals.css";
 
@@ -16,6 +17,7 @@ const RootLayout = ({ children }: Readonly<{ children: React.ReactNode }>) => {
         className={`${inter.className} bg-slate-50 text-slate-900 antialiased`}
       >
         {children}
+        <Toaster />
       </body>
     </html>
   );

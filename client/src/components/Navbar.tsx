@@ -1,30 +1,17 @@
+import { auth } from "@auth";
 import { LayoutDashboard } from "lucide-react";
+import type { Route } from "next";
 import Link from "next/link";
 
-import { ActiveLink, Logo, UserMenu } from "@components";
-
-const MOCK_USER_STATES = {
-  TEACHER: {
-    id: "mock-teacher-id",
-    name: "Alex Raju",
-    email: "alex@example.com",
-    role: "TEACHER",
-    image: "",
-  },
-  STUDENT: {
-    id: "mock-student-id",
-    name: "John Doe",
-    email: "john@example.com",
-    role: "STUDENT",
-    image: "",
-  },
-  GUEST: null,
-} as const;
-
-const CURRENT_MOCK_STATE: "TEACHER" | "STUDENT" | "GUEST" = "TEACHER";
+import ActiveLink from "./ActiveLink";
+import Logo from "./Logo";
+import UserMenu from "./UserMenu";
 
 const Navbar = async () => {
-  const user = MOCK_USER_STATES[CURRENT_MOCK_STATE];
+  const session = await auth();
+  const user = session?.user;
+  const dashboardHref: Route =
+    user?.role === "TEACHER" ? "/dashboard/teacher" : "/dashboard/student";
 
   return (
     <nav className="sticky top-0 z-50 flex items-center justify-between border-b bg-white px-6 py-4">
@@ -38,21 +25,16 @@ const Navbar = async () => {
       <div className="flex items-center gap-4">
         {user ? (
           <>
-            <ActiveLink
-              href={
-                user.role === "TEACHER"
-                  ? "/dashboard/teacher"
-                  : "/dashboard/student"
-              }
-            >
+            <ActiveLink href={dashboardHref}>
+              {/* The component handles active states, but we can pass a dynamic icon style too */}
               <LayoutDashboard size={16} className="opacity-80" />
-              Dashboard
+              Dashboards
             </ActiveLink>
             <UserMenu user={user} />
           </>
         ) : (
           <Link
-            href="/sign-in"
+            href="/sign-up"
             className="rounded-lg bg-blue-600 px-5 py-2 font-medium text-white transition-colors hover:bg-blue-700"
           >
             Get Started
