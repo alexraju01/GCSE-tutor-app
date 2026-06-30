@@ -18,6 +18,7 @@ const eslintConfig = defineConfig([
         whitelist: [
           "border-custom-accent", // Matches this specific class
           "custom-.*",
+          "toaster",
         ],
       },
     },
