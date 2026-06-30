@@ -1,8 +1,7 @@
+import { auth } from "@auth";
 import { LayoutDashboard } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
-
-import { auth } from "@auth";
 
 import ActiveLink from "./ActiveLink";
 import Logo from "./Logo";

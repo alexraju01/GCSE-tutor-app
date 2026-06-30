@@ -2,8 +2,8 @@
 
 import { LayoutDashboard, LogOut } from "lucide-react";
 import type { Route } from "next";
-import Link from "next/link";
 import { signOut } from "next-auth/react";
+import Link from "next/link";
 
 interface User {
   name?: string | null;

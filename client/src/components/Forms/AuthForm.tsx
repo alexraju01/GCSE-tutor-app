@@ -1,20 +1,5 @@
 "use client";
 
-import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import {
-  Controller,
-  useForm,
-  type DefaultValues,
-  type FieldValues,
-  type Path,
-  type SubmitHandler,
-} from "react-hook-form";
-import { toast } from "sonner";
-import type { ZodType } from "zod";
-import type z from "zod";
-
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -31,6 +16,20 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  Controller,
+  type DefaultValues,
+  type FieldValues,
+  type Path,
+  type SubmitHandler,
+  useForm,
+} from "react-hook-form";
+import { toast } from "sonner";
+import type { ZodType } from "zod";
+import type z from "zod";
 
 interface AuthFormProps<T extends FieldValues> {
   schema: ZodType<T>;

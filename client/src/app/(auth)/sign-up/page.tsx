@@ -1,8 +1,9 @@
 "use client";
 
-import AuthForm from "@components/Forms/AuthForm";
 import { signUpWithCredentials } from "@utils/actions/auth.action";
 import { SignUpSchema } from "@utils/validation";
+
+import AuthForm from "@components/Forms/AuthForm";
 
 const SignUp = () => {
   return (

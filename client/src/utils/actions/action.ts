@@ -1,9 +1,8 @@
 "use server";
 
-import { ZodError, type ZodType } from "zod";
-
 import type { SessionData } from "@/types/auth";
 import { auth } from "@auth";
+import { ZodError, type ZodType } from "zod";
 
 type ActionOptions<T> = {
   params?: T;

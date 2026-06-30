@@ -60,6 +60,6 @@ body {
     @apply bg-light-900;
   }
   .text-dark200-light800 {
-    @apply text-dark-200 ;
+    @apply text-dark-200;
   }
 }
