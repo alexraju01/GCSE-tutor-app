@@ -17,6 +17,12 @@ export const getAllTeachers: GetAllHandler<AllTeachers> = async (_, res) => {
           image: true,
         },
       },
+      teaches: {
+        select: {
+          subject: true,
+          level: true,
+        },
+      },
     },
   });
 

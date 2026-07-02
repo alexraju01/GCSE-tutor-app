@@ -12,9 +12,16 @@ const TOTAL_BOOKINGS = 8;
 const DEFAULT_PASSWORD = "password123";
 const SESSION_DURATION_MS = 60 * 60 * 1000; // Standard 1-hour session format
 
-const getRandomSubjects = (): Subject[] => {
+// Helper to generate distinct Subject-Level combinations for a teacher
+const generateMockTeachesPayload = () => {
   const allSubjects = Object.values(Subject);
-  return faker.helpers.arrayElements(allSubjects, { min: 1, max: 3 });
+  const selectedSubjects = faker.helpers.arrayElements(allSubjects, { min: 1, max: 3 });
+
+  return selectedSubjects.map((subject) => ({
+    subject,
+    // Assign a random discrete level to each individual subject selection
+    level: faker.helpers.arrayElement([Level.GCSE, Level.A_LEVEL]),
+  }));
 };
 
 // Clears data systematically to safeguard relational dependency trees
@@ -23,6 +30,7 @@ const clearDatabase = async (): Promise<void> => {
   await prisma.classroom.deleteMany();
   await prisma.booking.deleteMany();
   await prisma.availability.deleteMany();
+  await prisma.teaches.deleteMany(); // Added clean up for junction table
   await prisma.student.deleteMany();
   await prisma.teacher.deleteMany();
   await prisma.user.deleteMany();
@@ -45,11 +53,13 @@ const createMockTeacher = async (passwordHash: string, customEmail?: string) => 
       teacher: {
         create: {
           bio: `Hi, I am ${firstName}! ${faker.lorem.paragraph({ min: 2, max: 4 })}`,
-          qualifications: `${faker.company.name()} University graduate. Certified GCSE Expert Educator.`,
+          qualifications: `${faker.company.name()} University graduate. Certified Expert Educator.`,
           hourlyRate: faker.number.float({ min: 20, max: 55, fractionDigits: 2 }),
-          subjects: getRandomSubjects(),
-          levels: faker.helpers.arrayElements([Level.GCSE, Level.A_LEVEL, Level.BOTH], 1),
           rating: faker.number.float({ min: 4.2, max: 5.0, fractionDigits: 1 }),
+          // Correctly using nested creates for the new 'Teaches' relation
+          teaches: {
+            create: generateMockTeachesPayload(),
+          },
         },
       },
     },
