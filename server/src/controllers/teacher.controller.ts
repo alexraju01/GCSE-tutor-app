@@ -49,7 +49,24 @@ export const getAllTeachers: GetAllHandler<AllTeachers> = async (_, res) => {
 export const getOneTeacher: GetOneHandler<Teacher> = async (req, res) => {
   const { id } = req.params;
 
-  const teacher = await prisma.teacher.findUnique({ where: { id } });
+  const teacher = await prisma.teacher.findUnique({
+    where: { id },
+    include: {
+      user: {
+        select: {
+          name: true,
+          email: true,
+          image: true,
+        },
+      },
+      teaches: {
+        select: {
+          subject: true,
+          level: true,
+        },
+      },
+    },
+  });
 
   res.status(200).json({ status: "success", data: teacher });
 };
