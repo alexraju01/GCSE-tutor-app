@@ -1,11 +1,26 @@
 import { prisma } from "../db/prisma.js";
 import type { UpdateTeacherInput } from "../schemas/teacher.schema.js";
-import type { Teacher, User } from "@generated/client.js";
+import type { Teacher, User, Prisma } from "@generated/client.js";
 import type { RequestHandler } from "express";
 
-type UserDetails = Pick<User, "name" | "email" | "image">;
+// 1. Let Prisma infer the exact query payload structural return type
+type PrismaTeacherPayload = Prisma.TeacherGetPayload<{
+  include: {
+    user: {
+      select: { name: true; email: true; image: true };
+    };
+    teaches: {
+      select: { subject: true; level: true };
+    };
+  };
+}>;
 
-export type AllTeachers = Teacher & UserDetails;
+// 2. Define AllTeachers to match your flattened JSON array item structure
+export type AllTeachers = Omit<PrismaTeacherPayload, "user"> & {
+  name: string | null;
+  email: string;
+  image: string | null;
+};
 
 export const getAllTeachers: GetAllHandler<AllTeachers> = async (_, res) => {
   const teachers = await prisma.teacher.findMany({
