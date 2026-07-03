@@ -1,5 +1,6 @@
 import { api } from "@utils/api";
 import { Star, BookOpen, GraduationCap, Search } from "lucide-react";
+import type { Route } from "next";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -53,9 +54,10 @@ const TeachersPage = async () => {
 										</div>
 										<div className='flex-1 min-w-0'>
 											<div className='flex items-center justify-between gap-2'>
-												{/* 🎯 Next.js Link added here to route to your dynamic /teachers/[id]/page.tsx layout */}
 												<h2 className='font-bold text-lg text-slate-900 truncate group-hover:text-blue-600 transition-colors'>
-													<Link href={`/teachers/${teacher.id}`} className='hover:underline'>
+													<Link
+														href={`/teachers/${teacher.id}` as Route}
+														className='hover:underline'>
 														{teacher.name}
 													</Link>
 												</h2>
