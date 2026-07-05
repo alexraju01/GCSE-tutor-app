@@ -1,6 +1,6 @@
 import { prisma } from "../db/prisma.js";
 import type { UpdateTeacherInput } from "../schemas/teacher.schema.js";
-import type { Teacher, User, Prisma } from "@generated/client.js";
+import type { Teacher, Prisma } from "@generated/client.js";
 import type { RequestHandler } from "express";
 
 // 1. Let Prisma infer the exact query payload structural return type
@@ -10,7 +10,7 @@ type PrismaTeacherPayload = Prisma.TeacherGetPayload<{
       select: { name: true; email: true; image: true };
     };
     teaches: {
-      select: { subject: true; level: true };
+      select: { id: true; subject: true; level: true };
     };
   };
 }>;
@@ -34,6 +34,7 @@ export const getAllTeachers: GetAllHandler<AllTeachers> = async (_, res) => {
       },
       teaches: {
         select: {
+          id: true,
           subject: true,
           level: true,
         },
