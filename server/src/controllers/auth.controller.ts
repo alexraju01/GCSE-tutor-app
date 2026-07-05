@@ -13,8 +13,7 @@ interface TeacherFieldsPayload {
   bio?: string;
   qualifications?: string;
   hourlyRate?: number;
-  subjects?: Subject[];
-  levels?: Level[];
+  teaches: { subject: Subject; level: Level }[];
 }
 
 export const getProfileData = (role: Role, body: TeacherFieldsPayload) => {
@@ -26,8 +25,13 @@ export const getProfileData = (role: Role, body: TeacherFieldsPayload) => {
             bio: body.bio || "",
             qualifications: body.qualifications || "",
             hourlyRate: body.hourlyRate || 0,
-            subjects: body.subjects || [],
-            levels: body.levels || [],
+            // Maps the array of items to match the Teaches relationship model
+            teaches: {
+              create: (body.teaches || []).map((t: { subject: Subject; level: Level }) => ({
+                subject: t.subject,
+                level: t.level,
+              })),
+            },
           },
         },
       };
@@ -48,20 +52,17 @@ export const signUp: RequestHandler = async (req, res, next) => {
   const credentialsData = validatedData as CredentialsInput;
   const { name, email, password, role } = credentialsData;
 
-  // 🚨 FIX 1: Lowercase and trim the email to normalize it in the database
   const normalizedEmail = email.toLowerCase().trim();
 
   const hashedPassword = await bcrypt.hash(password, 12);
 
-  const { bio, qualifications, hourlyRate, subjects, levels } =
-    credentialsData as Partial<TeacherFieldsPayload>;
+  const { bio, qualifications, hourlyRate, teaches } = credentialsData as TeacherFieldsPayload;
 
   const profileRelation = getProfileData(role, {
     bio,
     qualifications,
     hourlyRate,
-    subjects,
-    levels,
+    teaches,
   });
 
   const newUser = await prisma.user.create({
@@ -84,7 +85,6 @@ export const login: RequestHandler = async (req, res, next) => {
     return next(new AppError("Please provide email and password!", 400));
   }
 
-  // 🚨 FIX 2: Lowercase and trim incoming emails on login to ensure match
   const normalizedEmail = email.toLowerCase().trim();
 
   const user = await prisma.user.findUnique({

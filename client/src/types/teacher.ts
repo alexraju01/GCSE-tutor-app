@@ -27,5 +27,5 @@ export interface Teacher {
 export interface TeachersAPIResponse {
 	status: string;
 	results: number;
-	data: TeacherData[];
+	data: Teacher[];
 }

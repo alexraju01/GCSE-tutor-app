@@ -7,7 +7,6 @@ import Link from "next/link";
 const TeachersPage = async () => {
 	const { data: teachers, results } = await api.teacher.getAll();
 
-	console.log("Teachers data:", teachers); // Log the fetched teachers data for debugging
 	return (
 		<div className='min-h-screen bg-slate-50 pb-16'>
 			{/* Header / Search Hero Section */}
@@ -36,20 +35,24 @@ const TeachersPage = async () => {
 
 			<main className='max-w-6xl mx-auto px-6 mt-12'>
 				<div className='grid grid-cols-1 md:grid-cols-2 gap-8'>
-					{teachers?.map(async (teacher) => {
+					{/* REMOVED async here to prevent React promise compilation crashes */}
+					{teachers?.map((teacher) => {
 						return (
 							<div
 								key={teacher.id}
-								className='bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group'>
+								className='bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-md hover:border-blue-200 transition-all flex flex-col justify-between group relative overflow-hidden'>
+								{/* Decorative Brand Accent Line on Top Hover */}
+								<div className='absolute top-0 left-0 right-0 h-1 bg-blue-600 scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300' />
+
 								<div>
 									{/* Top Layout Row: Avatar + Name + Badges */}
 									<div className='flex gap-4 items-start'>
-										<div className='relative h-16 w-16 shrink-0'>
+										<div className='relative h-16 w-16 shrink-0 rounded-xl overflow-hidden ring-2 ring-slate-100 group-hover:ring-blue-100 transition-all'>
 											<Image
 												src={teacher.image || ""}
 												alt={teacher.name || "Teacher Image"}
 												fill
-												className='rounded-xl object-cover border border-slate-100 shadow-sm'
+												className='object-cover'
 											/>
 										</div>
 										<div className='flex-1 min-w-0'>
@@ -68,15 +71,55 @@ const TeachersPage = async () => {
 											</div>
 
 											{/* Qualifications text */}
-											<p className='text-xs text-slate-500 flex items-center gap-1 mt-1 font-medium truncate'>
-												<GraduationCap size={14} className='text-slate-400' />
-												{teacher.qualifications}
+											<p className='text-xs text-slate-500 flex items-center gap-1 mt-1 font-medium w-full min-w-0'>
+												<GraduationCap size={14} className='text-blue-600 shrink-0' />
+												<span className='truncate'>{teacher.qualifications}</span>
 											</p>
 										</div>
 									</div>
 
+									{/* Brand-Matched Subjects Presentation */}
+									{teacher.teaches &&
+										teacher.teaches.length > 0 &&
+										(() => {
+											const groupedTeaches = Object.groupBy(
+												teacher.teaches,
+												(item) => item.level || "UNKNOWN",
+											);
+
+											return (
+												<div className='mt-5 p-3.5 bg-slate-50 border border-slate-100 rounded-xl space-y-3.5'>
+													{Object.entries(groupedTeaches).map(([level, Subjects]) => (
+														<div
+															key={level}
+															className='flex gap-3 items-start last:border-0 pb-3 last:pb-0 border-b border-slate-200/60'>
+															{/* Fixed Width Level Identifier */}
+															<span className='w-20 shrink-0 text-center bg-blue-600 text-white font-extrabold text-[9px] tracking-wider uppercase py-1 rounded-md shadow-xs'>
+																{level.replace("_", " ")}
+															</span>
+
+															{/* Clean List of Subjects per level */}
+															<div className='flex flex-wrap gap-1.5 flex-1'>
+																{Subjects?.map((item, index) => {
+																	const subjectText = item.subject.replaceAll("_", " ");
+
+																	return (
+																		<span
+																			key={index}
+																			className='text-xs bg-white text-slate-700 font-medium px-2.5 py-0.5 rounded-md border border-slate-200 shadow-2xs hover:bg-blue-50/50 hover:text-blue-700 hover:border-blue-200 transition-all capitalize'>
+																			{subjectText.toLowerCase()}
+																		</span>
+																	);
+																})}
+															</div>
+														</div>
+													))}
+												</div>
+											);
+										})()}
+
 									{/* Bio Snippet */}
-									<p className='text-sm text-slate-600 mt-4 line-clamp-3 leading-relaxed'>
+									<p className='text-sm text-slate-600 mt-4 line-clamp-2 leading-relaxed'>
 										{teacher.bio}
 									</p>
 								</div>
@@ -89,8 +132,9 @@ const TeachersPage = async () => {
 										</span>
 										<span className='text-xs text-slate-500 font-medium'> / hr</span>
 									</div>
-									{/* Book Lesson CTA: Direct state injection skips unneeded layout loading steps */}
-									<button>Book Now</button>
+									<button className='bg-blue-600 text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-blue-700 shadow-md shadow-blue-600/10 active:scale-98 transition-all'>
+										Book Now
+									</button>
 								</div>
 							</div>
 						);
