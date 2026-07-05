@@ -7,7 +7,7 @@ const PROTECTED_ROUTES: Record<string, ("TEACHER" | "STUDENT")[]> = {
 };
 
 // Instead of a direct re-export, wrap the auth call to inject custom routing logic
-export const proxy = auth((req) => {
+export default auth((req) => {
 	const { nextUrl } = req;
 	const isAuthenticated = !!req.auth;
 	const userRole = req.auth?.user?.role; // Strictly typed string literal from auth.d.ts
