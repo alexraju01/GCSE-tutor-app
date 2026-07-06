@@ -1,4 +1,5 @@
 export interface TeachesSubject {
+	id: string;
 	subject:
 		| "MATHEMATICS"
 		| "PHYSICS"

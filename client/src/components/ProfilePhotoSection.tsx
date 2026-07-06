@@ -18,6 +18,8 @@ export const ProfilePhotoSection = ({ image }: ProfilePhotoSectionProps) => {
 					alt='Profile Preview'
 					width={144}
 					height={144}
+					priority
+					loading='eager'
 					className='w-36 h-36 rounded-full object-cover border border-slate-100'
 				/>
 
