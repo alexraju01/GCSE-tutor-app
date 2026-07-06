@@ -1,7 +1,8 @@
 import { api } from "@utils/api";
-import { Eye, MapPin, Upload } from "lucide-react";
-import Image from "next/image";
 import { auth } from "@auth";
+import { ProfileHeader } from "@components/ProfileHeader";
+import { ProfilePhotoSection } from "@components/ProfilePhotoSection";
+import { PersonalInfoSection } from "@components/PersonalInfoSection";
 
 const TeacherProfilePage = async () => {
 	const session = await auth();
@@ -13,140 +14,32 @@ const TeacherProfilePage = async () => {
 	const { backendToken } = session;
 	const { data: teacherProfile } = await api.teacher.getMyProfile(backendToken);
 	console.log("Fetched Teacher Profile:", teacherProfile);
+
 	return (
 		<div className='min-h-screen bg-[#F8FAFC] text-[#0F172A] antialiased'>
-			{/* Top Header */}
-			<header className='max-w-6xl mx-auto px-4 pt-8 pb-4 flex items-center justify-between'>
-				<div>
-					<h1 className='text-2xl font-bold tracking-tight text-slate-900'>Update Profile</h1>
-					<p className='text-sm text-slate-500 mt-1'>
-						Manage your personal information and teaching details.
-					</p>
-				</div>
-				<button className='flex items-center gap-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-xl text-sm font-medium transition shadow-sm'>
-					<Eye className='w-4 h-4 text-slate-500' />
-					Preview Profile
-				</button>
-			</header>
+			<ProfileHeader />
 
-			{/* Main Container */}
 			<main className='max-w-6xl mx-auto px-4 pb-24 grid grid-cols-1 lg:grid-cols-3 gap-6 items-start'>
-				{/* Right Column: Profile Photo, Availability & Links */}
+				{/* Right Column: Photo, Availability, Links */}
 				<div className='space-y-6 order-first lg:order-2'>
-					{/* Section 1: Profile Photo */}
-					<section className='bg-white border border-slate-100 rounded-2xl p-6 shadow-sm flex flex-col items-center text-center'>
-						<h2 className='text-base font-semibold text-slate-900 w-full text-left mb-5'>
-							Profile Photo
-						</h2>
-
-						<div className='relative inline-block mb-4'>
-							<Image
-								src={teacherProfile?.user.image || "/default-profile.png"}
-								alt='Profile Preview'
-								width={144}
-								height={144}
-								className='w-36 h-36 rounded-full object-cover border border-slate-100'
-							/>
-
-							<button className='absolute bottom-1 right-1 p-1.5 bg-white border border-slate-200 rounded-full shadow-sm hover:bg-slate-50 text-slate-600'>
-								<svg
-									className='w-3.5 h-3.5'
-									fill='none'
-									viewBox='0 0 24 24'
-									stroke='currentColor'
-									strokeWidth='2.5'>
-									<path
-										strokeLinecap='round'
-										strokeLinejoin='round'
-										d='M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125'
-									/>
-								</svg>
-							</button>
-						</div>
-
-						<p className='text-[11px] text-slate-400 mb-4'>JPG, PNG or WebP. Max size 2MB.</p>
-
-						<button className='flex items-center gap-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-xl text-sm font-medium transition shadow-sm w-full justify-center'>
-							<Upload className='w-4 h-4 text-slate-500' />
-							Change Photo
-						</button>
-					</section>
-
-					{/* Section 2: Availability */}
-
-					{/* Section 3: Links */}
+					<ProfilePhotoSection image={teacherProfile?.user?.image} />
+					{/* <AvailabilitySection /> */}
+					{/* <LinksSection /> */}
 				</div>
 
 				{/* Left Column: Forms */}
 				<div className='lg:col-span-2 space-y-6 order-last lg:order-1'>
-					{/* Section 4: Personal Information */}
-					{/* Section 4: Personal Information */}
-					<section className='bg-white border border-slate-100 rounded-2xl p-6 shadow-sm space-y-5'>
-						<h2 className='text-base font-semibold text-slate-900'>Personal Information</h2>
-
-						<div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
-							<div className='space-y-1.5'>
-								<label className='text-xs font-medium text-slate-600'>Full Name</label>
-								<input
-									type='text'
-									// Autofill using the fetched profile data (fallback to empty string if undefined)
-									defaultValue={teacherProfile?.user?.name || ""}
-									className='w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500'
-								/>
-							</div>
-
-							<div className='space-y-1.5'>
-								<label className='text-xs font-medium text-slate-600'>Email Address</label>
-								<input
-									type='email'
-									defaultValue={teacherProfile?.user?.email || ""}
-									className='w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500'
-								/>
-							</div>
-							{/* 
-							<div className='space-y-1.5'>
-								<label className='text-xs font-medium text-slate-600'>Phone Number</label>
-								<input
-									type='text'
-									defaultValue={teacherProfile?.phoneNumber || ""}
-									className='w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500'
-								/>
-							</div> */}
-
-							{/* <div className='space-y-1.5'>
-								<label className='text-xs font-medium text-slate-600'>Location</label>
-								<div className='relative'>
-									<input
-										type='text'
-										defaultValue={teacherProfile?.location || ""}
-										className='w-full pl-3 pr-9 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500'
-									/>
-									<MapPin className='w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2' />
-								</div>
-							</div> */}
-						</div>
-
-						<div className='space-y-1.5'>
-							<div className='flex justify-between items-center'>
-								<label className='text-xs font-medium text-slate-600'>Bio</label>
-							</div>
-							<textarea
-								rows={4}
-								defaultValue={teacherProfile?.bio || ""}
-								className='w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none'
-							/>
-							<p className='text-[11px] text-right text-slate-400'>
-								{/* Calculate character count dynamically based on the current bio length */}
-								{teacherProfile?.bio?.length || 0}/500
-							</p>
-						</div>
-					</section>
-					{/* Section 5: Teaching Information */}
-
-					{/* Section 6: Education */}
+					<PersonalInfoSection
+						key={teacherProfile?.user?.name || "loading"}
+						user={teacherProfile?.user}
+						bio={teacherProfile?.bio}
+					/>
+					{/* <TeachingInformationSection /> */}
+					{/* <EducationSection /> */}
 				</div>
 			</main>
 		</div>
 	);
 };
+
 export default TeacherProfilePage;
