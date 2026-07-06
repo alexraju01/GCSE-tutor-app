@@ -1,5 +1,5 @@
 import { api } from "@utils/api";
-import { Eye, Upload } from "lucide-react";
+import { Eye, MapPin, Upload } from "lucide-react";
 import Image from "next/image";
 import { auth } from "@auth";
 
@@ -78,10 +78,69 @@ const TeacherProfilePage = async () => {
 				</div>
 
 				{/* Left Column: Forms */}
-
 				<div className='lg:col-span-2 space-y-6 order-last lg:order-1'>
 					{/* Section 4: Personal Information */}
+					{/* Section 4: Personal Information */}
+					<section className='bg-white border border-slate-100 rounded-2xl p-6 shadow-sm space-y-5'>
+						<h2 className='text-base font-semibold text-slate-900'>Personal Information</h2>
 
+						<div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
+							<div className='space-y-1.5'>
+								<label className='text-xs font-medium text-slate-600'>Full Name</label>
+								<input
+									type='text'
+									// Autofill using the fetched profile data (fallback to empty string if undefined)
+									defaultValue={teacherProfile?.user?.name || ""}
+									className='w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500'
+								/>
+							</div>
+
+							<div className='space-y-1.5'>
+								<label className='text-xs font-medium text-slate-600'>Email Address</label>
+								<input
+									type='email'
+									defaultValue={teacherProfile?.user?.email || ""}
+									className='w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500'
+								/>
+							</div>
+							{/* 
+							<div className='space-y-1.5'>
+								<label className='text-xs font-medium text-slate-600'>Phone Number</label>
+								<input
+									type='text'
+									defaultValue={teacherProfile?.phoneNumber || ""}
+									className='w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500'
+								/>
+							</div> */}
+
+							{/* <div className='space-y-1.5'>
+								<label className='text-xs font-medium text-slate-600'>Location</label>
+								<div className='relative'>
+									<input
+										type='text'
+										defaultValue={teacherProfile?.location || ""}
+										className='w-full pl-3 pr-9 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500'
+									/>
+									<MapPin className='w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2' />
+								</div>
+							</div> */}
+						</div>
+
+						<div className='space-y-1.5'>
+							<div className='flex justify-between items-center'>
+								<label className='text-xs font-medium text-slate-600'>Bio</label>
+							</div>
+							<textarea
+								rows={4}
+								defaultValue={teacherProfile?.bio || ""}
+								className='w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none'
+							/>
+							<p className='text-[11px] text-right text-slate-400'>
+								{/* Calculate character count dynamically based on the current bio length */}
+								{teacherProfile?.bio?.length || 0}/500
+							</p>
+						</div>
+					</section>
 					{/* Section 5: Teaching Information */}
 
 					{/* Section 6: Education */}
