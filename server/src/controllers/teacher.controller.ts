@@ -1,3 +1,4 @@
+import { AppError } from "@utils/AppError.js";
 import { prisma } from "../db/prisma.js";
 import type { UpdateTeacherInput } from "../schemas/teacher.schema.js";
 import type { Teacher, Prisma } from "@generated/client.js";
@@ -112,4 +113,41 @@ export const deleteTeacher: DeleteHandler = async (req, res) => {
 
   await prisma.teacher.delete({ where: { userId: id } });
   res.status(204).json({ status: "success", data: null });
+};
+
+export const getMyTeacherProfile: RequestHandler = async (req, res, next) => {
+  // 1. Grab the current user ID attached by your protect/auth middleware
+  const { id: userId } = req.user;
+
+  // 2. Fetch the profile directly using the unique userId relation key
+  const teacher = await prisma.teacher.findUnique({
+    omit: { totalEarnings: true, totalHours: true, rating: true },
+    where: { userId },
+    include: {
+      user: {
+        select: {
+          name: true,
+          email: true,
+          image: true,
+        },
+      },
+      teaches: {
+        select: {
+          id: true,
+          subject: true,
+          level: true,
+        },
+      },
+    },
+  });
+
+  if (!teacher) {
+    return next(new AppError("Teacher profile not found for this user account.", 404));
+  }
+
+  // 3. Return the fully populated profile shape
+  res.status(200).json({
+    status: "success",
+    data: teacher,
+  });
 };

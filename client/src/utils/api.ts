@@ -49,5 +49,17 @@ export const api = {
 	},
 	teacher: {
 		getAll: () => fetchData<APIResponse<Teacher[]>>("/teachers"),
+		getOne: (id: string) => fetchData<APIResponse<Teacher>>(`/teachers/${id}`),
+		getMyProfile: (token: string) =>
+			fetchData<APIResponse<Teacher>>("/teachers/me", {
+				headers: {
+					Authorization: `Bearer ${token}`,
+				},
+			}),
+		updateOne: (id: string, data: Partial<Teacher>) =>
+			fetchData<APIResponse<Teacher>>(`/teachers/${id}`, {
+				method: "PATCH",
+				body: data,
+			}),
 	},
 };

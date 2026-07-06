@@ -16,11 +16,9 @@ export interface Teacher {
 	email: string;
 	image: string | null;
 	bio: string;
+	user: User;
 	qualifications: string;
-	rating: number;
 	hourlyRate: number;
-	totalEarnings: number;
-	totalHours: number;
 	teaches: TeachesSubject[];
 }
 
@@ -28,4 +26,10 @@ export interface TeachersAPIResponse {
 	status: string;
 	results: number;
 	data: Teacher[];
+}
+
+interface User {
+	name: string;
+	email: string;
+	image: string;
 }

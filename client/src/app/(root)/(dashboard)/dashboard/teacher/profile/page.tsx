@@ -1,7 +1,18 @@
+import { api } from "@utils/api";
 import { Eye, Upload } from "lucide-react";
 import Image from "next/image";
+import { auth } from "@auth";
 
-const TeacherProfilePage = () => {
+const TeacherProfilePage = async () => {
+	const session = await auth();
+
+	if (!session || !session.backendToken) {
+		return <div>Please sign in to view your profile.</div>;
+	}
+
+	const { backendToken } = session;
+	const { data: teacherProfile } = await api.teacher.getMyProfile(backendToken);
+	console.log("Fetched Teacher Profile:", teacherProfile);
 	return (
 		<div className='min-h-screen bg-[#F8FAFC] text-[#0F172A] antialiased'>
 			{/* Top Header */}
@@ -30,7 +41,7 @@ const TeacherProfilePage = () => {
 
 						<div className='relative inline-block mb-4'>
 							<Image
-								src='https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=200'
+								src={teacherProfile?.user.image || "/default-profile.png"}
 								alt='Profile Preview'
 								width={144}
 								height={144}
