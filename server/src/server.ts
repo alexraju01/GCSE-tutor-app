@@ -6,6 +6,7 @@ import {
   availabilityRouter,
   studentRouter,
   socialRouter,
+  dashboardRouter,
 } from "@routes";
 import cookieParser from "cookie-parser";
 import cors from "cors";
@@ -28,6 +29,7 @@ app.use("/api/v1/teachers", teacherRouter);
 app.use("/api/v1/students", studentRouter);
 app.use("/api/v1/availability", availabilityRouter);
 app.use("/api/v1/auth", socialRouter);
+app.use("/api/v1/dashboard", dashboardRouter);
 
 app.use(globalErrorHandler);
 
