@@ -34,6 +34,12 @@ enum Level {
   A_LEVEL
 }
 
+// New Workspace configuration enum
+enum WorkspaceType {
+  INTEGRATED_CLASSROOM
+  EXTERNAL
+}
+
 model User {
   id                String    @id @default(uuid())
   email             String    @unique
@@ -54,18 +60,17 @@ model User {
 }
 
 model Teacher {
-  id             String  @id @default(uuid())
-  userId         String  @unique
-  user           User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  bio            String  @db.Text
-  qualifications String  @db.Text
-  rating         Float   @default(5.0)
-  hourlyRate     Decimal @db.Decimal(10, 2)
-  totalEarnings  Decimal @default(0.00) @db.Decimal(10, 2)
-  totalHours     Float   @default(0.0)
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio            String   @db.Text
+  qualifications String   @db.Text
+  rating         Float    @default(5.0)
+  hourlyRate     Decimal  @db.Decimal(10, 2)
+  totalEarnings  Decimal  @default(0.00) @db.Decimal(10, 2)
+  totalHours     Float    @default(0.0)
 
-  teaches Teaches[]
-
+  teaches        Teaches[]
   availabilities Availability[]
   bookings       Booking[]
 
@@ -77,8 +82,8 @@ model Teaches {
   teacherId String
   teacher   Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
 
-  subject Subject
-  level   Level
+  subject   Subject
+  level     Level
 
   @@unique([teacherId, subject, level])
   @@map("teaches")
@@ -94,53 +99,40 @@ model Student {
 }
 
 model Availability {
-  id        String  @id @default(uuid())
+  id        String   @id @default(uuid())
   teacherId String
-  teacher   Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  teacher   Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
 
-  startTime DateTime // e.g., 2026-06-24T16:00:00.000Z
-  endTime   DateTime // e.g., 2026-06-24T17:00:00.000Z
+  startTime DateTime 
+  endTime   DateTime 
 
-  isBooked Boolean   @default(false)
-  bookings Booking[]
+  isBooked  Boolean   @default(false)
+  bookings  Booking[]
 
   @@map("availabilities")
 }
 
-// model Availability {
-//   id        String   @id @default(uuid())
-//   teacherId String
-//   teacher   Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
-//   dayOfWeek Int      // 0 (Sunday) to 6 (Saturday)
-//   startTime String   // "09:00"
-//   endTime   String   // "10:00"
-//   isBooked  Boolean  @default(false)
-
-//   bookings  Booking[]
-
-//   @@map("availabilities")
-// }
-
 model Booking {
-  id String @id @default(uuid())
-
-  teacherId String
-  teacher   Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
-
-  studentId String
-  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
-
+  id             String        @id @default(uuid())
+  teacherId      String
+  teacher        Teacher       @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  studentId      String
+  student        Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
   availabilityId String
-  availability   Availability @relation(fields: [availabilityId], references: [id], onDelete: Cascade)
+  availability   Availability  @relation(fields: [availabilityId], references: [id], onDelete: Cascade)
 
-  startTime DateTime
-  endTime   DateTime
-  status    BookingStatus @default(PENDING)
-  notes     String?       @db.Text
-  createdAt DateTime      @default(now())
+  // Combined In-App Workspace tracking fields 👇
+  workspaceType  WorkspaceType @default(INTEGRATED_CLASSROOM)
+  meetingRoomId  String?       // Secure session ID token generated for your whiteboard/video canvas engine
 
-  // If a booking is deleted, the classroom must be removed
-  classroom Classroom?
+  startTime      DateTime
+  endTime        DateTime
+  status         BookingStatus @default(PENDING)
+  notes          String?       @db.Text
+  createdAt      DateTime      @default(now())
+
+  // Optional: Kept your existing classroom relation if you still need extra metadata tracked there
+  classroom      Classroom?
 
   @@map("bookings")
 }
@@ -152,7 +144,7 @@ model Classroom {
 
   meetingRoomId String  @unique
   isActive      Boolean @default(false)
-  joinCode      String // e.g., "482910" or "MATH-GCSE"
+  joinCode      String 
 
   teacherJoinedAt DateTime?
   studentJoinedAt DateTime?

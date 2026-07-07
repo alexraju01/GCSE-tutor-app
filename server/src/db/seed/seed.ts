@@ -1,5 +1,5 @@
 import { faker } from "@faker-js/faker";
-import { Role, BookingStatus, Level, Subject } from "@generated/client.js";
+import { Role, BookingStatus, Level, Subject, WorkspaceType } from "@generated/client.js";
 import { GREEN, BLUE, RED, RESET } from "@utils/colours.js";
 import bcrypt from "bcrypt";
 import { prisma } from "../prisma.js";
@@ -19,7 +19,6 @@ const generateMockTeachesPayload = () => {
 
   return selectedSubjects.map((subject) => ({
     subject,
-    // Assign a random discrete level to each individual subject selection
     level: faker.helpers.arrayElement([Level.GCSE, Level.A_LEVEL]),
   }));
 };
@@ -30,13 +29,13 @@ const clearDatabase = async (): Promise<void> => {
   await prisma.classroom.deleteMany();
   await prisma.booking.deleteMany();
   await prisma.availability.deleteMany();
-  await prisma.teaches.deleteMany(); // Added clean up for junction table
+  await prisma.teaches.deleteMany();
   await prisma.student.deleteMany();
   await prisma.teacher.deleteMany();
   await prisma.user.deleteMany();
 };
 
-// Generates a single mock teacher and links their profile (with optional custom email)
+// Generates a single mock teacher and links their profile
 const createMockTeacher = async (passwordHash: string, customEmail?: string) => {
   const firstName = faker.person.firstName();
   const lastName = faker.person.lastName();
@@ -56,7 +55,6 @@ const createMockTeacher = async (passwordHash: string, customEmail?: string) => 
           qualifications: `${faker.company.name()} University graduate. Certified Expert Educator.`,
           hourlyRate: faker.number.float({ min: 20, max: 55, fractionDigits: 2 }),
           rating: faker.number.float({ min: 4.2, max: 5.0, fractionDigits: 1 }),
-          // Correctly using nested creates for the new 'Teaches' relation
           teaches: {
             create: generateMockTeachesPayload(),
           },
@@ -67,7 +65,7 @@ const createMockTeacher = async (passwordHash: string, customEmail?: string) => 
   });
 };
 
-// Generates a single mock student and links their profile (with optional custom email)
+// Generates a single mock student and links their profile
 const createMockStudent = async (passwordHash: string, customEmail?: string) => {
   const firstName = faker.person.firstName();
   const lastName = faker.person.lastName();
@@ -87,17 +85,14 @@ const createMockStudent = async (passwordHash: string, customEmail?: string) => 
   });
 };
 
-// Senior Refactor: Generates distinct calendar-date slots based on the new DateTime schema
+// Generates distinct calendar-date slots based on the new DateTime schema
 const createTeacherAvailabilities = async (teacherId: string) => {
-  // Generates 4 distinct upcoming dates over the next 7 days
-  const randomDates = Array.from({ length: 4 }, () => faker.date.soon({ days: 7 }));
+  const randomDates = Array.from({ length: 6 }, () => faker.date.soon({ days: 7 }));
 
   const promises = randomDates.map((date) => {
-    // Standardize time slots to top-of-the-hour blocks (e.g., 14:00:00)
     const startTime = new Date(date);
     startTime.setMinutes(0, 0, 0);
 
-    // Automatically calculate the exact end time parameter
     const endTime = new Date(startTime.getTime() + SESSION_DURATION_MS);
 
     return prisma.availability.create({
@@ -116,6 +111,13 @@ const createTeacherAvailabilities = async (teacherId: string) => {
 // Handles execution contracts for creating bookings and physical live classrooms
 const processBookingAndClassroom = async (slot: Availability, studentId: string): Promise<void> => {
   const status = faker.helpers.arrayElement([BookingStatus.PENDING, BookingStatus.CONFIRMED]);
+  const workspaceType = faker.helpers.arrayElement([
+    WorkspaceType.INTEGRATED_CLASSROOM,
+    WorkspaceType.EXTERNAL,
+  ]);
+
+  const generatedMeetingRoomId =
+    workspaceType === WorkspaceType.INTEGRATED_CLASSROOM ? faker.string.uuid() : null;
 
   // Lock out the discrete availability block
   await prisma.availability.update({
@@ -123,7 +125,7 @@ const processBookingAndClassroom = async (slot: Availability, studentId: string)
     data: { isBooked: true },
   });
 
-  // Keep schedules identical to the availability allocation window
+  // Create booking with new inline tracking fields
   const booking = await prisma.booking.create({
     data: {
       teacherId: slot.teacherId,
@@ -132,15 +134,22 @@ const processBookingAndClassroom = async (slot: Availability, studentId: string)
       startTime: slot.startTime,
       endTime: slot.endTime,
       status,
+      workspaceType,
+      meetingRoomId: generatedMeetingRoomId,
       notes: faker.lorem.sentence(),
     },
   });
 
-  if (status === BookingStatus.CONFIRMED) {
+  // Seed the secondary Classroom model only if confirmed and using an integrated space
+  if (
+    status === BookingStatus.CONFIRMED &&
+    workspaceType === WorkspaceType.INTEGRATED_CLASSROOM &&
+    generatedMeetingRoomId
+  ) {
     await prisma.classroom.create({
       data: {
         bookingId: booking.id,
-        meetingRoomId: faker.string.uuid(),
+        meetingRoomId: generatedMeetingRoomId,
         joinCode: faker.string.numeric({ length: 6 }),
         isActive: faker.datatype.boolean({ probability: 0.3 }),
       },
@@ -158,7 +167,7 @@ const main = async () => {
   const saltRounds = 10;
   const passwordHash = await bcrypt.hash(DEFAULT_PASSWORD, saltRounds);
 
-  // 1. Seed Teachers (Forces the first one to use your static testing email)
+  // 1. Seed Teachers
   console.info(`${GREEN}Seeding ${TOTAL_TEACHERS} mock tutor profiles...`);
   const teacherUsers = await Promise.all(
     Array.from({ length: TOTAL_TEACHERS }, (_, index) =>
@@ -167,7 +176,7 @@ const main = async () => {
   );
   const teachers = teacherUsers.map((u) => u.teacher).filter(Boolean);
 
-  // 2. Seed Students (Forces the first one to use your static testing email)
+  // 2. Seed Students
   console.info(`${GREEN}Seeding ${TOTAL_STUDENTS} mock student profiles...`);
   const studentUsers = await Promise.all(
     Array.from({ length: TOTAL_STUDENTS }, (_, index) =>
@@ -176,38 +185,50 @@ const main = async () => {
   );
   const students = studentUsers.map((u) => u.student).filter(Boolean);
 
-  // 3. Generate schedule blocks across all instructors (including your test teacher)
+  // 3. Generate schedule blocks across all instructors
   console.info(`${GREEN}Generating weekly scheduling timelines for tutors...`);
   const availabilityNestedArrays = await Promise.all(
     teachers.map((t) => createTeacherAvailabilities(t!.id)),
   );
   const allAvailabilities = availabilityNestedArrays.flat();
 
-  // 4. Create bookings across all availabilities smoothly
-  console.info(`${GREEN}Creating historical and active session bookings...`);
-  const slotsToBook = faker.helpers.arrayElements(allAvailabilities, TOTAL_BOOKINGS);
+  // 4. Create bookings explicitly to ensure the requested total is met
+  console.info(`${GREEN}Creating exactly ${TOTAL_BOOKINGS} active session bookings...`);
 
-  for (const slot of slotsToBook) {
-    const randomStudent = faker.helpers.arrayElement(students);
-    if (randomStudent) {
-      await processBookingAndClassroom(slot, randomStudent.id);
+  // Pick out slots up to TOTAL_BOOKINGS explicitly
+  const slotsToBook = allAvailabilities.slice(
+    0,
+    Math.min(TOTAL_BOOKINGS, allAvailabilities.length),
+  );
+
+  for (let i = 0; i < slotsToBook.length; i++) {
+    const slot = slotsToBook[i];
+
+    // Ensure the main test student gets the first booking for predictable API testing
+    const student =
+      i === 0
+        ? students.find((s) => s!.userId === studentUsers[0].id)
+        : faker.helpers.arrayElement(students);
+
+    if (student) {
+      await processBookingAndClassroom(slot, student.id);
     }
   }
 
-  // 5. Clean, accurate terminal interface
+  // 5. Terminal interface outputs
   console.info("\n-------------------------------------------------------");
   console.info(`${GREEN}🚀 Active Seed Accounts Ready for API Testing:`);
   console.info(`\n👨‍🏫 TEST TEACHER (Has linked availabilities/bookings):`);
-  console.info(`   Name:     ${teacherUsers[0].name}`);
-  console.info(`   Email:    teacher@test.com`);
-  console.info(`   Password: ${DEFAULT_PASSWORD}`);
+  console.info(`   Name:      ${teacherUsers[0].name}`);
+  console.info(`   Email:     teacher@test.com`);
+  console.info(`   Password:  ${DEFAULT_PASSWORD}`);
   console.info(`\n🧑‍🎓 TEST STUDENT (Has linked bookings):`);
-  console.info(`   Name:     ${studentUsers[0].name}`);
-  console.info(`   Email:    student@test.com`);
-  console.info(`   Password: ${DEFAULT_PASSWORD}`);
+  console.info(`   Name:      ${studentUsers[0].name}`);
+  console.info(`   Email:     student@test.com`);
+  console.info(`   Password:  ${DEFAULT_PASSWORD}`);
   console.info("-------------------------------------------------------\n");
 
-  console.info(`${BLUE}Successfully seeded the database! ${RESET}`);
+  console.info(`${BLUE}Successfully seeded the database with booked lessons! ${RESET}`);
 };
 
 main()
