@@ -1,5 +1,5 @@
 import { api } from "@utils/api";
-import { Star, BookOpen, GraduationCap, Search } from "lucide-react";
+import { BookOpen, GraduationCap, Search } from "lucide-react";
 import type { Route } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -64,10 +64,10 @@ const TeachersPage = async () => {
 														{teacher.name}
 													</Link>
 												</h2>
-												<div className='flex items-center gap-1 bg-amber-50 text-amber-700 px-2 py-0.5 rounded-md text-xs font-bold shrink-0'>
+												{/* <div className='flex items-center gap-1 bg-amber-50 text-amber-700 px-2 py-0.5 rounded-md text-xs font-bold shrink-0'>
 													<Star className='h-3.5 w-3.5 fill-amber-500 text-amber-500' />
 													{teacher.rating.toFixed(1)}
-												</div>
+												</div> */}
 											</div>
 
 											{/* Qualifications text */}
