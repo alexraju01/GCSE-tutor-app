@@ -4,28 +4,31 @@ import {
   updateAvailability,
   deleteAvailability,
 } from "@controllers/availability.controller.js";
+import { Role } from "@generated/client.js";
 import { protect, authorize, validate } from "@middleware";
 import { Router } from "express";
+
 import {
   createAvailabilitySchema,
   updateAvailabilitySchema,
 } from "../schemas/availability.schema.js";
+
 export const availabilityRouter = Router();
 
 availabilityRouter.get("/", protect, getAllAvailabilities);
 availabilityRouter.post(
   "/",
   protect,
-  authorize("TEACHER"),
+  authorize(Role.Teacher),
   validate(createAvailabilitySchema),
   createAvailabilities,
 );
 availabilityRouter.patch(
   "/:id",
   protect,
-  authorize("TEACHER"),
+  authorize(Role.Teacher),
   validate(updateAvailabilitySchema),
   updateAvailability,
 );
 
-availabilityRouter.delete("/:id", protect, authorize("TEACHER"), deleteAvailability);
+availabilityRouter.delete("/:id", protect, authorize(Role.Teacher), deleteAvailability);

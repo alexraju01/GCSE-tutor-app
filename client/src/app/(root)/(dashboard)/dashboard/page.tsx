@@ -8,7 +8,7 @@ const DashboardGatewayPage = async () => {
 
 	const { role } = session.user;
 
-	if (role === "TEACHER") {
+	if (role === "Teacher") {
 		redirect("/dashboard/teacher");
 	} else {
 		redirect("/dashboard/student");

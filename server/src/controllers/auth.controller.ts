@@ -18,7 +18,7 @@ interface TeacherFieldsPayload {
 
 export const getProfileData = (role: Role, body: TeacherFieldsPayload) => {
   switch (role) {
-    case Role.TEACHER:
+    case Role.Teacher:
       return {
         teacher: {
           create: {
@@ -35,7 +35,7 @@ export const getProfileData = (role: Role, body: TeacherFieldsPayload) => {
           },
         },
       };
-    case Role.STUDENT:
+    case Role.Student:
       return { student: { create: {} } };
     default:
       return {};

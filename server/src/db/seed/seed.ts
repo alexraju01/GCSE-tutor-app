@@ -47,7 +47,7 @@ const createMockTeacher = async (passwordHash: string, customEmail?: string) => 
       name: `${firstName} ${lastName}`,
       image: faker.image.avatar(),
       password: passwordHash,
-      role: Role.TEACHER,
+      role: Role.Teacher,
       provider: "credentials",
       teacher: {
         create: {
@@ -77,7 +77,7 @@ const createMockStudent = async (passwordHash: string, customEmail?: string) => 
       name: `${firstName} ${lastName}`,
       image: faker.image.avatar(),
       password: passwordHash,
-      role: Role.STUDENT,
+      role: Role.Student,
       provider: "credentials",
       student: { create: {} },
     },

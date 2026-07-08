@@ -8,9 +8,9 @@ datasource db {
 }
 
 enum Role {
-  STUDENT
-  TEACHER
-  ADMIN
+  Student
+  Teacher
+  Admin
 }
 
 enum BookingStatus {
@@ -48,7 +48,7 @@ model User {
   provider          String    @default("credentials")
   providerId        String?   @unique
   image             String?
-  role              Role      @default(STUDENT)
+  role              Role      @default(Student)
   passwordChangedAt DateTime?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt

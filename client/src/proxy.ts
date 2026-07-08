@@ -1,9 +1,9 @@
 import { auth } from "@auth";
 import { NextResponse } from "next/server";
 
-const PROTECTED_ROUTES: Record<string, ("TEACHER" | "STUDENT")[]> = {
-	"/dashboard/teacher": ["TEACHER"],
-	"/dashboard/student": ["STUDENT"],
+const PROTECTED_ROUTES: Record<string, ("Teacher" | "Student")[]> = {
+	"/dashboard/teacher": ["Teacher"],
+	"/dashboard/student": ["Student"],
 };
 
 // Instead of a direct re-export, wrap the auth call to inject custom routing logic
@@ -24,7 +24,7 @@ export default auth((req) => {
 		const allowedRoles = PROTECTED_ROUTES[matchedPath];
 		if (!userRole || !allowedRoles.includes(userRole)) {
 			// Safely bounce them back to their appropriate home layout
-			const fallbackRoute = userRole === "TEACHER" ? "/dashboard/teacher" : "/dashboard/student";
+			const fallbackRoute = userRole === "Teacher" ? "/dashboard/teacher" : "/dashboard/student";
 			return NextResponse.redirect(new URL(fallbackRoute, nextUrl));
 		}
 	}

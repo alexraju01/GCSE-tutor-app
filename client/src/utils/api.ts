@@ -25,7 +25,7 @@ export const api = {
 				image?: string | null;
 			},
 			account: { provider: string; providerAccountId: string },
-			role?: "STUDENT" | "TEACHER",
+			role?: "Student" | "Teacher",
 		): Promise<SocialLoginResponse> => {
 			if (!user.email || !user.name) {
 				throw new Error("Missing required user info for social login");
@@ -37,7 +37,7 @@ export const api = {
 				image: user.image ?? undefined,
 				provider: account.provider,
 				providerId: account.providerAccountId,
-				role: role || "STUDENT",
+				role: role || "Student",
 			};
 
 			const res = await fetchData<SocialLoginResponse<SocialUserData>>("/auth/social-sync", {

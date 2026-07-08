@@ -8,7 +8,7 @@ import Link from "next/link";
 interface User {
 	name?: string | null;
 	email?: string | null;
-	role: "TEACHER" | "STUDENT";
+	role: "Teacher" | "Student";
 }
 
 interface AvatarProps {
@@ -17,12 +17,12 @@ interface AvatarProps {
 }
 
 const Avatar = ({ user, setIsOpen }: AvatarProps) => {
-	const formattedRole = user?.role === "TEACHER" ? "Teacher Account" : "Student Account";
+	const formattedRole = user?.role === "Teacher" ? "Teacher Account" : "Student Account";
 
 	const dashboardLink: Route =
-		user?.role === "TEACHER" ? "/dashboard/teacher" : "/dashboard/student";
+		user?.role === "Teacher" ? "/dashboard/teacher" : "/dashboard/student";
 	const profileLink: Route =
-		user?.role === "TEACHER" ? "/dashboard/teacher/profile" : "/dashboard/student/profile";
+		user?.role === "Teacher" ? "/dashboard/teacher/profile" : "/dashboard/student/profile";
 
 	return (
 		<>
