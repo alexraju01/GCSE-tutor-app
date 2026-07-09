@@ -10,8 +10,10 @@ import UserMenu from "./UserMenu";
 const Navbar = async () => {
   const session = await auth();
   const user = session?.user;
+
+  // Log the session for debugging
   const dashboardHref: Route =
-    user?.role === "TEACHER" ? "/dashboard/teacher" : "/dashboard/student";
+    user?.role === "Teacher" ? "/dashboard/teacher" : "/dashboard/student";
 
   return (
     <nav className="sticky top-0 z-50 flex items-center justify-between border-b bg-white px-6 py-4">

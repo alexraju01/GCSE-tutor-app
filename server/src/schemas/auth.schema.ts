@@ -36,28 +36,28 @@ const teacherCredentialsSchema = z.object({
   ...baseAuthFields,
   ...credentialsFields,
   ...teacherFieldsShape,
-  role: z.literal(Role.TEACHER),
+  role: z.literal(Role.Teacher),
 });
 
 const studentCredentialsSchema = z.object({
   ...baseAuthFields,
   ...credentialsFields,
   ...studentFieldsShape,
-  role: z.literal(Role.STUDENT),
+  role: z.literal(Role.Student),
 });
 
 const teacherSocialSchema = z.object({
   ...baseAuthFields,
   ...socialFields,
   ...teacherFieldsShape,
-  role: z.literal(Role.TEACHER),
+  role: z.literal(Role.Teacher),
 });
 
 const studentSocialSchema = z.object({
   ...baseAuthFields,
   ...socialFields,
   ...studentFieldsShape,
-  role: z.literal(Role.STUDENT),
+  role: z.literal(Role.Student),
 });
 
 // ==========================================
@@ -82,7 +82,7 @@ export const registrationSchema = z
     if (val && typeof val === "object") {
       return {
         provider: "credentials",
-        role: Role.STUDENT,
+        role: Role.Student,
         ...val,
       };
     }
@@ -93,7 +93,7 @@ export const registrationSchema = z
 export const socialSyncSchema = z.object({
   ...baseAuthFields,
   ...socialFields,
-  role: z.enum([Role.STUDENT, Role.TEACHER]),
+  role: z.enum([Role.Student, Role.Teacher]),
 });
 
 export type SocialSyncInput = z.infer<typeof socialSyncSchema>;

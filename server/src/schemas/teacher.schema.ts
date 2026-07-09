@@ -2,6 +2,16 @@ import { Level, Subject } from "@generated/enums.js";
 import { z } from "zod";
 
 // Core teacher fields primitive shape
+
+export const teachesItemSchema = z.object({
+  subject: z.enum(Subject, {
+    message: `Invalid subject selection. Available options: ${Object.values(Subject).join(", ")}`,
+  }),
+  level: z.enum(Level, {
+    message: `Invalid level selection. Available options: ${Object.values(Level).join(", ")}`,
+  }),
+});
+
 export const teacherFieldsShape = {
   bio: z
     .string({ error: "Bio is required" })
@@ -15,14 +25,12 @@ export const teacherFieldsShape = {
       error: (issue) =>
         issue.input === undefined ? "Hourly rate is required" : "Hourly rate must be a number",
     })
-    .int({ message: "Needs to be an integer" })
     .positive({ message: "Hourly rate must be a positive number" }),
-  subjects: z
-    .array(z.enum(Subject), { error: "Subjects are required" })
-    .min(1, { message: "Select at least one subject" }),
-  levels: z
-    .array(z.enum(Level), { error: "Levels are required" })
-    .min(1, { message: "Select at least one level" }),
+  teaches: z
+    .array(teachesItemSchema, {
+      message: "Teaching subjects and levels is required as an object under 'teaches' field",
+    })
+    .min(1, { message: "Select at least one subject and level pair" }),
 };
 
 // 1. Used for teacher-specific profile PATCH routes

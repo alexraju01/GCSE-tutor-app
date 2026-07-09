@@ -5,7 +5,10 @@ CREATE TYPE "Role" AS ENUM ('STUDENT', 'TEACHER', 'ADMIN');
 CREATE TYPE "BookingStatus" AS ENUM ('PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED');
 
 -- CreateEnum
-CREATE TYPE "Level" AS ENUM ('GCSE', 'A_LEVEL', 'BOTH');
+CREATE TYPE "Subject" AS ENUM ('Mathematics', 'Physics', 'Chemistry', 'Biology', 'English Literature', 'Computer Science');
+
+-- CreateEnum
+CREATE TYPE "Level" AS ENUM ('GCSE', 'A_LEVEL');
 
 -- CreateTable
 CREATE TABLE "users" (
@@ -30,14 +33,22 @@ CREATE TABLE "teachers" (
     "userId" TEXT NOT NULL,
     "bio" TEXT NOT NULL,
     "qualifications" TEXT NOT NULL,
-    "hourlyRate" DOUBLE PRECISION NOT NULL,
-    "subjects" TEXT[],
-    "levels" "Level"[],
     "rating" DOUBLE PRECISION NOT NULL DEFAULT 5.0,
-    "totalEarnings" DOUBLE PRECISION NOT NULL DEFAULT 0.0,
+    "hourlyRate" DECIMAL(10,2) NOT NULL,
+    "totalEarnings" DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     "totalHours" DOUBLE PRECISION NOT NULL DEFAULT 0.0,
 
     CONSTRAINT "teachers_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "teaches" (
+    "id" TEXT NOT NULL,
+    "teacherId" TEXT NOT NULL,
+    "subject" "Subject" NOT NULL,
+    "level" "Level" NOT NULL,
+
+    CONSTRAINT "teaches_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -52,9 +63,8 @@ CREATE TABLE "students" (
 CREATE TABLE "availabilities" (
     "id" TEXT NOT NULL,
     "teacherId" TEXT NOT NULL,
-    "dayOfWeek" INTEGER NOT NULL,
-    "startTime" TEXT NOT NULL,
-    "endTime" TEXT NOT NULL,
+    "startTime" TIMESTAMP(3) NOT NULL,
+    "endTime" TIMESTAMP(3) NOT NULL,
     "isBooked" BOOLEAN NOT NULL DEFAULT false,
 
     CONSTRAINT "availabilities_pkey" PRIMARY KEY ("id")
@@ -81,6 +91,7 @@ CREATE TABLE "classrooms" (
     "bookingId" TEXT NOT NULL,
     "meetingRoomId" TEXT NOT NULL,
     "isActive" BOOLEAN NOT NULL DEFAULT false,
+    "joinCode" TEXT NOT NULL,
     "teacherJoinedAt" TIMESTAMP(3),
     "studentJoinedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -99,6 +110,9 @@ CREATE UNIQUE INDEX "users_providerId_key" ON "users"("providerId");
 CREATE UNIQUE INDEX "teachers_userId_key" ON "teachers"("userId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "teaches_teacherId_subject_level_key" ON "teaches"("teacherId", "subject", "level");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "students_userId_key" ON "students"("userId");
 
 -- CreateIndex
@@ -111,16 +125,19 @@ CREATE UNIQUE INDEX "classrooms_meetingRoomId_key" ON "classrooms"("meetingRoomI
 ALTER TABLE "teachers" ADD CONSTRAINT "teachers_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "teaches" ADD CONSTRAINT "teaches_teacherId_fkey" FOREIGN KEY ("teacherId") REFERENCES "teachers"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "students" ADD CONSTRAINT "students_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "availabilities" ADD CONSTRAINT "availabilities_teacherId_fkey" FOREIGN KEY ("teacherId") REFERENCES "teachers"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "bookings" ADD CONSTRAINT "bookings_teacherId_fkey" FOREIGN KEY ("teacherId") REFERENCES "teachers"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "bookings" ADD CONSTRAINT "bookings_teacherId_fkey" FOREIGN KEY ("teacherId") REFERENCES "teachers"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "bookings" ADD CONSTRAINT "bookings_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "students"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "bookings" ADD CONSTRAINT "bookings_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "students"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "bookings" ADD CONSTRAINT "bookings_availabilityId_fkey" FOREIGN KEY ("availabilityId") REFERENCES "availabilities"("id") ON DELETE CASCADE ON UPDATE CASCADE;

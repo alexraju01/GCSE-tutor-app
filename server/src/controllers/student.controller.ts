@@ -57,17 +57,17 @@ export const getOneStudent: GetOneHandler<AllStudentsFlat> = async (req, res, ne
   let isAuthorized = false;
 
   // Rule A: Admins bypass everything
-  if (loggedInUser.role === Role.ADMIN) {
+  if (loggedInUser.role === Role.Admin) {
     isAuthorized = true;
   }
 
   // Rule B: Students can read their own specific profile
-  if (loggedInUser.role === Role.STUDENT && student.userId === loggedInUser.id) {
+  if (loggedInUser.role === Role.Student && student.userId === loggedInUser.id) {
     isAuthorized = true;
   }
 
   // Rule C: Teachers can ONLY see this student if they have an associated booking
-  if (loggedInUser.role === Role.TEACHER) {
+  if (loggedInUser.role === Role.Teacher) {
     const activeBooking = await prisma.booking.findFirst({
       where: {
         studentId,

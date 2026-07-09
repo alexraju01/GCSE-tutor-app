@@ -42,6 +42,8 @@ const UserMenu = ({ user }: UserMenuProps) => {
               width={40}
               height={40}
               alt={user.name || "User"}
+              priority
+              loading="eager"
               className="h-full w-full object-cover"
             />
           ) : (
@@ -52,7 +54,6 @@ const UserMenu = ({ user }: UserMenuProps) => {
         </div>
       </button>
 
-      {/* The Avatar component handles the dropdown items/sign out */}
       {isOpen && <Avatar user={user} setIsOpen={setIsOpen} />}
     </div>
   );

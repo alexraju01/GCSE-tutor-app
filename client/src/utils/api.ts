@@ -1,5 +1,5 @@
 import { fetchData } from "@utils/fetchData";
-
+import { Teacher } from "../types/teacher";
 import type { SocialLoginResponse, SocialUserData } from "../types/auth";
 
 export const api = {
@@ -25,7 +25,7 @@ export const api = {
         image?: string | null;
       },
       account: { provider: string; providerAccountId: string },
-      role?: "STUDENT" | "TEACHER",
+      role?: "Student" | "Teacher",
     ): Promise<SocialLoginResponse> => {
       if (!user.email || !user.name) {
         throw new Error("Missing required user info for social login");
@@ -37,7 +37,7 @@ export const api = {
         image: user.image ?? undefined,
         provider: account.provider,
         providerId: account.providerAccountId,
-        role: role || "STUDENT",
+        role: role || "Student",
       };
 
       const res = await fetchData<SocialLoginResponse<SocialUserData>>(
@@ -51,6 +51,18 @@ export const api = {
     },
   },
   teacher: {
-    getAll: () => fetchData("/teachers"),
+    getAll: () => fetchData<APIResponse<Teacher[]>>("/teachers"),
+    getOne: (id: string) => fetchData<APIResponse<Teacher>>(`/teachers/${id}`),
+    getMyProfile: (token: string) =>
+      fetchData<APIResponse<Teacher>>("/teachers/me", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }),
+    updateOne: (id: string, data: Partial<Teacher>) =>
+      fetchData<APIResponse<Teacher>>(`/teachers/${id}`, {
+        method: "PATCH",
+        body: data,
+      }),
   },
 };

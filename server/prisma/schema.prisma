@@ -1,4 +1,3 @@
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -9,9 +8,9 @@ datasource db {
 }
 
 enum Role {
-  STUDENT
-  TEACHER
-  ADMIN
+  Student
+  Teacher
+  Admin
 }
 
 enum BookingStatus {
@@ -22,10 +21,10 @@ enum BookingStatus {
 }
 
 enum Subject {
-  MATHEMATICS       @map("Mathematics")
-  PHYSICS           @map("Physics")
-  CHEMISTRY         @map("Chemistry")
-  BIOLOGY           @map("Biology")
+  MATHEMATICS        @map("Mathematics")
+  PHYSICS            @map("Physics")
+  CHEMISTRY          @map("Chemistry")
+  BIOLOGY            @map("Biology")
   ENGLISH_LITERATURE @map("English Literature")
   COMPUTER_SCIENCE   @map("Computer Science")
 }
@@ -33,7 +32,12 @@ enum Subject {
 enum Level {
   GCSE
   A_LEVEL
-  BOTH
+}
+
+// New Workspace configuration enum
+enum WorkspaceType {
+  INTEGRATED_CLASSROOM
+  EXTERNAL
 }
 
 model User {
@@ -44,34 +48,45 @@ model User {
   provider          String    @default("credentials")
   providerId        String?   @unique
   image             String?
-  role              Role      @default(STUDENT)
+  role              Role      @default(Student)
   passwordChangedAt DateTime?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
-  teacher           Teacher?
-  student           Student?
+  teacher Teacher?
+  student Student?
 
   @@map("users")
 }
 
 model Teacher {
-  id             String         @id @default(uuid())
-  userId         String         @unique
-  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  bio            String         @db.Text
-  qualifications String         @db.Text
-  hourlyRate     Float
-  subjects       Subject[]       
-  levels         Level[]        
-  rating         Float          @default(5.0)
-  totalEarnings  Float          @default(0.0)
-  totalHours     Float          @default(0.0)
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio            String   @db.Text
+  qualifications String   @db.Text
+  rating         Float    @default(5.0)
+  hourlyRate     Decimal  @db.Decimal(10, 2)
+  totalEarnings  Decimal  @default(0.00) @db.Decimal(10, 2)
+  totalHours     Float    @default(0.0)
 
+  teaches        Teaches[]
   availabilities Availability[]
   bookings       Booking[]
 
   @@map("teachers")
+}
+
+model Teaches {
+  id        String  @id @default(uuid())
+  teacherId String
+  teacher   Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  subject   Subject
+  level     Level
+
+  @@unique([teacherId, subject, level])
+  @@map("teaches")
 }
 
 model Student {
@@ -83,46 +98,32 @@ model Student {
   @@map("students")
 }
 
-
 model Availability {
   id        String   @id @default(uuid())
   teacherId String
   teacher   Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
-  
-  startTime DateTime // e.g., 2026-06-24T16:00:00.000Z
-  endTime   DateTime // e.g., 2026-06-24T17:00:00.000Z
-  
-  isBooked  Boolean  @default(false)
+
+  startTime DateTime 
+  endTime   DateTime 
+
+  isBooked  Boolean   @default(false)
   bookings  Booking[]
 
   @@map("availabilities")
 }
 
-// model Availability {
-//   id        String   @id @default(uuid())
-//   teacherId String
-//   teacher   Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
-//   dayOfWeek Int      // 0 (Sunday) to 6 (Saturday)
-//   startTime String   // "09:00"
-//   endTime   String   // "10:00"
-//   isBooked  Boolean  @default(false)
-  
-//   bookings  Booking[]
-
-//   @@map("availabilities")
-// }
-
 model Booking {
   id             String        @id @default(uuid())
-  
   teacherId      String
   teacher        Teacher       @relation(fields: [teacherId], references: [id], onDelete: Cascade)
-  
   studentId      String
   student        Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  
   availabilityId String
   availability   Availability  @relation(fields: [availabilityId], references: [id], onDelete: Cascade)
+
+  // Combined In-App Workspace tracking fields 👇
+  workspaceType  WorkspaceType @default(INTEGRATED_CLASSROOM)
+  meetingRoomId  String?       // Secure session ID token generated for your whiteboard/video canvas engine
 
   startTime      DateTime
   endTime        DateTime
@@ -130,21 +131,21 @@ model Booking {
   notes          String?       @db.Text
   createdAt      DateTime      @default(now())
 
-  // If a booking is deleted, the classroom must be removed
+  // Optional: Kept your existing classroom relation if you still need extra metadata tracked there
   classroom      Classroom?
 
   @@map("bookings")
 }
 
 model Classroom {
-  id              String    @id @default(uuid())
-  bookingId       String    @unique 
-  booking         Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  
-  meetingRoomId   String    @unique 
-  isActive        Boolean   @default(false)
-  joinCode        String    // e.g., "482910" or "MATH-GCSE"
-  
+  id        String  @id @default(uuid())
+  bookingId String  @unique
+  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  meetingRoomId String  @unique
+  isActive      Boolean @default(false)
+  joinCode      String 
+
   teacherJoinedAt DateTime?
   studentJoinedAt DateTime?
   createdAt       DateTime  @default(now())

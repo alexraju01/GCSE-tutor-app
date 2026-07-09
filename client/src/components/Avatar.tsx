@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutDashboard, LogOut } from "lucide-react";
+import { LayoutDashboard, LogOut, User } from "lucide-react";
 import type { Route } from "next";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
@@ -8,7 +8,7 @@ import Link from "next/link";
 interface User {
   name?: string | null;
   email?: string | null;
-  role: "TEACHER" | "STUDENT";
+  role: "Teacher" | "Student";
 }
 
 interface AvatarProps {
@@ -18,10 +18,14 @@ interface AvatarProps {
 
 const Avatar = ({ user, setIsOpen }: AvatarProps) => {
   const formattedRole =
-    user?.role === "TEACHER" ? "Teacher Account" : "Student Account";
+    user?.role === "Teacher" ? "Teacher Account" : "Student Account";
 
   const dashboardLink: Route =
-    user?.role === "TEACHER" ? "/dashboard/teacher" : "/dashboard/student";
+    user?.role === "Teacher" ? "/dashboard/teacher" : "/dashboard/student";
+  const profileLink: Route =
+    user?.role === "Teacher"
+      ? "/dashboard/teacher/profile"
+      : "/dashboard/student/profile";
 
   return (
     <>
@@ -47,6 +51,17 @@ const Avatar = ({ user, setIsOpen }: AvatarProps) => {
 
         <div className="space-y-0.5 p-1.5">
           <Link
+            href={profileLink}
+            onClick={() => setIsOpen(false)}
+            className="group flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 hover:text-blue-600"
+          >
+            <User
+              size={16}
+              className="text-slate-400 transition-colors group-hover:text-blue-600"
+            />
+            Profile
+          </Link>
+          <Link
             href={dashboardLink}
             onClick={() => setIsOpen(false)}
             className="group flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 hover:text-blue-600"
@@ -57,9 +72,7 @@ const Avatar = ({ user, setIsOpen }: AvatarProps) => {
             />
             Go to Dashboard
           </Link>
-
           <hr className="mx-1 my-1 border-slate-100" />
-
           <button
             onClick={() => signOut({ callbackUrl: "/" })}
             className="group flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-bold text-red-600 transition-colors hover:bg-red-50"
