@@ -7,20 +7,18 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "GCSE Ace",
-  description: "Master your GCSEs with elite 1-on-1 expert tutors",
+	title: "GCSE Ace",
+	description: "Master your GCSEs with elite 1-on-1 expert tutors",
 };
 const RootLayout = ({ children }: Readonly<{ children: React.ReactNode }>) => {
-  return (
-    <html lang="en">
-      <body
-        className={`${inter.className} bg-slate-50 text-slate-900 antialiased`}
-      >
-        {children}
-        <Toaster />
-      </body>
-    </html>
-  );
+	return (
+		<html lang='en'>
+			<body className={`${inter.className} bg-slate-50 text-slate-900 antialiased`}>
+				{children}
+				<Toaster />
+			</body>
+		</html>
+	);
 };
 
 export default RootLayout;

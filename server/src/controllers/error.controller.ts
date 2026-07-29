@@ -90,8 +90,8 @@ const handlePrismaValidationError = () => {
 };
 
 const handleRecordNotFoundErrorDB = (err: Prisma.PrismaClientKnownRequestError) => {
-  const modelName = err.meta?.modelName ?? "Resource";
-  return new AppError(`${modelName} not found`, 404);
+  const modelName = (err.meta?.modelName ?? ("resource" as string)) as string;
+  return new AppError(`No ${modelName?.toLowerCase()} with this id`, 404);
 };
 
 export const globalErrorHandler = (

@@ -66,21 +66,14 @@ export const getAllTeachers: GetAllHandler<AllTeachers> = async (_, res) => {
 export const getOneTeacher: GetOneHandler<Teacher> = async (req, res) => {
   const { id } = req.params;
 
-  const teacher = await prisma.teacher.findUnique({
+  const teacher = await prisma.teacher.findUniqueOrThrow({
     where: { id },
     include: {
       user: {
-        select: {
-          name: true,
-          email: true,
-          image: true,
-        },
+        select: { name: true, email: true, image: true },
       },
       teaches: {
-        select: {
-          subject: true,
-          level: true,
-        },
+        select: { subject: true, level: true },
       },
     },
   });
@@ -88,10 +81,12 @@ export const getOneTeacher: GetOneHandler<Teacher> = async (req, res) => {
   res.status(200).json({ status: "success", data: teacher });
 };
 
-export const deleteTeacher: DeleteHandler = async (req, res) => {
+export const deleteTeacher: DeleteHandler = async (req, res, next) => {
   const { id } = req.user;
 
-  await prisma.teacher.delete({ where: { userId: id } });
+  const teacher = await prisma.teacher.delete({ where: { userId: id } });
+
+  if (!teacher) return next(new AppError("No Teacher found with this id", 404));
   res.status(204).json({ status: "success", data: null });
 };
 

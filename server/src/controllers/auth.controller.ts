@@ -137,7 +137,8 @@ const signToken = (id: string): string => {
 export const logout: RequestHandler = (req, res) => {
   const isProduction = process.env.NODE_ENV === "production";
 
-  res.clearCookie("JWT", {
+  res.cookie("JWT", "loggedout", {
+    expires: new Date(Date.now() + 10 * 1000), // Expires in 10s
     httpOnly: true,
     secure: isProduction,
     sameSite: isProduction ? "none" : "lax",

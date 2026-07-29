@@ -9,15 +9,18 @@ export const getAllUsers: GetAllHandler<User> = async (_, res) => {
 
 export const getOneUser: GetOneHandler<User> = async (req, res) => {
   const { id } = req.params;
+
   const user = await prisma.user.findUnique({ where: { id } });
 
   res.status(200).json({ status: "success", data: user });
 };
 
-export const deleteUser: DeleteHandler = async (req, res) => {
+export const deleteUser: DeleteHandler = async (req, res, next) => {
   const { id } = req.params;
 
-  await prisma.user.delete({ where: { id } });
+  const user = await prisma.user.delete({ where: { id } });
+
+  // if (!user) return next(new AppError("No User found with this id", 404));
 
   res.status(204).json({ status: "success", data: null });
 };
