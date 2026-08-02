@@ -2,6 +2,7 @@ import { prisma } from "@db/prisma.js";
 import { AppError } from "@utils/AppError.js";
 import type { Availability } from "@generated/client.js";
 import type { createAvailabilityInput, updateAvailabilityInput } from "@schemas";
+import type { Request, Response, NextFunction } from "express";
 
 const requireTeacherId = async (userId: string | undefined): Promise<string> => {
   const teacher = await prisma.teacher.findUnique({
@@ -39,7 +40,7 @@ const checkOverlap = async (
   }
 };
 
-export const getAllAvailabilities: GetAllHandler<Availability> = async (req, res) => {
+export const getAllAvailabilities = async (req: Request, res: Response) => {
   const userId = req.user?.id;
   const teacherId = await requireTeacherId(userId);
 
@@ -58,10 +59,7 @@ export const getAllAvailabilities: GetAllHandler<Availability> = async (req, res
   });
 };
 
-export const createAvailabilities: CreateHandler<Availability, createAvailabilityInput> = async (
-  req,
-  res,
-) => {
+export const createAvailabilities = async (req: Request, res: Response) => {
   const userId = req.user?.id;
   const { startTime: startIsoString, durationInMinutes } = req.body;
 
@@ -90,11 +88,11 @@ export const createAvailabilities: CreateHandler<Availability, createAvailabilit
     data: newAvailability,
   });
 };
-export const updateAvailability: UpdateHandler<
-  Availability,
-  { id: string },
-  updateAvailabilityInput
-> = async (req, res, next) => {
+export const updateAvailability = async (
+  req: Request<{ id: string }>,
+  res: Response,
+  next: NextFunction,
+) => {
   const userId = req.user?.id;
   const { id: availabilityId } = req.params;
   const { startTime: startIsoString, durationInMinutes } = req.body;
@@ -133,7 +131,7 @@ export const updateAvailability: UpdateHandler<
   });
 };
 
-export const deleteAvailability: DeleteHandler = async (req, res) => {
+export const deleteAvailability = async (req: Request<{ id: string }>, res: Response) => {
   const { id: userId } = req.user;
   const { id: availabilityId } = req.params;
 

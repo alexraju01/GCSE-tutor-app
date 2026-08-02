@@ -1,11 +1,12 @@
 import { prisma } from "@db/prisma.js";
 import { Role, type Student, type User } from "@generated/client.js";
 import { AppError } from "@utils/AppError.js";
+import type { Request, Response, NextFunction } from "express";
 
 type UserDetails = Pick<User, "name" | "email" | "image" | "role">;
 type AllStudentsFlat = Student & UserDetails;
 
-export const getAllStudents: GetAllHandler<AllStudentsFlat> = async (_, res) => {
+export const getAllStudents = async (_: Request, res: Response) => {
   const students = await prisma.student.findMany({
     include: {
       user: {
@@ -31,7 +32,11 @@ export const getAllStudents: GetAllHandler<AllStudentsFlat> = async (_, res) => 
   });
 };
 
-export const getOneStudent: GetOneHandler<AllStudentsFlat> = async (req, res, next) => {
+export const getOneStudent = async (
+  req: Request<{ id: string }>,
+  res: Response,
+  next: NextFunction,
+) => {
   const { id: studentId } = req.params;
 
   const loggedInUser = req.user;
@@ -100,7 +105,7 @@ export const getOneStudent: GetOneHandler<AllStudentsFlat> = async (req, res, ne
   });
 };
 
-export const deleteStudent: DeleteHandler = async (req, res) => {
+export const deleteStudent = async (req: Request, res: Response) => {
   const { id } = req.user;
 
   await prisma.student.delete({ where: { userId: id } });

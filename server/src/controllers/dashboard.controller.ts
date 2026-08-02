@@ -1,9 +1,10 @@
 import { BookingStatus } from "@generated/client.js";
 import { AppError } from "@utils/AppError.js";
 import { prisma } from "../db/prisma.js";
-import type { RequestHandler } from "express";
 
-export const getTeacherDashboard: RequestHandler = async (req, res, next) => {
+import type { Request, Response, NextFunction } from "express";
+
+export const getTeacherDashboard = async (req: Request, res: Response, next: NextFunction) => {
   // 1. Authenticated user ID from protect middleware
   const { id: userId } = req.user;
 

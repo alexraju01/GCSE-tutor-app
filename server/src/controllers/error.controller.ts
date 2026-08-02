@@ -71,20 +71,28 @@ interface PrismaDriverError {
 
 const handleUniqueConstraintViolationErrorDB = (err: Prisma.PrismaClientKnownRequestError) => {
   const modelName = err.meta?.modelName ?? "Resource";
-
   const meta = err.meta;
   const driverAdapterError = meta?.driverAdapterError as PrismaDriverError | undefined;
 
-  const fields = driverAdapterError?.cause?.constraint?.fields ?? [];
+  // Extract fields from driverAdapterError or fallback to err.meta.target if standard Prisma engine is used
+  const fields =
+    driverAdapterError?.cause?.constraint?.fields ??
+    (Array.isArray(meta?.target) ? (meta.target as string[]) : []);
+
+  // 1. Specific check for Teaches composite unique constraint (teacherId + subject + level)
+  if (modelName === "Teaches" || (fields.includes("subject") && fields.includes("level"))) {
+    return new AppError("You already have this teaching info", 400);
+  }
+
+  // 2. Default unique constraint fallback message formatting
   const field = fields[0] ?? "field";
   const message =
     fields.length > 1 && modelName
-      ? `Duplicate field value: ${fields.join(", ")}. Please use another value!`
+      ? `Duplicate field value: ${fields.map((f) => `"${f}"`).join(", ")}. Please use another value!`
       : `${modelName} with this ${field} already exists`;
 
   return new AppError(message, 400);
 };
-
 const handlePrismaValidationError = () => {
   return new AppError("Invalid input data. Please check your request fields and types.", 400);
 };

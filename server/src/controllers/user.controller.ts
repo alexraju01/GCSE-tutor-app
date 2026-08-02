@@ -1,13 +1,13 @@
 import { prisma } from "../db/prisma.js";
-import type { User } from "@generated/client.js";
+import type { Request, Response } from "express";
 
-export const getAllUsers: GetAllHandler<User> = async (_, res) => {
+export const getAllUsers = async (_: Request, res: Response) => {
   const allUsers = await prisma.user.findMany();
 
   res.status(200).json({ status: "success", results: allUsers.length, data: allUsers });
 };
 
-export const getOneUser: GetOneHandler<User> = async (req, res, next) => {
+export const getOneUser = async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
 
   const user = await prisma.user.findUniqueOrThrow({ where: { id } });
@@ -15,7 +15,7 @@ export const getOneUser: GetOneHandler<User> = async (req, res, next) => {
   res.status(200).json({ status: "success", data: user });
 };
 
-export const deleteUser: DeleteHandler = async (req, res) => {
+export const deleteUser = async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
 
   await prisma.user.delete({ where: { id } });

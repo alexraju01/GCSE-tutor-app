@@ -1,8 +1,8 @@
 import { AppError } from "@utils/AppError.js";
 import { prisma } from "../db/prisma.js";
 import type { UpdateTeacherInput } from "../schemas/teacher.schema.js";
-import type { Teacher, Prisma } from "@generated/client.js";
-import type { RequestHandler } from "express";
+import type { Prisma } from "@generated/client.js";
+import type { Request, Response, NextFunction } from "express";
 
 // 1. Let Prisma infer the exact query payload structural return type
 type PrismaTeacherPayload = Prisma.TeacherGetPayload<{
@@ -23,7 +23,7 @@ export type AllTeachers = Omit<PrismaTeacherPayload, "user"> & {
   image: string | null;
 };
 
-export const getAllTeachers: GetAllHandler<AllTeachers> = async (_, res) => {
+export const getAllTeachers = async (_: Request, res: Response) => {
   const teachers = await prisma.teacher.findMany({
     include: {
       user: {
@@ -63,7 +63,7 @@ export const getAllTeachers: GetAllHandler<AllTeachers> = async (_, res) => {
   });
 };
 
-export const getOneTeacher: GetOneHandler<Teacher> = async (req, res) => {
+export const getOneTeacher = async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
 
   const teacher = await prisma.teacher.findUniqueOrThrow({
@@ -81,7 +81,72 @@ export const getOneTeacher: GetOneHandler<Teacher> = async (req, res) => {
   res.status(200).json({ status: "success", data: teacher });
 };
 
-export const deleteTeacher: DeleteHandler = async (req, res, next) => {
+export const updateTeacher = async (
+  req: Request<{ id: string }>,
+  res: Response,
+  next: NextFunction,
+) => {
+  const { id: userId } = req.user;
+  const { teaches, ...scalarFields }: UpdateTeacherInput = req.body;
+
+  // Separate items that have an ID (updates) from items that don't (creates)
+  const teachesToUpdate = teaches?.filter((item) => item.id !== undefined) ?? [];
+  const teachesToCreate = teaches?.filter((item) => item.id === undefined) ?? [];
+
+  const updatedTeacher = await prisma.teacher.update({
+    where: { userId },
+    data: {
+      ...scalarFields,
+      ...(teaches && {
+        teaches: {
+          // 1. Update existing Teaches records using their existing ID
+          update: teachesToUpdate.map((item) => ({
+            where: { id: item.id },
+            data: {
+              subject: item.subject,
+              level: item.level,
+            },
+          })),
+          // 2. Insert new Teaches records (Prisma auto-generates the UUID for these)
+          create: teachesToCreate.map((item) => ({
+            subject: item.subject,
+            level: item.level,
+          })),
+        },
+      }),
+    },
+    include: {
+      user: {
+        select: {
+          name: true,
+          email: true,
+          image: true,
+        },
+      },
+      teaches: {
+        select: {
+          id: true,
+          subject: true,
+          level: true,
+        },
+      },
+    },
+  });
+
+  if (!updatedTeacher) {
+    return next(new AppError("Teacher profile not found.", 404));
+  }
+
+  res.status(200).json({
+    status: "success",
+    data: updatedTeacher,
+  });
+};
+export const deleteTeacher = async (
+  req: Request<{ id: string }>,
+  res: Response,
+  next: NextFunction,
+) => {
   const { id } = req.user;
 
   const teacher = await prisma.teacher.delete({ where: { userId: id } });
@@ -90,7 +155,7 @@ export const deleteTeacher: DeleteHandler = async (req, res, next) => {
   res.status(204).json({ status: "success", data: null });
 };
 
-export const getMyTeacherProfile: RequestHandler = async (req, res, next) => {
+export const getMyTeacherProfile = async (req: Request, res: Response, next: NextFunction) => {
   // 1. Grab the current user ID attached by your protect/auth middleware
   const { id: userId } = req.user;
 
@@ -120,21 +185,8 @@ export const getMyTeacherProfile: RequestHandler = async (req, res, next) => {
     return next(new AppError("Teacher profile not found for this user account.", 404));
   }
 
-  // 3. Return the fully populated profile shape
   res.status(200).json({
     status: "success",
     data: teacher,
   });
-};
-
-export const updateTeacher: RequestHandler<Teacher> = async (req, res) => {
-  // Extract teacher profile ID from logged-in user, NEVER from req.params
-  const userId = req.user.id;
-
-  const updatedTeacher = await prisma.teacher.update({
-    where: { userId }, // or where: { id: req.user.teacherId } depending on your Prisma schema
-    data: req.body,
-  });
-
-  res.status(200).json({ status: "success", data: updatedTeacher });
 };
