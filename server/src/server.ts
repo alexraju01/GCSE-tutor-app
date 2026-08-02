@@ -9,6 +9,7 @@ import {
   dashboardRouter,
   bookingRouter,
 } from "@routes";
+import { AppError } from "@utils/AppError.js";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
@@ -18,11 +19,13 @@ import { BLUE, RESET } from "./utils/colours.js";
 const app = express();
 const { PORT } = process.env || 5000;
 
-app.use(express.json());
+app.use(express.json({ limit: "10kb" }));
 app.use(cookieParser());
 app.use(cors());
 
-app.use(morgan("dev"));
+if (process.env.NODE_ENV !== "test") {
+  app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
+}
 
 // Resource Routing
 app.use("/api/v1/users", userRouter);
@@ -33,8 +36,26 @@ app.use("/api/v1/auth", socialRouter);
 app.use("/api/v1/dashboard", dashboardRouter);
 app.use("/api/v1/bookings", bookingRouter);
 
+// app.use(globalErrorHandler);
+
+// Unmatched routes
+app.all("/*splat", (req, res, next) => {
+  next(new AppError(`Cannot find ${req.originalUrl} on this server.`, 404));
+});
+
 app.use(globalErrorHandler);
 
-app.listen(PORT, () => {
-  console.info(`${BLUE}Server listening on http://localhost:${PORT} ${RESET}`);
+const server = app.listen(PORT, () => {
+  console.info(`${BLUE}Server listening on http://localhost:${PORT}${RESET}`);
+});
+
+// Graceful shutdown & crash visibility — important for orchestrated environments (k8s, ECS, etc.)
+process.on("unhandledRejection", (err: Error) => {
+  console.error("UNHANDLED REJECTION! Shutting down...", err);
+  server.close(() => process.exit(1));
+});
+
+process.on("SIGTERM", () => {
+  console.info("SIGTERM received. Shutting down gracefully.");
+  server.close(() => console.info("Process terminated."));
 });

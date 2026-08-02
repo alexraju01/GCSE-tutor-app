@@ -11,3 +11,5 @@ userRouter.route("/:id").get(getOneUser).delete(deleteUser);
 userRouter.route("/signup").post(validate(registrationSchema), signUp);
 userRouter.route("/login").post(login);
 userRouter.route("/logout").post(logout);
+// userRouter.ts
+// userRouter.patch("/update-me", protect, validate(updateUserSchema), updateMe);

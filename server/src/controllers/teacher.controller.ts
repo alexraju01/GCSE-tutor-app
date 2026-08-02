@@ -126,3 +126,15 @@ export const getMyTeacherProfile: RequestHandler = async (req, res, next) => {
     data: teacher,
   });
 };
+
+export const updateTeacher: RequestHandler<Teacher> = async (req, res) => {
+  // Extract teacher profile ID from logged-in user, NEVER from req.params
+  const userId = req.user.id;
+
+  const updatedTeacher = await prisma.teacher.update({
+    where: { userId }, // or where: { id: req.user.teacherId } depending on your Prisma schema
+    data: req.body,
+  });
+
+  res.status(200).json({ status: "success", data: updatedTeacher });
+};

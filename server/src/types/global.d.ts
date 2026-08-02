@@ -45,11 +45,19 @@ declare global {
 
   type LogoutHandler = ExpressHandler<unknown, ApiResponse<null>>;
 }
+export interface AuthenticatedUser {
+  id: string;
+  email: string;
+  name: string | null;
+  role: Role;
+  image: string | null;
+  passwordChangedAt: Date | null;
+}
 
 declare global {
   namespace Express {
     interface Request {
-      user?: User;
+      user?: AuthenticatedUser;
     }
   }
 }
