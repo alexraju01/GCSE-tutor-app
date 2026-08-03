@@ -1,7 +1,9 @@
+import type { Role } from "@generated/enums.ts";
+
 export interface UserPayload {
   id: string;
   email?: string;
-  role?: string;
+  role: Role;
 }
 
 declare global {
