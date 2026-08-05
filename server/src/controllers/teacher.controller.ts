@@ -14,6 +14,8 @@ export const getOneTeacher = async (req: Request<{ id: string }>, res: Response)
 };
 
 export const getMyTeacherProfile = async (req: Request, res: Response, next: NextFunction) => {
+  console.log("===================");
+  console.log("Fetching teacher profile for user ID:", req.user.id); // Debugging line
   const teacher = await teacherService.findByUserId(req.user.id);
   if (!teacher) return next(new AppError("Teacher profile not found for this user account.", 404));
   res.status(200).json({ status: "success", data: teacher });
