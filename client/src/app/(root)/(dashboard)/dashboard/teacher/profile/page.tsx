@@ -7,6 +7,7 @@ import { api } from "@utils/api";
 
 const TeacherProfilePage = async () => {
   const session = await auth();
+  console.log("Session data:", session); // Debugging line to check session contents
 
   if (!session || !session.backendToken) {
     return <div>Please sign in to view your profile.</div>;

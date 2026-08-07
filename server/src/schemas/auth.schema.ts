@@ -1,17 +1,17 @@
 import { Role } from "@generated/enums.js";
 import { z } from "zod";
+import { emailSchema } from "./common.schema.js";
 import { studentFieldsShape } from "./student.schema.js";
 import { teacherFieldsShape } from "./teacher.schema.js";
-
 // ==========================================
 // 1. Core Auth Field Shapes
 // ==========================================
-const emailSchema = z.email({ error: "Invalid email address" }).trim().toLowerCase();
+// export const emailSchema = z.email({ error: "Invalid email address" }).trim().toLowerCase();
 
 const baseAuthFields = {
   email: emailSchema,
   name: z
-    .string({ error: "Name is required" })
+    .string({ error: "Name must be a string" })
     .trim()
     .min(1, { message: "Name is required" })
     .max(100, { message: "Name cannot exceed 100 characters" }),

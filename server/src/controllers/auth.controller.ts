@@ -5,7 +5,7 @@ import { AppError } from "@utils/AppError.js";
 import bcrypt from "bcrypt";
 import jwt, { type Secret, type SignOptions } from "jsonwebtoken";
 import type { UserInput } from "../schemas/auth.schema.js";
-import type { Response, CookieOptions, RequestHandler } from "express";
+import type { Response, Request, NextFunction, CookieOptions, RequestHandler } from "express";
 
 type CredentialsInput = Extract<UserInput, { provider: "credentials" }>;
 
@@ -42,7 +42,7 @@ export const getProfileData = (role: Role, body: TeacherFieldsPayload) => {
   }
 };
 
-export const signUp: RequestHandler = async (req, res, next) => {
+export const signUp = async (req: Request, res: Response, next: NextFunction) => {
   const validatedData = req.body as UserInput;
 
   if (validatedData.provider !== "credentials") {
@@ -78,7 +78,7 @@ export const signUp: RequestHandler = async (req, res, next) => {
   createSendToken(newUser, 201, res);
 };
 
-export const login: RequestHandler = async (req, res, next) => {
+export const login = async (req: Request, res: Response, next: NextFunction) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -137,7 +137,8 @@ const signToken = (id: string): string => {
 export const logout: RequestHandler = (req, res) => {
   const isProduction = process.env.NODE_ENV === "production";
 
-  res.clearCookie("JWT", {
+  res.cookie("JWT", "loggedout", {
+    expires: new Date(Date.now() + 10 * 1000), // Expires in 10s
     httpOnly: true,
     secure: isProduction,
     sameSite: isProduction ? "none" : "lax",
@@ -150,7 +151,7 @@ export const logout: RequestHandler = (req, res) => {
   });
 };
 
-export const socialSync: SocialSyncHandler = async (req, res) => {
+export const socialSync = async (req: Request, res: Response) => {
   const { email, name, image, provider, providerId } = req.body;
 
   // 2. Perform the Upsert

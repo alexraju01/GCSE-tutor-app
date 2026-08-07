@@ -1,8 +1,8 @@
 import { signUp, login, logout } from "@controllers/auth.controller.js";
-import { getAllUsers, getOneUser, deleteUser } from "@controllers/user.controller.js";
+import { getAllUsers, getOneUser, deleteUser, updateMe } from "@controllers/user.controller.js";
+import { validate, protect } from "@middleware";
+import { registrationSchema, updateUserSchema } from "@schemas";
 import { Router } from "express";
-import { validate } from "../middleware/validate.js";
-import { registrationSchema } from "../schemas/auth.schema.js";
 
 export const userRouter = Router();
 
@@ -11,3 +11,5 @@ userRouter.route("/:id").get(getOneUser).delete(deleteUser);
 userRouter.route("/signup").post(validate(registrationSchema), signUp);
 userRouter.route("/login").post(login);
 userRouter.route("/logout").post(logout);
+
+userRouter.patch("/me", protect, validate(updateUserSchema), updateMe);

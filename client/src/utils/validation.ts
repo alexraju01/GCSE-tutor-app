@@ -37,10 +37,12 @@ export const SignUpSchema = z
       .regex(/[^a-zA-Z0-9]/, {
         message: "Password must contain at least one special character.",
       }),
+
     confirmPassword: z.string().min(1, "Confirm password is required"),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match",
     path: ["confirmPassword"], // show error under confirmPassword field
   });
+
 export type AuthCredentials = z.infer<typeof SignUpSchema>;

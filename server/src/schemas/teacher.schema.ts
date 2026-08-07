@@ -4,6 +4,7 @@ import { z } from "zod";
 // Core teacher fields primitive shape
 
 export const teachesItemSchema = z.object({
+  id: z.string().uuid({ message: "Invalid teaches item ID format" }).optional(),
   subject: z.enum(Subject, {
     message: `Invalid subject selection. Available options: ${Object.values(Subject).join(", ")}`,
   }),
@@ -35,4 +36,5 @@ export const teacherFieldsShape = {
 
 // 1. Used for teacher-specific profile PATCH routes
 export const updateTeacherFieldsSchema = z.object(teacherFieldsShape).partial().strict();
+
 export type UpdateTeacherInput = z.infer<typeof updateTeacherFieldsSchema>;

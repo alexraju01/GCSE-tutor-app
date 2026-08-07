@@ -24,6 +24,8 @@ export const fetchData = async <T>(
     },
     body: body ? JSON.stringify(body) : undefined,
   });
+  console.log("Response status:", response); // Debugging line to check the response status
+  console.log(`Request to ${url} returned status ${response.status}`); // Debugging line
   if (response.status === 404) {
     const errorData = await response.json().catch(() => ({}));
     // Throwing a custom error will trigger the nearest error.tsx

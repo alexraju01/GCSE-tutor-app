@@ -1,109 +1,23 @@
-import { prisma } from "@db/prisma.js";
-import { Role, type Student, type User } from "@generated/client.js";
-import { AppError } from "@utils/AppError.js";
+// src/controllers/student.controller.ts
+import { studentService } from "../services/student.service.js";
+import type { Request, Response } from "express";
 
-type UserDetails = Pick<User, "name" | "email" | "image" | "role">;
-type AllStudentsFlat = Student & UserDetails;
-
-export const getAllStudents: GetAllHandler<AllStudentsFlat> = async (_, res) => {
-  const students = await prisma.student.findMany({
-    include: {
-      user: {
-        select: {
-          name: true,
-          email: true,
-          image: true,
-          role: true,
-        },
-      },
-    },
-  });
-
-  const flattenedStudents: AllStudentsFlat[] = students.map(({ user, ...student }) => ({
-    ...student,
-    ...user,
-  }));
-
-  res.status(200).json({
-    status: "success",
-    results: flattenedStudents.length,
-    data: flattenedStudents,
-  });
+export const getAllStudents = async (_req: Request, res: Response) => {
+  const students = await studentService.findAll();
+  res.status(200).json({ status: "success", results: students.length, data: students });
 };
 
-export const getOneStudent: GetOneHandler<AllStudentsFlat> = async (req, res, next) => {
-  const { id: studentId } = req.params;
-
-  const loggedInUser = req.user;
-
-  // 1. Fetch the student profile with the nested user information
-  const student = await prisma.student.findUnique({
-    where: { id: studentId },
-    include: {
-      user: {
-        select: {
-          name: true,
-          email: true,
-          image: true,
-          role: true,
-        },
-      },
-    },
-  });
-
-  if (!student) return next(new AppError("No student found with that ID", 404));
-
-  // 2. Multi-tenant Authorization Guardrails
-  let isAuthorized = false;
-
-  // Rule A: Admins bypass everything
-  if (loggedInUser.role === Role.Admin) {
-    isAuthorized = true;
-  }
-
-  // Rule B: Students can read their own specific profile
-  if (loggedInUser.role === Role.Student && student.userId === loggedInUser.id) {
-    isAuthorized = true;
-  }
-
-  // Rule C: Teachers can ONLY see this student if they have an associated booking
-  if (loggedInUser.role === Role.Teacher) {
-    const activeBooking = await prisma.booking.findFirst({
-      where: {
-        studentId,
-        teacher: {
-          userId: loggedInUser.id,
-        },
-        status: { in: ["CONFIRMED", "PENDING", "COMPLETED"] },
-      },
-    });
-
-    if (activeBooking) {
-      isAuthorized = true;
-    }
-  }
-
-  // Deny access if no conditions matched
-  if (!isAuthorized) {
-    throw new AppError("You do not have permission to view this student profile.", 403);
-  }
-
-  const { user, ...studentFields } = student;
-  const flattenedStudent: AllStudentsFlat = {
-    ...studentFields,
-    ...user,
-  };
-
-  res.status(200).json({
-    status: "success",
-    data: flattenedStudent,
-  });
+export const getOneStudent = async (req: Request<{ id: string }>, res: Response) => {
+  const student = await studentService.findByIdForViewer(req.params.id, req.user);
+  res.status(200).json({ status: "success", data: student });
 };
 
-export const deleteStudent: DeleteHandler = async (req, res) => {
-  const { id } = req.user;
-
-  await prisma.student.delete({ where: { userId: id } });
-
+export const deleteStudent = async (req: Request, res: Response) => {
+  await studentService.deleteByUserId(req.user.id);
   res.status(204).json({ status: "success", data: null });
+};
+
+export const updateStudent = async (req: Request, res: Response) => {
+  const student = await studentService.updateOwnProfile(req.user.id, req.body);
+  res.status(200).json({ status: "success", data: student });
 };
