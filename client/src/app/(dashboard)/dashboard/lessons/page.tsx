@@ -1,16 +1,7 @@
 import { auth } from "@auth";
-import {
-	BookOpen,
-	Clock,
-	Download,
-	ExternalLink,
-	FileText,
-	PlayCircle,
-	Search,
-	Sparkles,
-	Video,
-} from "lucide-react";
+import { Clock, Download, ExternalLink, FileText, PlayCircle, Search, Video } from "lucide-react";
 import Link from "next/link";
+import type { Route } from "next";
 
 interface Lesson {
 	id: string;
@@ -43,7 +34,7 @@ const renderActions = (lesson: Lesson) => {
 	if (lesson.status === "Live Now") {
 		return (
 			<Link
-				href={`/dashboard/lessons/${lesson.id}`}
+				href={`/dashboard/lessons/${lesson.id}` as Route}
 				className='inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition-all hover:bg-blue-500 active:scale-[0.98]'>
 				<Video size={14} /> Join Now
 			</Link>
@@ -67,7 +58,7 @@ const renderActions = (lesson: Lesson) => {
 
 	return (
 		<Link
-			href={`/dashboard/lessons/${lesson.id}`}
+			href={`/dashboard/lessons/${lesson.id}` as Route}
 			className='inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-500 dark:text-blue-400'>
 			Classroom Details <ExternalLink size={14} />
 		</Link>

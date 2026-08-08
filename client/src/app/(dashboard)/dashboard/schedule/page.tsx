@@ -9,6 +9,7 @@ import {
 	Plus,
 	Video,
 } from "lucide-react";
+import type { Route } from "next";
 import Link from "next/link";
 
 interface Session {
@@ -21,7 +22,7 @@ interface Session {
 	time: string;
 	duration: string;
 	status: "Upcoming" | "Completed" | "Cancelled";
-	meetingUrl?: string;
+	meetingUrl?: Route<string>;
 }
 
 const SchedulePage = async () => {
@@ -40,7 +41,7 @@ const SchedulePage = async () => {
 			time: "4:00 PM - 5:00 PM",
 			duration: "60 mins",
 			status: "Upcoming",
-			meetingUrl: "/dashboard/lessons/1",
+			meetingUrl: "/dashboard/lessons/1" as Route,
 		},
 		{
 			id: "2",
@@ -52,7 +53,7 @@ const SchedulePage = async () => {
 			time: "5:30 PM - 6:30 PM",
 			duration: "60 mins",
 			status: "Upcoming",
-			meetingUrl: "/dashboard/lessons/2",
+			meetingUrl: "/dashboard/lessons/2" as Route,
 		},
 		{
 			id: "3",
@@ -64,6 +65,7 @@ const SchedulePage = async () => {
 			time: "2:00 PM - 3:00 PM",
 			duration: "60 mins",
 			status: "Upcoming",
+			meetingUrl: "/dashboard/lessons/3" as Route,
 		},
 		{
 			id: "4",
@@ -220,4 +222,5 @@ const SchedulePage = async () => {
 		</div>
 	);
 };
+
 export default SchedulePage;
