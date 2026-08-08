@@ -48,6 +48,21 @@ const StudentDashboardPage = async () => {
 					</p>
 				</div>
 			</div>
+
+			{/* STATS GRID */}
+			<div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-4'>
+				{stats.map((stat, i) => (
+					<div
+						key={i}
+						className='flex items-center justify-between rounded-xl border border-slate-200/80 bg-white p-5 shadow-xs transition-all dark:border-slate-800/80 dark:bg-slate-900/50'>
+						<div className='space-y-1'>
+							<p className='text-xs font-medium text-slate-500 dark:text-slate-400'>{stat.label}</p>
+							<p className='text-2xl font-bold text-slate-900 dark:text-slate-100'>{stat.value}</p>
+						</div>
+						<div className='rounded-lg bg-slate-50 p-2.5 dark:bg-slate-800/60'>{stat.icon}</div>
+					</div>
+				))}
+			</div>
 		</div>
 	);
 };
