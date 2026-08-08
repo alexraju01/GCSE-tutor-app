@@ -15,6 +15,7 @@ import ActiveLink from "@/components/ActiveLink";
 import Logo from "@/components/Logo";
 import UserMenu from "@/components/UserMenu";
 import Link from "next/link";
+import Breadcrumb from "@components/Breadcrumb";
 
 const DashboardLayout = async ({ children }: { children: React.ReactNode }) => {
 	const session = await auth();
@@ -93,12 +94,9 @@ const DashboardLayout = async ({ children }: { children: React.ReactNode }) => {
 			<div className='flex flex-1 flex-col overflow-x-hidden'>
 				{/* TOP BAR */}
 				<header className='sticky top-0 z-40 flex h-16 w-full items-center justify-between border-b border-slate-200/80 bg-white/80 px-6 backdrop-blur-md dark:border-slate-800/80 dark:bg-[#0b0f19]/80'>
-					{/* LEFT SIDE */}
+					{/* LEFT SIDE: DYNAMIC BREADCRUMB */}
 					<div className='flex items-center gap-4'>
-						<h1 className='text-sm font-medium text-slate-500 dark:text-slate-400'>
-							Dashboard /{" "}
-							<span className='font-semibold text-slate-900 dark:text-slate-100'>Overview</span>
-						</h1>
+						<Breadcrumb />
 					</div>
 
 					{/* RIGHT SIDE */}
