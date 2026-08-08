@@ -10,6 +10,7 @@ import {
 	Sparkles,
 } from "lucide-react";
 import Link from "next/link";
+import type { Route } from "next";
 
 const StudentDashboardPage = async () => {
 	const session = await auth();
@@ -100,7 +101,7 @@ const StudentDashboardPage = async () => {
 							Upcoming Lessons
 						</h3>
 						<Link
-							href='/dashboard/schedule'
+							href={"/dashboard/schedule" as Route}
 							className='inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-500 dark:text-blue-400'>
 							View Schedule <ArrowUpRight size={14} />
 						</Link>
@@ -130,7 +131,7 @@ const StudentDashboardPage = async () => {
 								</div>
 
 								<Link
-									href={`/dashboard/lessons/${lesson.id}`}
+									href={`/dashboard/lessons/${lesson.id}` as Route}
 									className='inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white transition-all hover:bg-blue-500 active:scale-[0.98]'>
 									Join Classroom
 								</Link>
@@ -166,7 +167,7 @@ const StudentDashboardPage = async () => {
 						</Link>
 
 						<Link
-							href='/dashboard/lessons'
+							href={"/dashboard/lessons" as Route}
 							className='group flex items-center justify-between rounded-xl border border-slate-200/80 bg-white p-4 transition-all hover:border-blue-500/50 hover:shadow-md dark:border-slate-800/80 dark:bg-slate-900/50'>
 							<div className='flex items-center gap-3'>
 								<div className='rounded-lg bg-indigo-500/10 p-2.5 text-indigo-600 dark:text-indigo-400'>
