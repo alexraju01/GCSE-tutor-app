@@ -1,19 +1,28 @@
 import { auth } from "@auth";
-import {
-	ArrowUpRight,
-	// BookOpen,
-	// Calendar,
-	// CheckCircle2,
-	Clock,
-	DollarSign,
-	// GraduationCap,
-	Sparkles,
-	Star,
-	Users,
-	Video,
-} from "lucide-react";
+import { ArrowUpRight, Clock, DollarSign, Sparkles, Star, User, Users, Video } from "lucide-react";
 import type { Route } from "next";
+import Image from "next/image";
 import Link from "next/link";
+
+interface StudentSession {
+	id: string;
+	subject: string;
+	topic: string;
+	student: string;
+	studentImage?: string;
+	time: string;
+	status: "Upcoming" | "Completed" | "Cancelled";
+}
+
+interface BookingRequest {
+	id: string;
+	student: string;
+	studentImage?: string;
+	subject: string;
+	date: string;
+	timeSlot: string; // e.g. "3:00 PM - 4:00 PM"
+	duration: string; // e.g. "1 hr" or "60 mins"
+}
 
 const TeacherDashboardPage = async () => {
 	const session = await auth();
@@ -46,12 +55,14 @@ const TeacherDashboardPage = async () => {
 		},
 	];
 
-	const upcomingSessions = [
+	const upcomingSessions: StudentSession[] = [
 		{
 			id: "1",
 			subject: "GCSE Higher Mathematics",
 			topic: "Quadratic Equations & Calculus Intro",
 			student: "Alex Morgan",
+			studentImage:
+				"https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
 			time: "Today, 4:00 PM - 5:00 PM",
 			status: "Upcoming",
 		},
@@ -65,18 +76,24 @@ const TeacherDashboardPage = async () => {
 		},
 	];
 
-	const pendingRequests = [
+	const pendingRequests: BookingRequest[] = [
 		{
 			id: "req-1",
 			student: "Emma Watson",
+			studentImage:
+				"https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
 			subject: "GCSE Chemistry",
-			requestedTime: "Fri, Aug 12 • 3:00 PM",
+			date: "Fri, Aug 12",
+			timeSlot: "3:00 PM - 4:00 PM",
+			duration: "1 hr",
 		},
 		{
 			id: "req-2",
 			student: "Sophia Lin",
 			subject: "GCSE Biology",
-			requestedTime: "Sat, Aug 13 • 11:00 AM",
+			date: "Sat, Aug 13",
+			timeSlot: "11:00 AM - 12:30 PM",
+			duration: "1.5 hrs",
 		},
 	];
 
@@ -122,7 +139,7 @@ const TeacherDashboardPage = async () => {
 
 			{/* MAIN CONTENT GRID */}
 			<div className='grid gap-8 lg:grid-cols-3'>
-				{/* UPCOMING SESSIONS (2 COLUMNS) */}
+				{/* UPCOMING SESSIONS */}
 				<div className='space-y-4 lg:col-span-2'>
 					<div className='flex items-center justify-between'>
 						<h2 className='text-lg font-bold text-slate-900 dark:text-slate-100'>
@@ -140,25 +157,40 @@ const TeacherDashboardPage = async () => {
 							<div
 								key={sessionItem.id}
 								className='flex flex-col justify-between gap-4 rounded-xl border border-slate-200/80 bg-white p-5 shadow-xs transition-colors hover:border-slate-300 dark:border-slate-800/80 dark:bg-slate-900/50 dark:hover:border-slate-700 sm:flex-row sm:items-center'>
-								<div className='space-y-1'>
-									<div className='flex items-center gap-2'>
-										<span className='rounded-md bg-blue-500/10 px-2 py-0.5 text-xs font-semibold text-blue-600 dark:text-blue-400'>
-											{sessionItem.subject}
-										</span>
-										<span className='text-xs text-slate-400'>•</span>
-										<span className='text-xs font-medium text-slate-500 dark:text-slate-400'>
-											Student:{" "}
-											<strong className='text-slate-700 dark:text-slate-200'>
-												{sessionItem.student}
-											</strong>
-										</span>
+								<div className='flex items-start gap-3.5'>
+									<div className='relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-100 text-slate-400 dark:border-slate-800 dark:bg-slate-800 dark:text-slate-500'>
+										{sessionItem.studentImage ? (
+											<Image
+												src={sessionItem.studentImage}
+												alt={sessionItem.student}
+												fill
+												className='object-cover'
+											/>
+										) : (
+											<User size={22} className='mt-1' />
+										)}
 									</div>
-									<h3 className='font-semibold text-slate-900 dark:text-slate-100'>
-										{sessionItem.topic}
-									</h3>
-									<p className='flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400'>
-										<Clock size={14} /> {sessionItem.time}
-									</p>
+
+									<div className='space-y-1'>
+										<div className='flex items-center gap-2'>
+											<span className='rounded-md bg-blue-500/10 px-2 py-0.5 text-xs font-semibold text-blue-600 dark:text-blue-400'>
+												{sessionItem.subject}
+											</span>
+											<span className='text-xs text-slate-400'>•</span>
+											<span className='text-xs font-medium text-slate-500 dark:text-slate-400'>
+												Student:{" "}
+												<strong className='text-slate-700 dark:text-slate-200'>
+													{sessionItem.student}
+												</strong>
+											</span>
+										</div>
+										<h3 className='font-semibold text-slate-900 dark:text-slate-100'>
+											{sessionItem.topic}
+										</h3>
+										<p className='flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400'>
+											<Clock size={14} /> {sessionItem.time}
+										</p>
+									</div>
 								</div>
 
 								<Link
@@ -171,7 +203,7 @@ const TeacherDashboardPage = async () => {
 					</div>
 				</div>
 
-				{/* PENDING BOOKING REQUESTS (1 COLUMN) */}
+				{/* PENDING BOOKING REQUESTS */}
 				<div className='space-y-4'>
 					<div className='flex items-center justify-between'>
 						<h2 className='text-lg font-bold text-slate-900 dark:text-slate-100'>
@@ -187,16 +219,44 @@ const TeacherDashboardPage = async () => {
 							<div
 								key={req.id}
 								className='space-y-3 rounded-xl border border-slate-200/80 bg-white p-4 shadow-xs dark:border-slate-800/80 dark:bg-slate-900/50'>
-								<div className='flex items-start justify-between'>
-									<div>
-										<h3 className='text-sm font-semibold text-slate-900 dark:text-slate-100'>
-											{req.student}
-										</h3>
-										<p className='text-xs font-medium text-blue-600 dark:text-blue-400'>
-											{req.subject}
-										</p>
+								<div className='flex items-start justify-between gap-2'>
+									<div className='flex items-center gap-3'>
+										<div className='relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-100 text-slate-400 dark:border-slate-800 dark:bg-slate-800 dark:text-slate-500'>
+											{req.studentImage ? (
+												<Image
+													src={req.studentImage}
+													alt={req.student}
+													fill
+													className='object-cover'
+												/>
+											) : (
+												<User size={20} className='mt-1' />
+											)}
+										</div>
+
+										<div>
+											<h3 className='text-sm font-semibold text-slate-900 dark:text-slate-100'>
+												{req.student}
+											</h3>
+											<p className='text-xs font-medium text-blue-600 dark:text-blue-400'>
+												{req.subject}
+											</p>
+										</div>
 									</div>
-									<span className='text-[10px] text-slate-400'>{req.requestedTime}</span>
+
+									{/* Duration Badge */}
+									<span className='shrink-0 rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300'>
+										{req.duration}
+									</span>
+								</div>
+
+								{/* Requested Date & Time Slot Row */}
+								<div className='flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600 dark:bg-slate-800/40 dark:text-slate-300'>
+									<span className='font-medium'>{req.date}</span>
+									<span className='flex items-center gap-1 font-semibold text-slate-900 dark:text-slate-100'>
+										<Clock size={12} className='text-slate-400' />
+										{req.timeSlot}
+									</span>
 								</div>
 
 								<div className='flex items-center gap-2 pt-1'>
@@ -215,4 +275,5 @@ const TeacherDashboardPage = async () => {
 		</div>
 	);
 };
+
 export default TeacherDashboardPage;
