@@ -121,19 +121,26 @@ model Booking {
   availabilityId String
   availability   Availability  @relation(fields: [availabilityId], references: [id], onDelete: Cascade)
 
-  // Combined In-App Workspace tracking fields 👇
-  workspaceType  WorkspaceType @default(INTEGRATED_CLASSROOM)
-  meetingRoomId  String?       // Secure session ID token generated for your whiteboard/video canvas engine
+// Subject and Topic tracking
+  subject        Subject
+  topic          String?       @db.VarChar(255)
 
+  // Workspace tracking
+  meetingRoomId  String?       @db.Uuid
+
+  // Time & Duration (duration in minutes replaces endTime)
   startTime      DateTime
-  endTime        DateTime
+  duration       Int           @default(60) // Store minutes as SmallInt/Int
   status         BookingStatus @default(PENDING)
-  notes          String?       @db.Text
+
+  notes          String?       @db.VarChar(255)
   createdAt      DateTime      @default(now())
 
-  // Optional: Kept your existing classroom relation if you still need extra metadata tracked there
   classroom      Classroom?
 
+  @@index([studentId, startTime])
+  @@index([teacherId, startTime])
+  @@index([teacherId, startTime, status])
   @@map("bookings")
 }
 

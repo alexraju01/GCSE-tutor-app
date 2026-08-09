@@ -1,5 +1,5 @@
 import { faker } from "@faker-js/faker";
-import { Role, BookingStatus, Level, Subject, WorkspaceType } from "@generated/client.js";
+import { Role, BookingStatus, Level, Subject } from "@generated/client.js";
 import { GREEN, BLUE, RED, RESET } from "@utils/colours.js";
 import bcrypt from "bcrypt";
 import { prisma } from "../prisma.js";
@@ -61,7 +61,7 @@ const createMockTeacher = async (passwordHash: string, customEmail?: string) => 
         },
       },
     },
-    include: { teacher: true },
+    include: { teacher: { include: { teaches: true } } },
   });
 };
 
@@ -90,7 +90,6 @@ const createTeacherAvailabilities = async (teacherId: string, isTestTeacher = fa
   let randomDates: Date[];
 
   if (isTestTeacher) {
-    // Force 4 past dates (completed/historical) and 4 future dates (upcoming) for test teacher
     const pastDates = Array.from({ length: 4 }, () => faker.date.recent({ days: 14 }));
     const futureDates = Array.from({ length: 4 }, () => faker.date.soon({ days: 14 }));
     randomDates = [...pastDates, ...futureDates];
@@ -121,24 +120,26 @@ const createTeacherAvailabilities = async (teacherId: string, isTestTeacher = fa
 const processBookingAndClassroom = async (
   slot: Availability,
   studentId: string,
+  teacherSubjects: Subject[],
   forcedStatus?: BookingStatus,
 ): Promise<void> => {
   const isPastSlot = new Date(slot.endTime) < new Date();
 
-  // If status isn't explicitly provided, infer default status based on date timeline
   const status =
     forcedStatus ||
     (isPastSlot
       ? BookingStatus.COMPLETED
       : faker.helpers.arrayElement([BookingStatus.PENDING, BookingStatus.CONFIRMED]));
 
-  const workspaceType = faker.helpers.arrayElement([
-    WorkspaceType.INTEGRATED_CLASSROOM,
-    WorkspaceType.EXTERNAL,
-  ]);
+  // Randomly assign a meeting room ID or leave it null
+  const hasIntegratedClassroom = faker.datatype.boolean();
+  const generatedMeetingRoomId = hasIntegratedClassroom ? faker.string.uuid() : null;
 
-  const generatedMeetingRoomId =
-    workspaceType === WorkspaceType.INTEGRATED_CLASSROOM ? faker.string.uuid() : null;
+  // Pick a subject taught by the teacher or fallback to any available subject
+  const selectedSubject =
+    teacherSubjects.length > 0
+      ? faker.helpers.arrayElement(teacherSubjects)
+      : faker.helpers.arrayElement(Object.values(Subject));
 
   // Lock out the discrete availability block
   await prisma.availability.update({
@@ -146,23 +147,29 @@ const processBookingAndClassroom = async (
     data: { isBooked: true },
   });
 
-  // Create booking with inline tracking fields
+  // Calculate session duration in minutes based on availability slot
+  const durationInMinutes = Math.round(
+    (new Date(slot.endTime).getTime() - new Date(slot.startTime).getTime()) / (1000 * 60),
+  );
+
+  // Create booking with updated schema fields
   const booking = await prisma.booking.create({
     data: {
       teacherId: slot.teacherId,
       studentId,
       availabilityId: slot.id,
+      subject: selectedSubject,
+      topic: faker.company.catchPhrase().slice(0, 255),
       startTime: slot.startTime,
-      endTime: slot.endTime,
+      duration: durationInMinutes || 60,
       status,
-      workspaceType,
       meetingRoomId: generatedMeetingRoomId,
-      notes: faker.lorem.sentence(),
+      notes: faker.lorem.sentence().slice(0, 255),
     },
   });
 
-  // Seed classroom model if using integrated space
-  if (workspaceType === WorkspaceType.INTEGRATED_CLASSROOM && generatedMeetingRoomId) {
+  // Seed classroom model if an integrated meeting room ID is assigned
+  if (generatedMeetingRoomId) {
     await prisma.classroom.create({
       data: {
         bookingId: booking.id,
@@ -194,6 +201,13 @@ const main = async () => {
   const teachers = teacherUsers.map((u) => u.teacher).filter(Boolean);
   const testTeacher = teachers[0]!;
 
+  // Map teacher IDs to their assigned subjects
+  const teacherSubjectsMap = new Map<string, Subject[]>();
+  teachers.forEach((t) => {
+    const subjects = t?.teaches.map((tp) => tp.subject) || [];
+    teacherSubjectsMap.set(t!.id, subjects);
+  });
+
   // 2. Seed Students
   console.info(`${GREEN}Seeding ${TOTAL_STUDENTS} mock student profiles...`);
   const studentUsers = await Promise.all(
@@ -203,14 +217,14 @@ const main = async () => {
   );
   const students = studentUsers.map((u) => u.student).filter(Boolean);
 
-  // 3. Generate schedule blocks across all instructors (including past/future for test teacher)
+  // 3. Generate schedule blocks across all instructors
   console.info(`${GREEN}Generating scheduling timelines for tutors...`);
   const availabilityNestedArrays = await Promise.all(
     teachers.map((t) => createTeacherAvailabilities(t!.id, t!.id === testTeacher.id)),
   );
   const allAvailabilities = availabilityNestedArrays.flat();
 
-  // 4. Create explicit bookings for Test Teacher (Completed past sessions + Upcoming sessions)
+  // 4. Create explicit bookings for Test Teacher
   console.info(`${GREEN}Creating targeted completed and upcoming bookings for test teacher...`);
   const testTeacherAvailabilities = allAvailabilities.filter((a) => a.teacherId === testTeacher.id);
 
@@ -219,11 +233,18 @@ const main = async () => {
     (a) => new Date(a.startTime) >= new Date(),
   );
 
-  // Book all past test teacher slots as COMPLETED
+  const testTeacherSubjects = teacherSubjectsMap.get(testTeacher.id) || [];
+
+  // Book past test teacher slots as COMPLETED
   for (const slot of pastTestSlots) {
     const student = faker.helpers.arrayElement(students);
     if (student) {
-      await processBookingAndClassroom(slot, student.id, BookingStatus.COMPLETED);
+      await processBookingAndClassroom(
+        slot,
+        student.id,
+        testTeacherSubjects,
+        BookingStatus.COMPLETED,
+      );
     }
   }
 
@@ -231,7 +252,12 @@ const main = async () => {
   for (const slot of futureTestSlots.slice(0, 2)) {
     const student = students.find((s) => s!.userId === studentUsers[0].id) || students[0];
     if (student) {
-      await processBookingAndClassroom(slot, student.id, BookingStatus.CONFIRMED);
+      await processBookingAndClassroom(
+        slot,
+        student.id,
+        testTeacherSubjects,
+        BookingStatus.CONFIRMED,
+      );
     }
   }
 
@@ -244,8 +270,9 @@ const main = async () => {
   for (let i = 0; i < Math.min(TOTAL_BOOKINGS, remainingSlots.length); i++) {
     const slot = remainingSlots[i];
     const student = faker.helpers.arrayElement(students);
+    const subjects = teacherSubjectsMap.get(slot.teacherId) || [];
     if (student) {
-      await processBookingAndClassroom(slot, student.id);
+      await processBookingAndClassroom(slot, student.id, subjects);
     }
   }
 
