@@ -8,7 +8,7 @@ import type { Availability } from "@generated/client.js";
 // --- CONSTANTS ---
 const TOTAL_TEACHERS = 5;
 const TOTAL_STUDENTS = 10;
-const TOTAL_BOOKINGS = 8;
+const TOTAL_BOOKINGS = 12;
 const DEFAULT_PASSWORD = "password123";
 const SESSION_DURATION_MS = 60 * 60 * 1000; // Standard 1-hour session format
 
@@ -85,9 +85,18 @@ const createMockStudent = async (passwordHash: string, customEmail?: string) => 
   });
 };
 
-// Generates distinct calendar-date slots based on the new DateTime schema
-const createTeacherAvailabilities = async (teacherId: string) => {
-  const randomDates = Array.from({ length: 6 }, () => faker.date.soon({ days: 7 }));
+// Generates distinct calendar-date slots spread across PAST and FUTURE
+const createTeacherAvailabilities = async (teacherId: string, isTestTeacher = false) => {
+  let randomDates: Date[];
+
+  if (isTestTeacher) {
+    // Force 4 past dates (completed/historical) and 4 future dates (upcoming) for test teacher
+    const pastDates = Array.from({ length: 4 }, () => faker.date.recent({ days: 14 }));
+    const futureDates = Array.from({ length: 4 }, () => faker.date.soon({ days: 14 }));
+    randomDates = [...pastDates, ...futureDates];
+  } else {
+    randomDates = Array.from({ length: 6 }, () => faker.date.soon({ days: 14 }));
+  }
 
   const promises = randomDates.map((date) => {
     const startTime = new Date(date);
@@ -109,8 +118,20 @@ const createTeacherAvailabilities = async (teacherId: string) => {
 };
 
 // Handles execution contracts for creating bookings and physical live classrooms
-const processBookingAndClassroom = async (slot: Availability, studentId: string): Promise<void> => {
-  const status = faker.helpers.arrayElement([BookingStatus.PENDING, BookingStatus.CONFIRMED]);
+const processBookingAndClassroom = async (
+  slot: Availability,
+  studentId: string,
+  forcedStatus?: BookingStatus,
+): Promise<void> => {
+  const isPastSlot = new Date(slot.endTime) < new Date();
+
+  // If status isn't explicitly provided, infer default status based on date timeline
+  const status =
+    forcedStatus ||
+    (isPastSlot
+      ? BookingStatus.COMPLETED
+      : faker.helpers.arrayElement([BookingStatus.PENDING, BookingStatus.CONFIRMED]));
+
   const workspaceType = faker.helpers.arrayElement([
     WorkspaceType.INTEGRATED_CLASSROOM,
     WorkspaceType.EXTERNAL,
@@ -125,7 +146,7 @@ const processBookingAndClassroom = async (slot: Availability, studentId: string)
     data: { isBooked: true },
   });
 
-  // Create booking with new inline tracking fields
+  // Create booking with inline tracking fields
   const booking = await prisma.booking.create({
     data: {
       teacherId: slot.teacherId,
@@ -140,18 +161,14 @@ const processBookingAndClassroom = async (slot: Availability, studentId: string)
     },
   });
 
-  // Seed the secondary Classroom model only if confirmed and using an integrated space
-  if (
-    status === BookingStatus.CONFIRMED &&
-    workspaceType === WorkspaceType.INTEGRATED_CLASSROOM &&
-    generatedMeetingRoomId
-  ) {
+  // Seed classroom model if using integrated space
+  if (workspaceType === WorkspaceType.INTEGRATED_CLASSROOM && generatedMeetingRoomId) {
     await prisma.classroom.create({
       data: {
         bookingId: booking.id,
         meetingRoomId: generatedMeetingRoomId,
         joinCode: faker.string.numeric({ length: 6 }),
-        isActive: faker.datatype.boolean({ probability: 0.3 }),
+        isActive: !isPastSlot && status === BookingStatus.CONFIRMED,
       },
     });
   }
@@ -175,6 +192,7 @@ const main = async () => {
     ),
   );
   const teachers = teacherUsers.map((u) => u.teacher).filter(Boolean);
+  const testTeacher = teachers[0]!;
 
   // 2. Seed Students
   console.info(`${GREEN}Seeding ${TOTAL_STUDENTS} mock student profiles...`);
@@ -185,47 +203,84 @@ const main = async () => {
   );
   const students = studentUsers.map((u) => u.student).filter(Boolean);
 
-  // 3. Generate schedule blocks across all instructors
-  console.info(`${GREEN}Generating weekly scheduling timelines for tutors...`);
+  // 3. Generate schedule blocks across all instructors (including past/future for test teacher)
+  console.info(`${GREEN}Generating scheduling timelines for tutors...`);
   const availabilityNestedArrays = await Promise.all(
-    teachers.map((t) => createTeacherAvailabilities(t!.id)),
+    teachers.map((t) => createTeacherAvailabilities(t!.id, t!.id === testTeacher.id)),
   );
   const allAvailabilities = availabilityNestedArrays.flat();
 
-  // 4. Create bookings explicitly to ensure the requested total is met
-  console.info(`${GREEN}Creating exactly ${TOTAL_BOOKINGS} active session bookings...`);
+  // 4. Create explicit bookings for Test Teacher (Completed past sessions + Upcoming sessions)
+  console.info(`${GREEN}Creating targeted completed and upcoming bookings for test teacher...`);
+  const testTeacherAvailabilities = allAvailabilities.filter((a) => a.teacherId === testTeacher.id);
 
-  // Pick out slots up to TOTAL_BOOKINGS explicitly
-  const slotsToBook = allAvailabilities.slice(
-    0,
-    Math.min(TOTAL_BOOKINGS, allAvailabilities.length),
+  const pastTestSlots = testTeacherAvailabilities.filter((a) => new Date(a.endTime) < new Date());
+  const futureTestSlots = testTeacherAvailabilities.filter(
+    (a) => new Date(a.startTime) >= new Date(),
   );
 
-  for (let i = 0; i < slotsToBook.length; i++) {
-    const slot = slotsToBook[i];
+  // Book all past test teacher slots as COMPLETED
+  for (const slot of pastTestSlots) {
+    const student = faker.helpers.arrayElement(students);
+    if (student) {
+      await processBookingAndClassroom(slot, student.id, BookingStatus.COMPLETED);
+    }
+  }
 
-    // Ensure the main test student gets the first booking for predictable API testing
-    const student =
-      i === 0
-        ? students.find((s) => s!.userId === studentUsers[0].id)
-        : faker.helpers.arrayElement(students);
+  // Book at least 2 future test teacher slots as CONFIRMED / PENDING
+  for (const slot of futureTestSlots.slice(0, 2)) {
+    const student = students.find((s) => s!.userId === studentUsers[0].id) || students[0];
+    if (student) {
+      await processBookingAndClassroom(slot, student.id, BookingStatus.CONFIRMED);
+    }
+  }
 
+  // 5. Create additional bookings across remaining tutors
+  console.info(`${GREEN}Creating additional general session bookings...`);
+  const remainingSlots = allAvailabilities.filter(
+    (a) => a.teacherId !== testTeacher.id && !a.isBooked,
+  );
+
+  for (let i = 0; i < Math.min(TOTAL_BOOKINGS, remainingSlots.length); i++) {
+    const slot = remainingSlots[i];
+    const student = faker.helpers.arrayElement(students);
     if (student) {
       await processBookingAndClassroom(slot, student.id);
     }
   }
 
-  // 5. Terminal interface outputs
+  // 6. Persist calculated total hours and earnings to the database
+  const completedTestBookingsCount = pastTestSlots.length;
+  const hourlyRate = Number(testTeacher.hourlyRate);
+  const calculatedTotalHours = completedTestBookingsCount * 1.0;
+  const calculatedTotalEarnings = completedTestBookingsCount * hourlyRate;
+
+  const updatedTestTeacher = await prisma.teacher.update({
+    where: { id: testTeacher.id },
+    data: {
+      totalHours: calculatedTotalHours,
+      totalEarnings: calculatedTotalEarnings,
+    },
+  });
+
+  const testTeacherEarnings = Number(updatedTestTeacher.totalEarnings).toFixed(2);
+
+  // 7. Terminal interface outputs
   console.info("\n-------------------------------------------------------");
   console.info(`${GREEN}🚀 Active Seed Accounts Ready for API Testing:`);
-  console.info(`\n👨‍🏫 TEST TEACHER (Has linked availabilities/bookings):`);
-  console.info(`   Name:      ${teacherUsers[0].name}`);
-  console.info(`   Email:     teacher@test.com`);
-  console.info(`   Password:  ${DEFAULT_PASSWORD}`);
+  console.info(`\n👨‍🏫 TEST TEACHER (Has completed lessons, upcoming lessons & earnings):`);
+  console.info(`   Name:              ${teacherUsers[0].name}`);
+  console.info(`   Email:             teacher@test.com`);
+  console.info(`   Password:          ${DEFAULT_PASSWORD}`);
+  console.info(`   Hourly Rate:       £${hourlyRate.toFixed(2)}/hr`);
+  console.info(`   Completed Lessons: ${completedTestBookingsCount}`);
+  console.info(`   Upcoming Lessons:  ${Math.min(2, futureTestSlots.length)}`);
+  console.info(`   Total Hours Taught:${updatedTestTeacher.totalHours} hrs`);
+  console.info(`   Total Earnings:    £${testTeacherEarnings}`);
   console.info(`\n🧑‍🎓 TEST STUDENT (Has linked bookings):`);
-  console.info(`   Name:      ${studentUsers[0].name}`);
-  console.info(`   Email:     student@test.com`);
-  console.info(`   Password:  ${DEFAULT_PASSWORD}`);
+  console.info(`   Name:              ${studentUsers[0].name}`);
+  console.info(`   Email:             student@test.com`);
+  console.info(`   Password:          ${DEFAULT_PASSWORD}`);
   console.info("-------------------------------------------------------\n");
 
   console.info(`${BLUE}Successfully seeded the database with booked lessons! ${RESET}`);
