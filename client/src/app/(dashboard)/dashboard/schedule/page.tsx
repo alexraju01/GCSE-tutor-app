@@ -1,4 +1,5 @@
 import { auth } from "@auth";
+import ScheduleHeader from "@components/dashboard/ScheduleHeader";
 import {
 	Calendar as CalendarIcon,
 	ChevronLeft,
@@ -6,7 +7,6 @@ import {
 	Clock,
 	Filter,
 	GraduationCap,
-	Plus,
 	Video,
 } from "lucide-react";
 import type { Route } from "next";
@@ -83,7 +83,8 @@ const SchedulePage = async () => {
 	return (
 		<div className='mx-auto max-w-6xl space-y-8'>
 			{/* PAGE HEADER */}
-			<div className='flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between'>
+			<ScheduleHeader isTeacher={isTeacher} />
+			{/* <div className='flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between'>
 				<div>
 					<h1 className='text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 sm:text-3xl'>
 						Schedule & Bookings
@@ -107,8 +108,8 @@ const SchedulePage = async () => {
 							Book New Lesson
 						</Link>
 					)}
-				</div>
-			</div>
+				</div> */}
+			{/* </div> */}
 
 			{/* FILTER & DATE CONTROLS BAR */}
 			<div className='flex flex-col gap-4 rounded-xl border border-slate-200/80 bg-white p-4 shadow-xs dark:border-slate-800/80 dark:bg-slate-900/50 md:flex-row md:items-center md:justify-between'>
