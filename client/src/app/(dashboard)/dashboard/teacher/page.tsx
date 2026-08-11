@@ -3,6 +3,7 @@ import { ArrowUpRight, Clock, DollarSign, Sparkles, Star, User, Users, Video } f
 import type { Route } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { api } from "@utils/api";
 
 interface StudentSession {
 	id: string;
@@ -27,54 +28,64 @@ interface BookingRequest {
 const TeacherDashboardPage = async () => {
 	const session = await auth();
 	const teacherName = session?.user?.name || "Teacher";
+	// console.log("Session Data:", session); // Debugging line
+	const { data: dashboardData } = await api.dashboard.teacherDashboard(session?.backendToken || "");
+	console.log("Dashboard Data:", dashboardData); // Debugging line
+
+	const formattedEarnings = dashboardData?.totalEarnings
+		? new Intl.NumberFormat("en-GB", {
+				style: "currency",
+				currency: dashboardData.totalEarnings.currency || "GBP",
+			}).format(dashboardData.totalEarnings.amount)
+		: "£0.00";
 
 	const stats = [
 		{
 			label: "Active Students",
-			value: "18",
-			change: "+3 this month",
+			value: String(dashboardData?.activeStudents ?? 0),
+			change: "Current active students",
 			icon: <Users size={20} className='text-blue-500' />,
 		},
 		{
 			label: "Hours Taught",
-			value: "42.5 hrs",
-			change: "12 hrs this week",
+			value: `${dashboardData?.totalHoursTaught ?? 0} hrs`,
+			change: "Total logged teaching time",
 			icon: <Clock size={20} className='text-emerald-500' />,
 		},
 		{
 			label: "Total Earnings",
-			value: "£1,480",
-			change: "Pending payout: £320",
+			value: formattedEarnings,
+			change: "Lifetime earnings",
 			icon: <DollarSign size={20} className='text-indigo-500' />,
 		},
 		{
-			label: "Average Rating",
-			value: "4.95 / 5",
-			change: "34 Reviews",
+			label: "Completed Lessons",
+			value: String(dashboardData?.completedLessons ?? 0),
+			change: "Successfully delivered",
 			icon: <Star size={20} className='text-amber-500' />,
 		},
 	];
 
-	const upcomingSessions: StudentSession[] = [
-		{
-			id: "1",
-			subject: "GCSE Higher Mathematics",
-			topic: "Quadratic Equations & Calculus Intro",
-			student: "Alex Morgan",
-			studentImage:
-				"https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
-			time: "Today, 4:00 PM - 5:00 PM",
-			status: "Upcoming",
-		},
-		{
-			id: "2",
-			subject: "GCSE Physics",
-			topic: "Electromagnetism & Waves",
-			student: "Liam Davies",
-			time: "Tomorrow, 5:30 PM - 6:30 PM",
-			status: "Upcoming",
-		},
-	];
+	// const upcomingSessions: StudentSession[] = [
+	// 	{
+	// 		id: "1",
+	// 		subject: "GCSE Higher Mathematics",
+	// 		topic: "Quadratic Equations & Calculus Intro",
+	// 		student: "Alex Morgan",
+	// 		studentImage:
+	// 			"https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+	// 		time: "Today, 4:00 PM - 5:00 PM",
+	// 		status: "Upcoming",
+	// 	},
+	// 	{
+	// 		id: "2",
+	// 		subject: "GCSE Physics",
+	// 		topic: "Electromagnetism & Waves",
+	// 		student: "Liam Davies",
+	// 		time: "Tomorrow, 5:30 PM - 6:30 PM",
+	// 		status: "Upcoming",
+	// 	},
+	// ];
 
 	const pendingRequests: BookingRequest[] = [
 		{
@@ -153,7 +164,7 @@ const TeacherDashboardPage = async () => {
 					</div>
 
 					<div className='space-y-3'>
-						{upcomingSessions.map((sessionItem) => (
+						{dashboardData?.upcomingBookings.map((sessionItem) => (
 							<div
 								key={sessionItem.id}
 								className='flex flex-col justify-between gap-4 rounded-xl border border-slate-200/80 bg-white p-5 shadow-xs transition-colors hover:border-slate-300 dark:border-slate-800/80 dark:bg-slate-900/50 dark:hover:border-slate-700 sm:flex-row sm:items-center'>
