@@ -55,6 +55,8 @@ interface Session {
 	meetingUrl?: Route<string>;
 }
 
+type FilterType = "all" | "upcoming" | "completed";
+
 // Utility function to map API statuses to UI component statuses
 const mapStatus = (status: string): "Upcoming" | "Completed" | "Cancelled" => {
 	switch (status.toUpperCase()) {
@@ -72,7 +74,14 @@ const mapStatus = (status: string): "Upcoming" | "Completed" | "Cancelled" => {
 	}
 };
 
-const SchedulePage = async () => {
+interface SchedulePageProps {
+	searchParams: Promise<{ filter?: string }>;
+}
+
+const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
+	const params = await searchParams;
+	const activeFilter: FilterType = (params.filter?.toLowerCase() as FilterType) || "all";
+
 	const session = await auth();
 	const isTeacher = session?.user?.role === "Teacher";
 
@@ -82,58 +91,73 @@ const SchedulePage = async () => {
 	// Transform API bookings to match UI structure
 	const bookings: BookingAPIItem[] = lessonsAPI?.bookings ?? [];
 
-	const scheduleItems: Session[] = bookings.map((item) => {
-		const startDate = new Date(item.startTime);
-		const endDate = new Date(startDate.getTime() + item.duration * 60000);
+	const scheduleItems: Session[] = bookings
+		.map((item) => {
+			const startDate = new Date(item.startTime);
+			const endDate = new Date(startDate.getTime() + item.duration * 60000);
 
-		const mappedStatus = mapStatus(item.status);
+			const mappedStatus = mapStatus(item.status);
 
-		// Format date (e.g., "Aug 14, 2026")
-		const formattedDate = startDate.toLocaleDateString("en-US", {
-			month: "short",
-			day: "numeric",
-			year: "numeric",
+			// Format date (e.g., "Aug 14, 2026")
+			const formattedDate = startDate.toLocaleDateString("en-US", {
+				month: "short",
+				day: "numeric",
+				year: "numeric",
+			});
+
+			// Format times (e.g., "5:00 PM - 6:00 PM")
+			const startTimeStr = startDate.toLocaleTimeString("en-US", {
+				hour: "numeric",
+				minute: "2-digit",
+				hour12: true,
+			});
+			const endTimeStr = endDate.toLocaleTimeString("en-US", {
+				hour: "numeric",
+				minute: "2-digit",
+				hour12: true,
+			});
+
+			// Resolve Person Name
+			const targetPerson = isTeacher ? item.student : item.tutor;
+			const personName =
+				targetPerson?.name ||
+				[targetPerson?.firstName, targetPerson?.lastName].filter(Boolean).join(" ") ||
+				"Unknown";
+
+			// Format subject (e.g., "MATHEMATICS" -> "Mathematics")
+			const formattedSubject =
+				item.subject.charAt(0).toUpperCase() + item.subject.slice(1).toLowerCase();
+
+			return {
+				id: item.id,
+				title: item.topic,
+				subject: formattedSubject,
+				tutorOrStudent: personName,
+				roleLabel: isTeacher ? "Student" : "Tutor",
+				date: formattedDate,
+				time: `${startTimeStr} - ${endTimeStr}`,
+				duration: `${item.duration} mins`,
+				status: mappedStatus,
+				meetingUrl:
+					mappedStatus === "Upcoming" ? (`/dashboard/lessons/${item.id}` as Route) : undefined,
+			};
+		})
+		.filter((item) => {
+			if (activeFilter === "upcoming") return item.status === "Upcoming";
+			if (activeFilter === "completed") return item.status === "Completed";
+			return true;
 		});
 
-		// Format times (e.g., "5:00 PM - 6:00 PM")
-		const startTimeStr = startDate.toLocaleTimeString("en-US", {
-			hour: "numeric",
-			minute: "2-digit",
-			hour12: true,
-		});
-		const endTimeStr = endDate.toLocaleTimeString("en-US", {
-			hour: "numeric",
-			minute: "2-digit",
-			hour12: true,
-		});
-
-		// Resolve Person Name
-		const targetPerson = isTeacher ? item.student : item.tutor;
-		const personName =
-			targetPerson?.name ||
-			[targetPerson?.firstName, targetPerson?.lastName].filter(Boolean).join(" ") ||
-			"Unknown";
-
-		// Format subject (e.g., "MATHEMATICS" -> "Mathematics")
-		const formattedSubject =
-			item.subject.charAt(0).toUpperCase() + item.subject.slice(1).toLowerCase();
-
-		return {
-			id: item.id,
-			title: item.topic,
-			subject: formattedSubject,
-			tutorOrStudent: personName,
-			roleLabel: isTeacher ? "Student" : "Tutor",
-			date: formattedDate,
-			time: `${startTimeStr} - ${endTimeStr}`,
-			duration: `${item.duration} mins`,
-			status: mappedStatus,
-			meetingUrl:
-				mappedStatus === "Upcoming"
-					? (`/dashboard/lessons/${item.id}` as Route)
-					: undefined,
-		};
-	});
+	const getFilterClass = (filterName: FilterType) => {
+		const baseClass = "rounded-lg px-3 py-1.5 font-semibold text-xs transition-colors ";
+		if (activeFilter === filterName) {
+			return baseClass + "bg-blue-600 text-white shadow-xs";
+		}
+		return (
+			baseClass +
+			"border border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800"
+		);
+	};
 
 	return (
 		<div className='mx-auto max-w-6xl space-y-8'>
@@ -162,27 +186,29 @@ const SchedulePage = async () => {
 
 				{/* Status Filters */}
 				<div className='flex items-center gap-2 overflow-x-auto text-xs font-medium'>
-					<span className='flex items-center gap-1 text-slate-400 pr-2'>
+					<span className='flex items-center gap-1 pr-2 text-slate-400'>
 						<Filter size={14} /> Filter:
 					</span>
-					<button className='rounded-lg bg-blue-600 px-3 py-1.5 font-semibold text-white'>
+					<Link href='/dashboard/schedule?filter=all' className={getFilterClass("all")}>
 						All
-					</button>
-					<button className='rounded-lg border border-slate-200 px-3 py-1.5 text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800'>
+					</Link>
+					<Link href='/dashboard/schedule?filter=upcoming' className={getFilterClass("upcoming")}>
 						Upcoming
-					</button>
-					<button className='rounded-lg border border-slate-200 px-3 py-1.5 text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800'>
+					</Link>
+					<Link href='/dashboard/schedule?filter=completed' className={getFilterClass("completed")}>
 						Completed
-					</button>
+					</Link>
 				</div>
 			</div>
 
 			{/* SCHEDULE LIST */}
 			<div className='space-y-4'>
 				{scheduleItems.length === 0 ? (
-					<p className='py-8 text-center text-sm text-slate-500 dark:text-slate-400'>
-						No scheduled lessons found.
-					</p>
+					<div className='rounded-xl border border-slate-200/80 bg-white py-12 text-center shadow-xs dark:border-slate-800/80 dark:bg-slate-900/50'>
+						<p className='text-sm font-medium text-slate-500 dark:text-slate-400'>
+							No {activeFilter !== "all" ? activeFilter : ""} scheduled lessons found.
+						</p>
+					</div>
 				) : (
 					scheduleItems.map((item) => {
 						const isUpcoming = item.status === "Upcoming";
@@ -221,9 +247,7 @@ const SchedulePage = async () => {
 											{item.subject}
 										</span>
 									</div>
-									<h3 className='font-semibold text-slate-900 dark:text-slate-100'>
-										{item.title}
-									</h3>
+									<h3 className='font-semibold text-slate-900 dark:text-slate-100'>{item.title}</h3>
 									<p className='flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400'>
 										<GraduationCap size={14} />
 										<span>
