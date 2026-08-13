@@ -80,8 +80,8 @@ export const api = {
 	},
 
 	lessons: {
-		getAll: (token: string) =>
-			fetchData<APIResponse<Lesson[]>>("/bookings", {
+		getAll: (token: string, page: number) =>
+			fetchData<APIResponse<Lesson[]>>(`/bookings?page=${page}`, {
 				headers: {
 					Authorization: `Bearer ${token}`,
 				},
