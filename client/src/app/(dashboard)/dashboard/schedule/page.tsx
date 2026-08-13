@@ -255,8 +255,8 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 				</div>
 
 				{/* Status Filters */}
-				<div className='flex items-center gap-2 overflow-x-auto text-xs font-medium'>
-					<span className='flex items-center gap-1 pr-2 text-slate-400'>
+				<div className='flex flex-wrap items-center gap-2 text-xs font-medium'>
+					<span className='flex items-center gap-1 pr-1 text-slate-400 dark:text-slate-500'>
 						<Filter size={14} /> Filter:
 					</span>
 					<Link href={buildUrl("all")} className={getFilterClass("all")}>
@@ -354,38 +354,95 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 			</div>
 
 			{/* PAGINATION CONTROLS */}
+			{/* PAGINATION CONTROLS */}
 			{totalPages > 1 && (
-				<div className='flex items-center justify-between border-t border-slate-200/80 pt-4 dark:border-slate-800/80'>
+				<div className='flex flex-col gap-4 border-t border-slate-200/80 pt-6 sm:flex-row sm:items-center sm:justify-between dark:border-slate-800/80'>
 					<p className='text-xs font-medium text-slate-500 dark:text-slate-400'>
-						Showing Page{" "}
-						<strong className='text-slate-700 dark:text-slate-200'>{currentPage}</strong> of{" "}
-						<strong className='text-slate-700 dark:text-slate-200'>{totalPages}</strong> (
-						{totalResults} total lessons)
+						Showing page{" "}
+						<strong className='font-semibold text-slate-900 dark:text-slate-100'>
+							{currentPage}
+						</strong>{" "}
+						of{" "}
+						<strong className='font-semibold text-slate-900 dark:text-slate-100'>
+							{totalPages}
+						</strong>{" "}
+						<span className='text-slate-400 dark:text-slate-500'>
+							({totalResults} total lessons)
+						</span>
 					</p>
 
-					<div className='flex items-center gap-2'>
+					<nav aria-label='Pagination Navigation' className='flex items-center gap-1.5'>
+						{/* Previous Button */}
 						<Link
 							href={getPaginationUrl(currentPage - 1)}
 							aria-disabled={currentPage <= 1}
-							className={`flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors dark:border-slate-800 dark:text-slate-400 ${
+							tabIndex={currentPage <= 1 ? -1 : undefined}
+							className={`inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-all dark:border-slate-800 dark:text-slate-300 ${
 								currentPage <= 1
-									? "pointer-events-none opacity-50"
-									: "hover:bg-slate-100 dark:hover:bg-slate-800"
+									? "pointer-events-none opacity-40"
+									: "hover:bg-slate-100 hover:text-slate-900 active:scale-[0.97] dark:hover:bg-slate-800 dark:hover:text-slate-100"
 							}`}>
-							<ChevronLeft size={14} /> Previous
+							<ChevronLeft size={14} />
+							<span className='hidden sm:inline'>Previous</span>
 						</Link>
 
+						{/* Page Numbers */}
+						<div className='flex items-center gap-1'>
+							{Array.from({ length: totalPages }, (_, index) => index + 1)
+								.filter(
+									(page) => page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1,
+								)
+								.reduce<(number | string)[]>((acc, page, i, arr) => {
+									if (i > 0 && page - (arr[i - 1] as number) > 1) {
+										acc.push("...");
+									}
+									acc.push(page);
+									return acc;
+								}, [])
+								.map((item, idx) => {
+									if (item === "...") {
+										return (
+											<span
+												key={`ellipse-${idx}`}
+												className='px-2 text-xs text-slate-400 dark:text-slate-600'>
+												•••
+											</span>
+										);
+									}
+
+									const pageNum = item as number;
+									const isActive = pageNum === currentPage;
+
+									return (
+										<Link
+											key={pageNum}
+											href={getPaginationUrl(pageNum)}
+											aria-current={isActive ? "page" : undefined}
+											className={`flex h-8 min-w-8 items-center justify-center rounded-lg px-2 text-xs font-semibold transition-all ${
+												isActive
+													? "bg-blue-600 text-white shadow-xs"
+													: "border border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+											}`}>
+											{pageNum}
+										</Link>
+									);
+								})}
+						</div>
+
+						{/* Next Button */}
 						<Link
 							href={getPaginationUrl(currentPage + 1)}
 							aria-disabled={currentPage >= totalPages}
-							className={`flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors dark:border-slate-800 dark:text-slate-400 ${
+							tabIndex={currentPage >= totalPages ? -1 : undefined}
+							className={`inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-all dark:border-slate-800 dark:text-slate-300 ${
 								currentPage >= totalPages
-									? "pointer-events-none opacity-50"
-									: "hover:bg-slate-100 dark:hover:bg-slate-800"
+									? "pointer-events-none opacity-40"
+									: "hover:bg-slate-100 hover:text-slate-900 active:scale-[0.97] dark:hover:bg-slate-800 dark:hover:text-slate-100"
 							}`}>
-							Next <ChevronRight size={14} />
+							<span className='hidden sm:inline'>Next</span>
+							<ChevronRight size={14} />
 						</Link>
-					</div>
+					</nav>
 				</div>
 			)}
 		</div>
