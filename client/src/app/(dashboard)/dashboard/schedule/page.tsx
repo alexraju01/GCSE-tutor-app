@@ -1,288 +1,351 @@
 import { auth } from "@auth";
 import ScheduleHeader from "@components/dashboard/calendar/ScheduleHeader";
 import {
-	Calendar as CalendarIcon,
-	ChevronLeft,
-	ChevronRight,
-	Clock,
-	Filter,
-	GraduationCap,
-	Video,
+  Calendar as CalendarIcon,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Filter,
+  GraduationCap,
+  Video,
 } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { api } from "@utils/api";
 
 interface Student {
-	id?: string;
-	name?: string;
-	firstName?: string;
-	lastName?: string;
-	email?: string;
+  id?: string;
+  name?: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
 }
 
 interface Tutor {
-	id?: string;
-	name?: string;
-	firstName?: string;
-	lastName?: string;
-	email?: string;
+  id?: string;
+  name?: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
 }
 
 interface BookingAPIItem {
-	id: string;
-	subject: string;
-	topic: string;
-	meetingRoomId: string | null;
-	startTime: string;
-	duration: number;
-	status: string;
-	notes?: string;
-	student?: Student;
-	tutor?: Tutor;
+  id: string;
+  subject: string;
+  topic: string;
+  meetingRoomId: string | null;
+  startTime: string;
+  duration: number;
+  status: string;
+  notes?: string;
+  student?: Student;
+  tutor?: Tutor;
 }
 
 interface Session {
-	id: string;
-	title: string;
-	subject: string;
-	tutorOrStudent: string;
-	roleLabel: string;
-	date: string;
-	time: string;
-	duration: string;
-	status: "Upcoming" | "Completed" | "Cancelled";
-	meetingUrl?: Route<string>;
+  id: string;
+  title: string;
+  subject: string;
+  tutorOrStudent: string;
+  roleLabel: string;
+  date: string;
+  time: string;
+  duration: string;
+  status: "Upcoming" | "Completed" | "Cancelled";
+  meetingUrl?: Route<string>;
+  rawStartDate: Date;
 }
 
 type FilterType = "all" | "upcoming" | "completed";
 
 // Utility function to map API statuses to UI component statuses
 const mapStatus = (status: string): "Upcoming" | "Completed" | "Cancelled" => {
-	switch (status.toUpperCase()) {
-		case "CONFIRMED":
-		case "UPCOMING":
-		case "SCHEDULED":
-			return "Upcoming";
-		case "COMPLETED":
-			return "Completed";
-		case "CANCELLED":
-		case "CANCELED":
-			return "Cancelled";
-		default:
-			return "Upcoming";
-	}
+  switch (status.toUpperCase()) {
+    case "CONFIRMED":
+    case "UPCOMING":
+    case "SCHEDULED":
+      return "Upcoming";
+    case "COMPLETED":
+      return "Completed";
+    case "CANCELLED":
+    case "CANCELED":
+      return "Cancelled";
+    default:
+      return "Upcoming";
+  }
 };
 
 interface SchedulePageProps {
-	searchParams: Promise<{ filter?: string }>;
+  searchParams: Promise<{ filter?: string; month?: string; year?: string }>;
 }
 
 const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
-	const params = await searchParams;
-	const activeFilter: FilterType = (params.filter?.toLowerCase() as FilterType) || "all";
+  const params = await searchParams;
+  const activeFilter: FilterType = (params.filter?.toLowerCase() as FilterType) || "all";
 
-	const session = await auth();
-	const isTeacher = session?.user?.role === "Teacher";
+  const currentDate = new Date();
+  const selectedYear = params.year ? parseInt(params.year, 10) : currentDate.getFullYear();
+  const isMonthlyView = Boolean(params.month);
+  const selectedMonth = isMonthlyView
+    ? parseInt(params.month!, 10) - 1
+    : currentDate.getMonth();
 
-	const token = session?.backendToken ?? "";
-	const lessonsAPI = await api.lessons.getAll(token);
+  // Navigation Links Calculation
+  let prevUrl = "";
+  let nextUrl = "";
+  let formattedDateHeader = "";
 
-	// Transform API bookings to match UI structure
-	const bookings: BookingAPIItem[] = lessonsAPI?.bookings ?? [];
+  if (isMonthlyView) {
+    const activeDate = new Date(selectedYear, selectedMonth, 1);
+    const prevDate = new Date(selectedYear, selectedMonth - 1, 1);
+    const nextDate = new Date(selectedYear, selectedMonth + 1, 1);
 
-	const scheduleItems: Session[] = bookings
-		.map((item) => {
-			const startDate = new Date(item.startTime);
-			const endDate = new Date(startDate.getTime() + item.duration * 60000);
+    prevUrl = `/dashboard/schedule?month=${prevDate.getMonth() + 1}&year=${prevDate.getFullYear()}&filter=${activeFilter}`;
+    nextUrl = `/dashboard/schedule?month=${nextDate.getMonth() + 1}&year=${nextDate.getFullYear()}&filter=${activeFilter}`;
+    formattedDateHeader = activeDate.toLocaleDateString("en-US", {
+      month: "long",
+      year: "numeric",
+    });
+  } else {
+    prevUrl = `/dashboard/schedule?year=${selectedYear - 1}&filter=${activeFilter}`;
+    nextUrl = `/dashboard/schedule?year=${selectedYear + 1}&filter=${activeFilter}`;
+    formattedDateHeader = `${selectedYear}`;
+  }
 
-			const mappedStatus = mapStatus(item.status);
+  const session = await auth();
+  const isTeacher = session?.user?.role === "Teacher";
 
-			// Format date (e.g., "Aug 14, 2026")
-			const formattedDate = startDate.toLocaleDateString("en-US", {
-				month: "short",
-				day: "numeric",
-				year: "numeric",
-			});
+  const token = session?.backendToken ?? "";
+  const lessonsAPI = await api.lessons.getAll(token);
+  console.log("Fetched Lessons API Data:", lessonsAPI);
 
-			// Format times (e.g., "5:00 PM - 6:00 PM")
-			const startTimeStr = startDate.toLocaleTimeString("en-US", {
-				hour: "numeric",
-				minute: "2-digit",
-				hour12: true,
-			});
-			const endTimeStr = endDate.toLocaleTimeString("en-US", {
-				hour: "numeric",
-				minute: "2-digit",
-				hour12: true,
-			});
+  // Transform API bookings to match UI structure
+  const bookings: BookingAPIItem[] = lessonsAPI?.bookings ?? [];
 
-			// Resolve Person Name
-			const targetPerson = isTeacher ? item.student : item.tutor;
-			const personName =
-				targetPerson?.name ||
-				[targetPerson?.firstName, targetPerson?.lastName].filter(Boolean).join(" ") ||
-				"Unknown";
+  const scheduleItems: Session[] = bookings
+    .map((item) => {
+      const startDate = new Date(item.startTime);
+      const endDate = new Date(startDate.getTime() + item.duration * 60000);
 
-			// Format subject (e.g., "MATHEMATICS" -> "Mathematics")
-			const formattedSubject =
-				item.subject.charAt(0).toUpperCase() + item.subject.slice(1).toLowerCase();
+      const mappedStatus = mapStatus(item.status);
 
-			return {
-				id: item.id,
-				title: item.topic,
-				subject: formattedSubject,
-				tutorOrStudent: personName,
-				roleLabel: isTeacher ? "Student" : "Tutor",
-				date: formattedDate,
-				time: `${startTimeStr} - ${endTimeStr}`,
-				duration: `${item.duration} mins`,
-				status: mappedStatus,
-				meetingUrl:
-					mappedStatus === "Upcoming" ? (`/dashboard/lessons/${item.id}` as Route) : undefined,
-			};
-		})
-		.filter((item) => {
-			if (activeFilter === "upcoming") return item.status === "Upcoming";
-			if (activeFilter === "completed") return item.status === "Completed";
-			return true;
-		});
+      // Format date (e.g., "Aug 14, 2026")
+      const formattedDate = startDate.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
 
-	const getFilterClass = (filterName: FilterType) => {
-		const baseClass = "rounded-lg px-3 py-1.5 font-semibold text-xs transition-colors ";
-		if (activeFilter === filterName) {
-			return baseClass + "bg-blue-600 text-white shadow-xs";
-		}
-		return (
-			baseClass +
-			"border border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800"
-		);
-	};
+      // Format times (e.g., "5:00 PM - 6:00 PM")
+      const startTimeStr = startDate.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
+      const endTimeStr = endDate.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
 
-	return (
-		<div className='mx-auto max-w-6xl space-y-8'>
-			{/* PAGE HEADER */}
-			<ScheduleHeader isTeacher={isTeacher} />
+      // Resolve Person Name
+      const targetPerson = isTeacher ? item.student : item.tutor;
+      const personName =
+        targetPerson?.name ||
+        [targetPerson?.firstName, targetPerson?.lastName].filter(Boolean).join(" ") ||
+        "Unknown";
 
-			{/* FILTER & DATE CONTROLS BAR */}
-			<div className='flex flex-col gap-4 rounded-xl border border-slate-200/80 bg-white p-4 shadow-xs dark:border-slate-800/80 dark:bg-slate-900/50 md:flex-row md:items-center md:justify-between'>
-				{/* Date Navigator */}
-				<div className='flex items-center gap-2'>
-					<button
-						aria-label='Previous week'
-						className='rounded-lg border border-slate-200 p-2 text-slate-600 transition-colors hover:bg-slate-100 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800'>
-						<ChevronLeft size={16} />
-					</button>
-					<div className='flex items-center gap-2 rounded-lg border border-slate-200/80 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-200'>
-						<CalendarIcon size={14} className='text-blue-500' />
-						<span>August 2026</span>
-					</div>
-					<button
-						aria-label='Next week'
-						className='rounded-lg border border-slate-200 p-2 text-slate-600 transition-colors hover:bg-slate-100 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800'>
-						<ChevronRight size={16} />
-					</button>
-				</div>
+      // Format subject (e.g., "MATHEMATICS" -> "Mathematics")
+      const formattedSubject =
+        item.subject.charAt(0).toUpperCase() + item.subject.slice(1).toLowerCase();
 
-				{/* Status Filters */}
-				<div className='flex items-center gap-2 overflow-x-auto text-xs font-medium'>
-					<span className='flex items-center gap-1 pr-2 text-slate-400'>
-						<Filter size={14} /> Filter:
-					</span>
-					<Link href='/dashboard/schedule?filter=all' className={getFilterClass("all")}>
-						All
-					</Link>
-					<Link href='/dashboard/schedule?filter=upcoming' className={getFilterClass("upcoming")}>
-						Upcoming
-					</Link>
-					<Link href='/dashboard/schedule?filter=completed' className={getFilterClass("completed")}>
-						Completed
-					</Link>
-				</div>
-			</div>
+      return {
+        id: item.id,
+        title: item.topic,
+        subject: formattedSubject,
+        tutorOrStudent: personName,
+        roleLabel: isTeacher ? "Student" : "Tutor",
+        date: formattedDate,
+        time: `${startTimeStr} - ${endTimeStr}`,
+        duration: `${item.duration} mins`,
+        status: mappedStatus,
+        meetingUrl:
+          mappedStatus === "Upcoming" ? (`/dashboard/lessons/${item.id}` as Route) : undefined,
+        rawStartDate: startDate,
+      };
+    })
+    .filter((item) => {
+      // Year match check
+      const matchesYear = item.rawStartDate.getFullYear() === selectedYear;
+      if (!matchesYear) return false;
 
-			{/* SCHEDULE LIST */}
-			<div className='space-y-4'>
-				{scheduleItems.length === 0 ? (
-					<div className='rounded-xl border border-slate-200/80 bg-white py-12 text-center shadow-xs dark:border-slate-800/80 dark:bg-slate-900/50'>
-						<p className='text-sm font-medium text-slate-500 dark:text-slate-400'>
-							No {activeFilter !== "all" ? activeFilter : ""} scheduled lessons found.
-						</p>
-					</div>
-				) : (
-					scheduleItems.map((item) => {
-						const isUpcoming = item.status === "Upcoming";
+      // Optional Month match check (only if month parameter is explicitly set)
+      if (isMonthlyView) {
+        const matchesMonth = item.rawStartDate.getMonth() === selectedMonth;
+        if (!matchesMonth) return false;
+      }
 
-						return (
-							<div
-								key={item.id}
-								className='flex flex-col justify-between gap-4 rounded-xl border border-slate-200/80 bg-white p-5 shadow-xs transition-all hover:border-slate-300 dark:border-slate-800/80 dark:bg-slate-900/50 dark:hover:border-slate-700 md:flex-row md:items-center'>
-								{/* Left Column: Time & Status */}
-								<div className='flex items-start gap-4 md:w-1/3'>
-									<div className='flex flex-col items-center justify-center rounded-xl bg-blue-500/10 p-3 text-blue-600 dark:text-blue-400'>
-										<Clock size={20} />
-									</div>
-									<div>
-										<p className='text-sm font-bold text-slate-900 dark:text-slate-100'>
-											{item.date}
-										</p>
-										<p className='text-xs font-medium text-slate-500 dark:text-slate-400'>
-											{item.time} ({item.duration})
-										</p>
-										<span
-											className={`mt-2 inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-semibold ${
-												isUpcoming
-													? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-													: "bg-slate-500/10 text-slate-600 dark:text-slate-400"
-											}`}>
-											{item.status}
-										</span>
-									</div>
-								</div>
+      // Status filter check
+      if (activeFilter === "upcoming") return item.status === "Upcoming";
+      if (activeFilter === "completed") return item.status === "Completed";
+      return true;
+    });
 
-								{/* Middle Column: Topic & Tutor/Student Info */}
-								<div className='space-y-1 md:w-1/3'>
-									<div className='flex items-center gap-2'>
-										<span className='rounded-md bg-blue-500/10 px-2 py-0.5 text-xs font-semibold text-blue-600 dark:text-blue-400'>
-											{item.subject}
-										</span>
-									</div>
-									<h3 className='font-semibold text-slate-900 dark:text-slate-100'>{item.title}</h3>
-									<p className='flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400'>
-										<GraduationCap size={14} />
-										<span>
-											{item.roleLabel}:{" "}
-											<strong className='text-slate-700 dark:text-slate-300'>
-												{item.tutorOrStudent}
-											</strong>
-										</span>
-									</p>
-								</div>
+  const getFilterClass = (filterName: FilterType) => {
+    const baseClass = "rounded-lg px-3 py-1.5 font-semibold text-xs transition-colors ";
+    if (activeFilter === filterName) {
+      return baseClass + "bg-blue-600 text-white shadow-xs";
+    }
+    return (
+      baseClass +
+      "border border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800"
+    );
+  };
 
-								{/* Right Column: Actions */}
-								<div className='flex items-center justify-end gap-3 md:w-1/3'>
-									{isUpcoming && item.meetingUrl ? (
-										<Link
-											href={item.meetingUrl}
-											className='inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-xs transition-all hover:bg-blue-500 active:scale-[0.98]'>
-											<Video size={14} />
-											Enter Classroom
-										</Link>
-									) : (
-										<button
-											disabled={!isUpcoming}
-											className='rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-500 hover:bg-slate-100 disabled:opacity-50 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800'>
-											{isUpcoming ? "Reschedule" : "View Notes"}
-										</button>
-									)}
-								</div>
-							</div>
-						);
-					})
-				)}
-			</div>
-		</div>
-	);
+  const buildUrl = (newFilter: FilterType) => {
+    if (isMonthlyView) {
+      return `/dashboard/schedule?month=${selectedMonth + 1}&year=${selectedYear}&filter=${newFilter}`;
+    }
+    return `/dashboard/schedule?year=${selectedYear}&filter=${newFilter}`;
+  };
+
+  return (
+    <div className='mx-auto max-w-6xl space-y-8'>
+      {/* PAGE HEADER */}
+      <ScheduleHeader isTeacher={isTeacher} />
+
+      {/* FILTER & DATE CONTROLS BAR */}
+      <div className='flex flex-col gap-4 rounded-xl border border-slate-200/80 bg-white p-4 shadow-xs dark:border-slate-800/80 dark:bg-slate-900/50 md:flex-row md:items-center md:justify-between'>
+        {/* Date Navigator & Scope Toggle */}
+        <div className='flex flex-wrap items-center gap-2'>
+          <Link
+            href={prevUrl}
+            aria-label={isMonthlyView ? "Previous month" : "Previous year"}
+            className='rounded-lg border border-slate-200 p-2 text-slate-600 transition-colors hover:bg-slate-100 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800'>
+            <ChevronLeft size={16} />
+          </Link>
+          <div className='flex items-center gap-2 rounded-lg border border-slate-200/80 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-200'>
+            <CalendarIcon size={14} className='text-blue-500' />
+            <span>{formattedDateHeader}</span>
+          </div>
+          <Link
+            href={nextUrl}
+            aria-label={isMonthlyView ? "Next month" : "Next year"}
+            className='rounded-lg border border-slate-200 p-2 text-slate-600 transition-colors hover:bg-slate-100 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800'>
+            <ChevronRight size={16} />
+          </Link>
+
+          {/* Toggle between Year-only and Month-Year views */}
+          <Link
+            href={
+              isMonthlyView
+                ? `/dashboard/schedule?year=${selectedYear}&filter=${activeFilter}`
+                : `/dashboard/schedule?month=${currentDate.getMonth() + 1}&year=${selectedYear}&filter=${activeFilter}`
+            }
+            className='ml-2 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-100 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800'>
+            {isMonthlyView ? "View All Year" : "View by Month"}
+          </Link>
+        </div>
+
+        {/* Status Filters */}
+        <div className='flex items-center gap-2 overflow-x-auto text-xs font-medium'>
+          <span className='flex items-center gap-1 pr-2 text-slate-400'>
+            <Filter size={14} /> Filter:
+          </span>
+          <Link href={buildUrl("all")} className={getFilterClass("all")}>
+            All
+          </Link>
+          <Link href={buildUrl("upcoming")} className={getFilterClass("upcoming")}>
+            Upcoming
+          </Link>
+          <Link href={buildUrl("completed")} className={getFilterClass("completed")}>
+            Completed
+          </Link>
+        </div>
+      </div>
+
+      {/* SCHEDULE LIST */}
+      <div className='space-y-4'>
+        {scheduleItems.length === 0 ? (
+          <div className='rounded-xl border border-slate-200/80 bg-white py-12 text-center shadow-xs dark:border-slate-800/80 dark:bg-slate-900/50'>
+            <p className='text-sm font-medium text-slate-500 dark:text-slate-400'>
+              No {activeFilter !== "all" ? activeFilter : ""} scheduled lessons found for {formattedDateHeader}.
+            </p>
+          </div>
+        ) : (
+          scheduleItems.map((item) => {
+            const isUpcoming = item.status === "Upcoming";
+
+            return (
+              <div
+                key={item.id}
+                className='flex flex-col justify-between gap-4 rounded-xl border border-slate-200/80 bg-white p-5 shadow-xs transition-all hover:border-slate-300 dark:border-slate-800/80 dark:bg-slate-900/50 dark:hover:border-slate-700 md:flex-row md:items-center'>
+                {/* Left Column: Time & Status */}
+                <div className='flex items-start gap-4 md:w-1/3'>
+                  <div className='flex flex-col items-center justify-center rounded-xl bg-blue-500/10 p-3 text-blue-600 dark:text-blue-400'>
+                    <Clock size={20} />
+                  </div>
+                  <div>
+                    <p className='text-sm font-bold text-slate-900 dark:text-slate-100'>
+                      {item.date}
+                    </p>
+                    <p className='text-xs font-medium text-slate-500 dark:text-slate-400'>
+                      {item.time} ({item.duration})
+                    </p>
+                    <span
+                      className={`mt-2 inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-semibold ${
+                        isUpcoming
+                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                          : "bg-slate-500/10 text-slate-600 dark:text-slate-400"
+                      }`}>
+                      {item.status}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Middle Column: Topic & Tutor/Student Info */}
+                <div className='space-y-1 md:w-1/3'>
+                  <div className='flex items-center gap-2'>
+                    <span className='rounded-md bg-blue-500/10 px-2 py-0.5 text-xs font-semibold text-blue-600 dark:text-blue-400'>
+                      {item.subject}
+                    </span>
+                  </div>
+                  <h3 className='font-semibold text-slate-900 dark:text-slate-100'>{item.title}</h3>
+                  <p className='flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400'>
+                    <GraduationCap size={14} />
+                    <span>
+                      {item.roleLabel}:{" "}
+                      <strong className='text-slate-700 dark:text-slate-300'>
+                        {item.tutorOrStudent}
+                      </strong>
+                    </span>
+                  </p>
+                </div>
+
+                {/* Right Column: Actions */}
+                <div className='flex items-center justify-end gap-3 md:w-1/3'>
+                  {isUpcoming && item.meetingUrl ? (
+                    <Link
+                      href={item.meetingUrl}
+                      className='inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-xs transition-all hover:bg-blue-500 active:scale-[0.98]'>
+                      <Video size={14} />
+                      Enter Classroom
+                    </Link>
+                  ) : (
+                    <button
+                      disabled={!isUpcoming}
+                      className='rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-500 hover:bg-slate-100 disabled:opacity-50 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800'>
+                      {isUpcoming ? "Reschedule" : "View Notes"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
 };
 
 export default SchedulePage;
