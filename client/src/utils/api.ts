@@ -78,4 +78,13 @@ export const api = {
 				},
 			}),
 	},
+
+	lessons: {
+		getAll: (token: string) =>
+			fetchData<APIResponse<Lesson[]>>("/bookings", {
+				headers: {
+					Authorization: `Bearer ${token}`,
+				},
+			}),
+	},
 };

@@ -1,0 +1,28 @@
+import { Sparkles } from "lucide-react";
+
+interface WelcomeBannerProps {
+	teacherName: string;
+	upcomingCount: number;
+	pendingCount: number;
+}
+
+export const WelcomeBanner = ({ teacherName, upcomingCount, pendingCount }: WelcomeBannerProps) => {
+	return (
+		<div className='relative overflow-hidden rounded-2xl border border-blue-500/20 bg-linear-to-r from-blue-600/10 via-indigo-600/10 to-transparent p-6 sm:p-8 dark:border-blue-500/30'>
+			<div className='relative z-10 max-w-2xl space-y-2'>
+				<div className='inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-600 dark:text-blue-400'>
+					<Sparkles size={14} />
+					Teacher Workspace
+				</div>
+				<h1 className='text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 sm:text-3xl'>
+					Welcome back, {teacherName}!
+				</h1>
+				<p className='text-sm text-slate-600 dark:text-slate-400'>
+					You have {upcomingCount} scheduled {upcomingCount === 1 ? "session" : "sessions"} upcoming
+					and {pendingCount} new lesson {pendingCount === 1 ? "request" : "requests"} awaiting
+					confirmation.
+				</p>
+			</div>
+		</div>
+	);
+};
