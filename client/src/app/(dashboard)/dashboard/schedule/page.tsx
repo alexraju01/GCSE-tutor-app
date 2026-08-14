@@ -219,7 +219,7 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 	return (
 		<div className='mx-auto max-w-6xl space-y-8'>
 			{/* PAGE HEADER */}
-			<ScheduleHeader isTeacher={isTeacher} />
+			<ScheduleHeader isTeacher={isTeacher} token={token} />
 
 			{/* FILTER & DATE CONTROLS BAR */}
 			<div className='flex flex-col gap-4 rounded-xl border border-slate-200/80 bg-white p-4 shadow-xs dark:border-slate-800/80 dark:bg-slate-900/50 md:flex-row md:items-center md:justify-between'>
@@ -353,7 +353,6 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 				)}
 			</div>
 
-			{/* PAGINATION CONTROLS */}
 			{/* PAGINATION CONTROLS */}
 			{totalPages > 1 && (
 				<div className='flex flex-col gap-4 border-t border-slate-200/80 pt-6 sm:flex-row sm:items-center sm:justify-between dark:border-slate-800/80'>

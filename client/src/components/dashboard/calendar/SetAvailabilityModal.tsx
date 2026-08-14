@@ -1,46 +1,121 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { Calendar, Clock, Plus, Trash2, X } from "lucide-react";
-import { setTeacherAvailability, TimeSlot } from "@utils/actions/availability";
+import { Clock, Plus, Trash2, X } from "lucide-react";
+import { api } from "@utils/api";
+
+export interface AvailabilityPayloadItem {
+	startTime: string; // ISO 8601 string
+	durationInMinutes: number;
+}
 
 interface SetAvailabilityModalProps {
 	isOpen: boolean;
 	onClose: () => void;
-	initialSlot?: TimeSlot | null;
+	token?: string; // Passed from parent page/session context
+	initialSlot?: {
+		dayOfWeek: string;
+		startTime: string; // e.g. "15:00"
+		endTime: string; // e.g. "16:00"
+		date?: string; // e.g. "2026-08-17"
+	} | null;
 }
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
-const SetAvailabilityModal = ({ isOpen, onClose, initialSlot }: SetAvailabilityModalProps) => {
+const getNextDateForDay = (dayName: string, baseDateStr?: string): string => {
+	const dayIndex = DAYS.indexOf(dayName);
+	const base = baseDateStr ? new Date(`${baseDateStr}T00:00:00`) : new Date();
+
+	const currentDayIndex = (base.getDay() + 6) % 7;
+	const distance = dayIndex - currentDayIndex;
+
+	const targetDate = new Date(base);
+	targetDate.setDate(base.getDate() + distance);
+
+	const yyyy = targetDate.getFullYear();
+	const mm = String(targetDate.getMonth() + 1).padStart(2, "0");
+	const dd = String(targetDate.getDate()).padStart(2, "0");
+
+	return `${yyyy}-${mm}-${dd}`;
+};
+
+const calculateDuration = (start: string, end: string): number => {
+	const [startH, startM] = start.split(":").map(Number);
+	const [endH, endM] = end.split(":").map(Number);
+	const diff = endH * 60 + endM - (startH * 60 + startM);
+	return diff > 0 ? diff : 60;
+};
+
+const SetAvailabilityModal = ({
+	isOpen,
+	onClose,
+	token,
+	initialSlot,
+}: SetAvailabilityModalProps) => {
 	const [isPending, startTransition] = useTransition();
-	const [isRecurring, setIsRecurring] = useState(true);
-	const [slots, setSlots] = useState<TimeSlot[]>([
-		{ dayOfWeek: "Monday", startTime: "09:00", endTime: "17:00" },
+	const [slots, setSlots] = useState([
+		{
+			date: getNextDateForDay("Monday"),
+			dayOfWeek: "Monday",
+			startTime: "09:00",
+			endTime: "10:00",
+		},
 	]);
 	const [error, setError] = useState<string | null>(null);
 
-	// Sync state when initialSlot is provided via calendar cell click
 	useEffect(() => {
 		if (initialSlot) {
-			setSlots([initialSlot]);
+			const slotDate = initialSlot.date || getNextDateForDay(initialSlot.dayOfWeek);
+			setSlots([
+				{
+					date: slotDate,
+					dayOfWeek: initialSlot.dayOfWeek,
+					startTime: initialSlot.startTime,
+					endTime: initialSlot.endTime,
+				},
+			]);
 		} else {
-			setSlots([{ dayOfWeek: "Monday", startTime: "09:00", endTime: "17:00" }]);
+			setSlots([
+				{
+					date: getNextDateForDay("Monday"),
+					dayOfWeek: "Monday",
+					startTime: "09:00",
+					endTime: "10:00",
+				},
+			]);
 		}
 	}, [initialSlot, isOpen]);
 
 	if (!isOpen) return null;
 
 	const handleAddSlot = () => {
-		setSlots((prev) => [...prev, { dayOfWeek: "Monday", startTime: "09:00", endTime: "17:00" }]);
+		setSlots((prev) => [
+			...prev,
+			{
+				date: getNextDateForDay("Monday"),
+				dayOfWeek: "Monday",
+				startTime: "09:00",
+				endTime: "10:00",
+			},
+		]);
 	};
 
 	const handleRemoveSlot = (index: number) => {
 		setSlots((prev) => prev.filter((_, i) => i !== index));
 	};
 
-	const handleSlotChange = (index: number, field: keyof TimeSlot, value: string) => {
-		setSlots((prev) => prev.map((slot, i) => (i === index ? { ...slot, [field]: value } : slot)));
+	const handleSlotChange = (index: number, field: string, value: string) => {
+		setSlots((prev) =>
+			prev.map((slot, i) => {
+				if (i !== index) return slot;
+				const updated = { ...slot, [field]: value };
+				if (field === "dayOfWeek") {
+					updated.date = getNextDateForDay(value, slot.date);
+				}
+				return updated;
+			}),
+		);
 	};
 
 	const handleSubmit = (e: React.FormEvent) => {
@@ -48,11 +123,28 @@ const SetAvailabilityModal = ({ isOpen, onClose, initialSlot }: SetAvailabilityM
 		setError(null);
 
 		startTransition(async () => {
-			const result = await setTeacherAvailability({ isRecurring, slots });
-			if (result.success) {
+			try {
+				const payloads: AvailabilityPayloadItem[] = slots.map((slot) => {
+					const [hours, minutes] = slot.startTime.split(":").map(Number);
+					const [year, month, day] = slot.date.split("-").map(Number);
+					const isoStartTime = new Date(
+						Date.UTC(year, month - 1, day, hours, minutes),
+					).toISOString();
+
+					return {
+						startTime: isoStartTime,
+						durationInMinutes: calculateDuration(slot.startTime, slot.endTime),
+					};
+				});
+
+				// Submit payloads with the token
+				await Promise.all(payloads.map((payload) => api.availability.create(payload, token)));
+
 				onClose();
-			} else {
-				setError(result.error || "Something went wrong.");
+			} catch (err: unknown) {
+				console.error("Availability submission error:", err);
+				const message = err instanceof Error ? err.message : "Failed to save availability slot.";
+				setError(message);
 			}
 		});
 	};
@@ -84,22 +176,6 @@ const SetAvailabilityModal = ({ isOpen, onClose, initialSlot }: SetAvailabilityM
 							{error}
 						</div>
 					)}
-
-					{/* RECURRING TOGGLE */}
-					<div className='flex items-center justify-between rounded-xl border border-slate-200/80 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-800/40'>
-						<div className='flex items-center gap-2'>
-							<Calendar size={16} className='text-blue-500' />
-							<span className='text-xs font-semibold text-slate-700 dark:text-slate-200'>
-								Repeat Weekly
-							</span>
-						</div>
-						<input
-							type='checkbox'
-							checked={isRecurring}
-							onChange={(e) => setIsRecurring(e.target.checked)}
-							className='h-4 w-4 rounded-md border-slate-300 text-blue-600 focus:ring-blue-500'
-						/>
-					</div>
 
 					{/* TIME SLOTS LIST */}
 					<div className='max-h-60 space-y-3 overflow-y-auto pr-1'>

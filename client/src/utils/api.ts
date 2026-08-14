@@ -2,6 +2,11 @@ import { fetchData } from "@utils/fetchData";
 import { Teacher } from "../types/teacher";
 import type { SocialLoginResponse, SocialUserData } from "../types/auth";
 
+export interface AvailabilityPayloadItem {
+	startTime: string; // ISO 8601 string
+	durationInMinutes: number;
+}
+
 export const api = {
 	auth: {
 		signUp: (data: AuthCredentials) =>
@@ -85,6 +90,19 @@ export const api = {
 				headers: {
 					Authorization: `Bearer ${token}`,
 				},
+			}),
+	},
+
+	availability: {
+		create: (data: AvailabilityPayloadItem, token?: string) =>
+			fetchData<APIResponse>("/availability", {
+				method: "POST",
+				body: data,
+				headers: token
+					? {
+							Authorization: `Bearer ${token}`,
+						}
+					: undefined,
 			}),
 	},
 };

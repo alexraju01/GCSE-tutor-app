@@ -7,9 +7,10 @@ import ScheduleCalendarModal from "./ScheduleCalendarModal";
 
 interface ScheduleHeaderProps {
 	isTeacher: boolean;
+	token?: string; // Accept token if passed from page context
 }
 
-const ScheduleHeader = ({ isTeacher }: ScheduleHeaderProps) => {
+const ScheduleHeader = ({ isTeacher, token }: ScheduleHeaderProps) => {
 	const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
 	return (
@@ -45,7 +46,11 @@ const ScheduleHeader = ({ isTeacher }: ScheduleHeaderProps) => {
 			</div>
 
 			{/* INTERACTIVE CALENDAR MODAL */}
-			<ScheduleCalendarModal isOpen={isCalendarOpen} onClose={() => setIsCalendarOpen(false)} />
+			<ScheduleCalendarModal
+				isOpen={isCalendarOpen}
+				onClose={() => setIsCalendarOpen(false)}
+				token={token}
+			/>
 		</>
 	);
 };
