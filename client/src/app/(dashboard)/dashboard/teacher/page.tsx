@@ -11,6 +11,9 @@ const TeacherDashboardPage = async () => {
 
 	const { data: dashboardData } = await api.dashboard.teacherDashboard(session?.backendToken || "");
 
+	// Fallback subjects when API payload doesn't provide them yet
+	const fallbackSubjects = ["GCSE Chemistry", "GCSE Biology", "GCSE Physics"];
+
 	// Default fallback mock array until API delivers live pendingRequests
 	const fallbackRequests: BookingRequest[] = [
 		{
@@ -37,6 +40,9 @@ const TeacherDashboardPage = async () => {
 	const pendingRequests = dashboardData?.pendingRequests?.length
 		? dashboardData.pendingRequests
 		: fallbackRequests;
+	const teacherSubjects = dashboardData?.subjects?.length
+		? dashboardData.subjects
+		: fallbackSubjects;
 
 	return (
 		<div className='mx-auto max-w-6xl space-y-8'>
@@ -44,6 +50,7 @@ const TeacherDashboardPage = async () => {
 				teacherName={teacherName}
 				upcomingCount={upcomingBookings.length}
 				pendingCount={pendingRequests.length}
+				subjects={teacherSubjects}
 			/>
 
 			<StatsGrid dashboardData={dashboardData} />

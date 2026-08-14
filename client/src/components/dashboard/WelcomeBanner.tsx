@@ -4,16 +4,34 @@ interface WelcomeBannerProps {
 	teacherName: string;
 	upcomingCount: number;
 	pendingCount: number;
+	subjects?: string[];
 }
 
-export const WelcomeBanner = ({ teacherName, upcomingCount, pendingCount }: WelcomeBannerProps) => {
+export const WelcomeBanner = ({
+	teacherName,
+	upcomingCount,
+	pendingCount,
+	subjects = [],
+}: WelcomeBannerProps) => {
 	return (
 		<div className='relative overflow-hidden rounded-2xl border border-blue-500/20 bg-linear-to-r from-blue-600/10 via-indigo-600/10 to-transparent p-6 sm:p-8 dark:border-blue-500/30'>
-			<div className='relative z-10 max-w-2xl space-y-2'>
-				<div className='inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-600 dark:text-blue-400'>
-					<Sparkles size={14} />
-					Teacher Workspace
+			<div className='relative z-10 max-w-2xl space-y-2.5'>
+				<div className='flex flex-wrap items-center gap-2'>
+					<div className='inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-600 dark:text-blue-400'>
+						<Sparkles size={14} />
+						Teacher Workspace
+					</div>
+
+					{/* Render overall subjects taught */}
+					{subjects.map((subject) => (
+						<span
+							key={subject}
+							className='rounded-full border border-slate-200 bg-white/80 px-2.5 py-0.5 text-xs font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300'>
+							{subject}
+						</span>
+					))}
 				</div>
+
 				<h1 className='text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 sm:text-3xl'>
 					Welcome back, {teacherName}!
 				</h1>
