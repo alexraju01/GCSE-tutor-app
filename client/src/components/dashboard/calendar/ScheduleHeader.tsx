@@ -4,13 +4,17 @@ import { useState } from "react";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import ScheduleCalendarModal from "./ScheduleCalendarModal";
+import { TimeSlot } from "@utils/actions/availability";
+import type { Booking } from "./ScheduleCalendar";
 
 interface ScheduleHeaderProps {
 	isTeacher: boolean;
-	token?: string; // Accept token if passed from page context
+	token?: string;
+	initialSlots?: TimeSlot[];
+	bookings?: Booking[];
 }
 
-const ScheduleHeader = ({ isTeacher, token }: ScheduleHeaderProps) => {
+const ScheduleHeader = ({ isTeacher, token, initialSlots = [] }: ScheduleHeaderProps) => {
 	const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
 	return (
@@ -20,6 +24,7 @@ const ScheduleHeader = ({ isTeacher, token }: ScheduleHeaderProps) => {
 					<h1 className='text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 sm:text-3xl'>
 						Schedule & Bookings
 					</h1>
+
 					<p className='text-sm text-slate-500 dark:text-slate-400'>
 						Manage your upcoming live tutoring sessions and past lessons.
 					</p>
@@ -45,10 +50,10 @@ const ScheduleHeader = ({ isTeacher, token }: ScheduleHeaderProps) => {
 				</div>
 			</div>
 
-			{/* INTERACTIVE CALENDAR MODAL */}
 			<ScheduleCalendarModal
 				isOpen={isCalendarOpen}
 				onClose={() => setIsCalendarOpen(false)}
+				initialSlots={initialSlots}
 				token={token}
 			/>
 		</>

@@ -3,6 +3,9 @@ interface APIResponse<T = unknown> {
 	results?: number;
 	data?: T;
 	message?: string;
+	currentPage?: number;
+	totalPages?: number;
+	totalResults?: number;
 }
 
 interface AuthCredentials {
@@ -33,4 +36,17 @@ interface UpcomingBooking {
 	studentImage: string;
 	time: string;
 	status: string;
+}
+
+interface Lesson {
+	id: string;
+	subject: string;
+	topic: string;
+	meetingRoomId: string | null;
+	startTime: string;
+	duration: number;
+	status: string;
+	notes?: string;
+	student?: Student;
+	tutor?: Tutor;
 }

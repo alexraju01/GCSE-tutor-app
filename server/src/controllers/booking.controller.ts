@@ -86,7 +86,7 @@ export const getMyBookings = async (req: Request, res: Response, next: NextFunct
     status: "success",
     currentPage: page,
     results: bookings.length,
-    bookings,
+    data: bookings,
     totalPages: Math.ceil(totalResults / limit),
     totalResults,
   });

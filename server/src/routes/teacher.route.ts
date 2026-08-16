@@ -1,3 +1,4 @@
+import { getAllAvailabilities } from "@controllers/availability.controller.js";
 import {
   getAllTeachers,
   getOneTeacher,
@@ -10,7 +11,6 @@ import { protect, authorize } from "@middleware";
 import { Router } from "express";
 import { validate } from "../middleware/validate.js";
 import { updateTeacherFieldsSchema } from "../schemas/teacher.schema.js";
-
 export const teacherRouter = Router();
 
 // -----------------------------------------------------------------------------
@@ -30,3 +30,4 @@ teacherRouter.route("/").get(getAllTeachers);
 
 // Dynamic parameter route captures everything else at the end
 teacherRouter.route("/:id").get(getOneTeacher);
+teacherRouter.get("/:teacherId/availabilities", protect, getAllAvailabilities);

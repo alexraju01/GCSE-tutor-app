@@ -4,14 +4,15 @@ import {
 	Calendar as CalendarIcon,
 	ChevronLeft,
 	ChevronRight,
-	Clock,
 	Filter,
 	GraduationCap,
 	Video,
+	Clock,
 } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { api } from "@utils/api";
+import { TimeSlot } from "@utils/actions/availability";
 
 interface Student {
 	id?: string;
@@ -27,19 +28,6 @@ interface Tutor {
 	firstName?: string;
 	lastName?: string;
 	email?: string;
-}
-
-interface BookingAPIItem {
-	id: string;
-	subject: string;
-	topic: string;
-	meetingRoomId: string | null;
-	startTime: string;
-	duration: number;
-	status: string;
-	notes?: string;
-	student?: Student;
-	tutor?: Tutor;
 }
 
 interface Session {
@@ -58,18 +46,20 @@ interface Session {
 
 type FilterType = "all" | "upcoming" | "completed";
 
-// Utility function to map API statuses to UI component statuses
 const mapStatus = (status: string): "Upcoming" | "Completed" | "Cancelled" => {
 	switch (status.toUpperCase()) {
 		case "CONFIRMED":
 		case "UPCOMING":
 		case "SCHEDULED":
 			return "Upcoming";
+
 		case "COMPLETED":
 			return "Completed";
+
 		case "CANCELLED":
 		case "CANCELED":
 			return "Cancelled";
+
 		default:
 			return "Upcoming";
 	}
@@ -88,13 +78,11 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 	const params = await searchParams;
 	const activeFilter: FilterType = (params.filter?.toLowerCase() as FilterType) || "all";
 	const currentPage = params.page ? parseInt(params.page, 10) : 1;
-
 	const currentDate = new Date();
 	const selectedYear = params.year ? parseInt(params.year, 10) : currentDate.getFullYear();
 	const isMonthlyView = Boolean(params.month);
 	const selectedMonth = isMonthlyView ? parseInt(params.month!, 10) - 1 : currentDate.getMonth();
 
-	// Navigation Links Calculation
 	let prevUrl = "";
 	let nextUrl = "";
 	let formattedDateHeader = "";
@@ -104,63 +92,94 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 		const prevDate = new Date(selectedYear, selectedMonth - 1, 1);
 		const nextDate = new Date(selectedYear, selectedMonth + 1, 1);
 
-		prevUrl = `/dashboard/schedule?month=${prevDate.getMonth() + 1}&year=${prevDate.getFullYear()}&filter=${activeFilter}&page=1`;
-		nextUrl = `/dashboard/schedule?month=${nextDate.getMonth() + 1}&year=${nextDate.getFullYear()}&filter=${activeFilter}&page=1`;
+		prevUrl =
+			`/dashboard/schedule?month=${prevDate.getMonth() + 1}` +
+			`&year=${prevDate.getFullYear()}` +
+			`&filter=${activeFilter}` +
+			`&page=1`;
+
+		nextUrl =
+			`/dashboard/schedule?month=${nextDate.getMonth() + 1}` +
+			`&year=${nextDate.getFullYear()}` +
+			`&filter=${activeFilter}` +
+			`&page=1`;
+
 		formattedDateHeader = activeDate.toLocaleDateString("en-US", {
 			month: "long",
 			year: "numeric",
 		});
 	} else {
-		prevUrl = `/dashboard/schedule?year=${selectedYear - 1}&filter=${activeFilter}&page=1`;
-		nextUrl = `/dashboard/schedule?year=${selectedYear + 1}&filter=${activeFilter}&page=1`;
+		prevUrl = `/dashboard/schedule?year=${selectedYear - 1}` + `&filter=${activeFilter}&page=1`;
+		nextUrl = `/dashboard/schedule?year=${selectedYear + 1}` + `&filter=${activeFilter}&page=1`;
 		formattedDateHeader = `${selectedYear}`;
 	}
 
+	/*
+  |--------------------------------------------------------------------------
+  | Authentication
+  |--------------------------------------------------------------------------
+  */
+
 	const session = await auth();
 	const isTeacher = session?.user?.role === "Teacher";
-
 	const token = session?.backendToken ?? "";
-	const lessonsAPI = await api.lessons.getAll(token, currentPage);
 
-	// Transform API bookings to match UI structure
-	const bookings: BookingAPIItem[] = lessonsAPI?.bookings ?? [];
-	const totalPages = lessonsAPI?.totalPages ?? 1;
-	const totalResults = lessonsAPI?.totalResults ?? bookings.length;
+	/*
+  |--------------------------------------------------------------------------
+  | Server data (Removed Duplicate Call)
+  |--------------------------------------------------------------------------
+  */
+
+	const [{ data: lessons }, rawAvailabilityResponse] = await Promise.all([
+		token ? api.bookings.getAll(token, { page: currentPage }) : null,
+		isTeacher && token ? api.availability.getAll(token) : null,
+	]);
+
+	const initialAvailability: TimeSlot[] = Array.isArray(rawAvailabilityResponse)
+		? rawAvailabilityResponse
+		: (rawAvailabilityResponse as { data?: TimeSlot[] })?.data || [];
+
+	const bookings: Lesson[] = lessons ?? [];
+	const totalPages = lessons?.totalPages ?? 1;
+	const totalResults = lessons?.totalResults ?? bookings.length;
+
+	/*
+  |--------------------------------------------------------------------------
+  | Transform lessons
+  |--------------------------------------------------------------------------
+  */
 
 	const scheduleItems: Session[] = bookings
 		.map((item) => {
 			const startDate = new Date(item.startTime);
 			const endDate = new Date(startDate.getTime() + item.duration * 60000);
-
 			const mappedStatus = mapStatus(item.status);
 
-			// Format date (e.g., "Aug 14, 2026")
 			const formattedDate = startDate.toLocaleDateString("en-US", {
 				month: "short",
 				day: "numeric",
 				year: "numeric",
 			});
 
-			// Format times (e.g., "5:00 PM - 6:00 PM")
 			const startTimeStr = startDate.toLocaleTimeString("en-US", {
 				hour: "numeric",
 				minute: "2-digit",
 				hour12: true,
 			});
+
 			const endTimeStr = endDate.toLocaleTimeString("en-US", {
 				hour: "numeric",
 				minute: "2-digit",
 				hour12: true,
 			});
 
-			// Resolve Person Name
 			const targetPerson = isTeacher ? item.student : item.tutor;
+
 			const personName =
 				targetPerson?.name ||
 				[targetPerson?.firstName, targetPerson?.lastName].filter(Boolean).join(" ") ||
 				"Unknown";
 
-			// Format subject (e.g., "MATHEMATICS" -> "Mathematics")
 			const formattedSubject =
 				item.subject.charAt(0).toUpperCase() + item.subject.slice(1).toLowerCase();
 
@@ -180,50 +199,80 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 			};
 		})
 		.filter((item) => {
-			// Year match check
 			const matchesYear = item.rawStartDate.getFullYear() === selectedYear;
+
 			if (!matchesYear) return false;
 
-			// Optional Month match check
 			if (isMonthlyView) {
 				const matchesMonth = item.rawStartDate.getMonth() === selectedMonth;
 				if (!matchesMonth) return false;
 			}
 
-			// Status filter check
-			if (activeFilter === "upcoming") return item.status === "Upcoming";
-			if (activeFilter === "completed") return item.status === "Completed";
+			if (activeFilter === "upcoming") {
+				return item.status === "Upcoming";
+			}
+
+			if (activeFilter === "completed") {
+				return item.status === "Completed";
+			}
+
 			return true;
 		});
+	/*
+	|--------------------------------------------------------------------------
+	| Helpers
+	|--------------------------------------------------------------------------
+	*/
 
 	const getFilterClass = (filterName: FilterType) => {
 		const baseClass = "rounded-lg px-3 py-1.5 font-semibold text-xs transition-colors ";
+
 		if (activeFilter === filterName) {
 			return baseClass + "bg-blue-600 text-white shadow-xs";
 		}
+
 		return (
 			baseClass +
-			"border border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800"
+			"border border-slate-200 text-slate-600 " +
+			"hover:bg-slate-100 dark:border-slate-800 " +
+			"dark:text-slate-400 dark:hover:bg-slate-800"
 		);
 	};
 
 	const buildUrl = (newFilter: FilterType, newPage = 1) => {
 		const monthQuery = isMonthlyView ? `month=${selectedMonth + 1}&` : "";
-		return `/dashboard/schedule?${monthQuery}year=${selectedYear}&filter=${newFilter}&page=${newPage}`;
+
+		return (
+			`/dashboard/schedule?${monthQuery}` +
+			`year=${selectedYear}` +
+			`&filter=${newFilter}` +
+			`&page=${newPage}`
+		);
 	};
 
 	const getPaginationUrl = (pageNumber: number) => {
 		return buildUrl(activeFilter, pageNumber);
 	};
 
+	/*
+	|--------------------------------------------------------------------------
+	| UI
+	|--------------------------------------------------------------------------
+	*/
+
 	return (
 		<div className='mx-auto max-w-6xl space-y-8'>
 			{/* PAGE HEADER */}
-			<ScheduleHeader isTeacher={isTeacher} token={token} />
 
-			{/* FILTER & DATE CONTROLS BAR */}
+			<ScheduleHeader
+				isTeacher={isTeacher}
+				token={token}
+				initialSlots={initialAvailability}
+			/>
+
+			{/* FILTER / DATE CONTROLS */}
+
 			<div className='flex flex-col gap-4 rounded-xl border border-slate-200/80 bg-white p-4 shadow-xs dark:border-slate-800/80 dark:bg-slate-900/50 md:flex-row md:items-center md:justify-between'>
-				{/* Date Navigator & Scope Toggle */}
 				<div className='flex flex-wrap items-center gap-2'>
 					<Link
 						href={prevUrl}
@@ -231,10 +280,12 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 						className='rounded-lg border border-slate-200 p-2 text-slate-600 transition-colors hover:bg-slate-100 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800'>
 						<ChevronLeft size={16} />
 					</Link>
+
 					<div className='flex items-center gap-2 rounded-lg border border-slate-200/80 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-200'>
 						<CalendarIcon size={14} className='text-blue-500' />
 						<span>{formattedDateHeader}</span>
 					</div>
+
 					<Link
 						href={nextUrl}
 						aria-label={isMonthlyView ? "Next month" : "Next year"}
@@ -242,7 +293,6 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 						<ChevronRight size={16} />
 					</Link>
 
-					{/* Toggle between Year-only and Month-Year views */}
 					<Link
 						href={
 							isMonthlyView
@@ -254,11 +304,12 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 					</Link>
 				</div>
 
-				{/* Status Filters */}
 				<div className='flex flex-wrap items-center gap-2 text-xs font-medium'>
 					<span className='flex items-center gap-1 pr-1 text-slate-400 dark:text-slate-500'>
-						<Filter size={14} /> Filter:
+						<Filter size={14} />
+						Filter:
 					</span>
+
 					<Link href={buildUrl("all")} className={getFilterClass("all")}>
 						All
 					</Link>
@@ -272,6 +323,7 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 			</div>
 
 			{/* SCHEDULE LIST */}
+
 			<div className='space-y-4'>
 				{scheduleItems.length === 0 ? (
 					<div className='rounded-xl border border-slate-200/80 bg-white py-12 text-center shadow-xs dark:border-slate-800/80 dark:bg-slate-900/50'>
@@ -288,18 +340,20 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 							<div
 								key={item.id}
 								className='flex flex-col justify-between gap-4 rounded-xl border border-slate-200/80 bg-white p-5 shadow-xs transition-all hover:border-slate-300 dark:border-slate-800/80 dark:bg-slate-900/50 dark:hover:border-slate-700 md:flex-row md:items-center'>
-								{/* Left Column: Time & Status */}
 								<div className='flex items-start gap-4 md:w-1/3'>
 									<div className='flex flex-col items-center justify-center rounded-xl bg-blue-500/10 p-3 text-blue-600 dark:text-blue-400'>
 										<Clock size={20} />
 									</div>
+
 									<div>
 										<p className='text-sm font-bold text-slate-900 dark:text-slate-100'>
 											{item.date}
 										</p>
+
 										<p className='text-xs font-medium text-slate-500 dark:text-slate-400'>
 											{item.time} ({item.duration})
 										</p>
+
 										<span
 											className={`mt-2 inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-semibold ${
 												isUpcoming
@@ -311,16 +365,18 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 									</div>
 								</div>
 
-								{/* Middle Column: Topic & Tutor/Student Info */}
 								<div className='space-y-1 md:w-1/3'>
 									<div className='flex items-center gap-2'>
 										<span className='rounded-md bg-blue-500/10 px-2 py-0.5 text-xs font-semibold text-blue-600 dark:text-blue-400'>
 											{item.subject}
 										</span>
 									</div>
+
 									<h3 className='font-semibold text-slate-900 dark:text-slate-100'>{item.title}</h3>
+
 									<p className='flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400'>
 										<GraduationCap size={14} />
+
 										<span>
 											{item.roleLabel}:{" "}
 											<strong className='text-slate-700 dark:text-slate-300'>
@@ -330,7 +386,6 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 									</p>
 								</div>
 
-								{/* Right Column: Actions */}
 								<div className='flex items-center justify-end gap-3 md:w-1/3'>
 									{isUpcoming && item.meetingUrl ? (
 										<Link
@@ -353,7 +408,8 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 				)}
 			</div>
 
-			{/* PAGINATION CONTROLS */}
+			{/* PAGINATION */}
+
 			{totalPages > 1 && (
 				<div className='flex flex-col gap-4 border-t border-slate-200/80 pt-6 sm:flex-row sm:items-center sm:justify-between dark:border-slate-800/80'>
 					<p className='text-xs font-medium text-slate-500 dark:text-slate-400'>
@@ -371,7 +427,6 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 					</p>
 
 					<nav aria-label='Pagination Navigation' className='flex items-center gap-1.5'>
-						{/* Previous Button */}
 						<Link
 							href={getPaginationUrl(currentPage - 1)}
 							aria-disabled={currentPage <= 1}
@@ -385,9 +440,13 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 							<span className='hidden sm:inline'>Previous</span>
 						</Link>
 
-						{/* Page Numbers */}
 						<div className='flex items-center gap-1'>
-							{Array.from({ length: totalPages }, (_, index) => index + 1)
+							{Array.from(
+								{
+									length: totalPages,
+								},
+								(_, index) => index + 1,
+							)
 								.filter(
 									(page) => page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1,
 								)
@@ -395,7 +454,9 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 									if (i > 0 && page - (arr[i - 1] as number) > 1) {
 										acc.push("...");
 									}
+
 									acc.push(page);
+
 									return acc;
 								}, [])
 								.map((item, idx) => {
@@ -410,6 +471,7 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 									}
 
 									const pageNum = item as number;
+
 									const isActive = pageNum === currentPage;
 
 									return (
@@ -428,7 +490,6 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 								})}
 						</div>
 
-						{/* Next Button */}
 						<Link
 							href={getPaginationUrl(currentPage + 1)}
 							aria-disabled={currentPage >= totalPages}

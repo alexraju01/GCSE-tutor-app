@@ -58,7 +58,6 @@ const StudentDashboardPage = async () => {
 		},
 	];
 
-	console.log("Student Dashboard Session:", session);
 	return (
 		<div className='mx-auto max-w-6xl space-y-8'>
 			{/* WELCOME BANNER */}

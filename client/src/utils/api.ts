@@ -7,6 +7,13 @@ export interface AvailabilityPayloadItem {
 	durationInMinutes: number;
 }
 
+export interface GetBookingsParams {
+	page?: number;
+	limit?: number;
+	status?: string;
+	[key: string]: unknown;
+}
+
 export const api = {
 	auth: {
 		signUp: (data: AuthCredentials) =>
@@ -45,13 +52,13 @@ export const api = {
 				role: role || "Student",
 			};
 
-			const res = await fetchData<SocialLoginResponse<SocialUserData>>("/auth/social-sync", {
+			return fetchData<SocialLoginResponse<SocialUserData>>("/auth/social-sync", {
 				method: "POST",
 				body: payload,
 			});
-			return res;
 		},
 	},
+
 	teacher: {
 		getAll: () => fetchData<APIResponse<Teacher[]>>("/teachers"),
 		getOne: (id: string) => fetchData<APIResponse<Teacher>>(`/teachers/${id}`),
@@ -84,15 +91,6 @@ export const api = {
 			}),
 	},
 
-	lessons: {
-		getAll: (token: string, page: number) =>
-			fetchData<APIResponse<Lesson[]>>(`/bookings?page=${page}`, {
-				headers: {
-					Authorization: `Bearer ${token}`,
-				},
-			}),
-	},
-
 	availability: {
 		create: (data: AvailabilityPayloadItem, token?: string) =>
 			fetchData<APIResponse>("/availability", {
@@ -104,5 +102,35 @@ export const api = {
 						}
 					: undefined,
 			}),
+		getAll: (token?: string) =>
+			fetchData<APIResponse<AvailabilityPayloadItem[]>>("/availability", {
+				method: "GET",
+				headers: token
+					? {
+							Authorization: `Bearer ${token}`,
+						}
+					: undefined,
+			}),
+	},
+
+	bookings: {
+		getAll: (token: string, params?: GetBookingsParams) => {
+			const page = params?.page ?? 1;
+			const query = new URLSearchParams({ page: String(page) });
+
+			if (params) {
+				Object.entries(params).forEach(([key, value]) => {
+					if (value !== undefined && key !== "page") {
+						query.append(key, String(value));
+					}
+				});
+			}
+
+			return fetchData<APIResponse<Booking[]>>(`/bookings?${query.toString()}`, {
+				headers: {
+					Authorization: `Bearer ${token}`,
+				},
+			});
+		},
 	},
 };
