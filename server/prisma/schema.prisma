@@ -13,7 +13,7 @@ enum Role {
   Admin
 }
 
-enum BookingStatus {
+enum LessonStatus {
   PENDING
   CONFIRMED
   CANCELLED
@@ -72,7 +72,7 @@ model Teacher {
 
   teaches        Teaches[]
   availabilities Availability[]
-  bookings       Booking[]
+  lessons       Lesson[]
 
   @@map("teachers")
 }
@@ -93,7 +93,7 @@ model Student {
   id       String    @id @default(uuid())
   userId   String    @unique
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  bookings Booking[]
+  lessons Lesson[]
 
   @@map("students")
 }
@@ -106,13 +106,13 @@ model Availability {
   startTime DateTime 
   endTime   DateTime 
 
-  isBooked  Boolean   @default(false)
-  bookings  Booking[]
+  lessonConfirmed  Boolean   @default(false)
+  lessons  Lesson[]
 
   @@map("availabilities")
 }
 
-model Booking {
+model Lesson {
   id             String        @id @default(uuid())
   teacherId      String
   teacher        Teacher       @relation(fields: [teacherId], references: [id], onDelete: Cascade)
@@ -131,7 +131,7 @@ model Booking {
   // Time & Duration (duration in minutes replaces endTime)
   startTime      DateTime
   duration       Int           @default(60) // Store minutes as SmallInt/Int
-  status         BookingStatus @default(PENDING)
+  status         LessonStatus @default(PENDING)
 
   notes          String?       @db.VarChar(255)
   createdAt      DateTime      @default(now())
@@ -141,13 +141,13 @@ model Booking {
   @@index([studentId, startTime])
   @@index([teacherId, startTime])
   @@index([teacherId, startTime, status])
-  @@map("bookings")
+  @@map("lessons")
 }
 
 model Classroom {
   id        String  @id @default(uuid())
-  bookingId String  @unique
-  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  lessonId String  @unique
+  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 
   meetingRoomId String  @unique
   isActive      Boolean @default(false)

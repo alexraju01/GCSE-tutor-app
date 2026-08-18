@@ -10,8 +10,15 @@ export const getAllUsers = async (_: Request, res: Response) => {
 
 export const getOneUser = async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
-
   const user = await prisma.user.findUniqueOrThrow({ where: { id } });
+
+  res.status(200).json({ status: "success", data: user });
+};
+
+export const getUserProfile = async (req: Request, res: Response) => {
+  const { id: userId } = req.user;
+  console.log("user:", userId);
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
 
   res.status(200).json({ status: "success", data: user });
 };

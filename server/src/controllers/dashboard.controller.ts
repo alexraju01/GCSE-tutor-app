@@ -1,4 +1,4 @@
-import { BookingStatus } from "@generated/client.js";
+import { LessonStatus } from "@generated/client.js";
 import { AppError } from "@utils/AppError.js";
 import { prisma } from "../db/prisma.js";
 
@@ -70,39 +70,39 @@ export const getTeacherDashboard = async (req: Request, res: Response, next: Nex
     pendingRequestsRaw,
   ] = await Promise.all([
     // Total completed lessons count
-    prisma.booking.count({
+    prisma.lesson.count({
       where: {
         teacherId: teacher.id,
-        status: BookingStatus.COMPLETED,
+        status: LessonStatus.COMPLETED,
       },
     }),
 
     // Unique active students count (confirmed or completed sessions)
     prisma.student.count({
       where: {
-        bookings: {
+        lessons: {
           some: {
             teacherId: teacher.id,
-            status: { in: [BookingStatus.CONFIRMED, BookingStatus.COMPLETED] },
+            status: { in: [LessonStatus.CONFIRMED, LessonStatus.COMPLETED] },
           },
         },
       },
     }),
 
-    // Completed bookings duration to calculate total hours taught
-    prisma.booking.findMany({
+    // Completed lessons duration to calculate total hours taught
+    prisma.lesson.findMany({
       where: {
         teacherId: teacher.id,
-        status: BookingStatus.COMPLETED,
+        status: LessonStatus.COMPLETED,
       },
       select: { duration: true },
     }),
 
     // Upcoming confirmed bookings
-    prisma.booking.findMany({
+    prisma.lesson.findMany({
       where: {
         teacherId: teacher.id,
-        status: BookingStatus.CONFIRMED,
+        status: LessonStatus.CONFIRMED,
         startTime: { gte: new Date() },
       },
       orderBy: { startTime: "asc" },
@@ -129,10 +129,10 @@ export const getTeacherDashboard = async (req: Request, res: Response, next: Nex
     }),
 
     // Pending booking requests requiring action
-    prisma.booking.findMany({
+    prisma.lesson.findMany({
       where: {
         teacherId: teacher.id,
-        status: BookingStatus.PENDING,
+        status: LessonStatus.PENDING,
         startTime: { gte: new Date() },
       },
       orderBy: { startTime: "asc" },

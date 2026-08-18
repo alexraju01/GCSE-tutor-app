@@ -37,12 +37,12 @@ export const getAllLessons = async (req: Request, res: Response, next: NextFunct
 
   // 2. Separate branches for zero type assertions or runtime re-mapping
   const [totalResults, bookings] = await Promise.all([
-    prisma.booking.count({
+    prisma.lesson.count({
       where: isStudent ? { student: { userId } } : { teacher: { userId } },
     }),
 
     isStudent
-      ? prisma.booking
+      ? prisma.lesson
           .findMany({
             where: { student: { userId } },
             skip,
@@ -61,7 +61,7 @@ export const getAllLessons = async (req: Request, res: Response, next: NextFunct
               teacher: teacher.user,
             })),
           )
-      : prisma.booking
+      : prisma.lesson
           .findMany({
             where: { teacher: { userId } },
             skip,
