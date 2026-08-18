@@ -7,7 +7,7 @@ import {
   studentRouter,
   socialRouter,
   dashboardRouter,
-  bookingRouter,
+  lessonRouter,
 } from "@routes";
 import { AppError } from "@utils/AppError.js";
 import cookieParser from "cookie-parser";
@@ -34,7 +34,7 @@ app.use("/api/v1/students", studentRouter);
 app.use("/api/v1/availability", availabilityRouter);
 app.use("/api/v1/auth", socialRouter);
 app.use("/api/v1/dashboard", dashboardRouter);
-app.use("/api/v1/bookings", bookingRouter);
+app.use("/api/v1/lessons", lessonRouter);
 
 // app.use(globalErrorHandler);
 

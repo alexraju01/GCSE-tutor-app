@@ -37,16 +37,3 @@ interface UpcomingBooking {
 	time: string;
 	status: string;
 }
-
-interface Lesson {
-	id: string;
-	subject: string;
-	topic: string;
-	meetingRoomId: string | null;
-	startTime: string;
-	duration: number;
-	status: string;
-	notes?: string;
-	student?: Student;
-	tutor?: Tutor;
-}

@@ -22,11 +22,11 @@ const BASE_BOOKING_SELECT = {
   notes: true,
 } as const;
 
-export const getMyBookings = async (req: Request, res: Response, next: NextFunction) => {
+export const getAllLessons = async (req: Request, res: Response, next: NextFunction) => {
   const { id: userId, role } = req.user;
 
   if (role !== "Student" && role !== "Teacher") {
-    return next(new AppError("Invalid user role for retrieving bookings.", 400));
+    return next(new AppError("Invalid user role for retrieving lessons.", 400));
   }
 
   const page = Math.max(1, Number(req.query.page) || 1);

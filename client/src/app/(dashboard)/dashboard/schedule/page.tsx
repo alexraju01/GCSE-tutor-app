@@ -14,36 +14,6 @@ import Link from "next/link";
 import { api } from "@utils/api";
 import { TimeSlot } from "@utils/actions/availability";
 
-interface Student {
-	id?: string;
-	name?: string;
-	firstName?: string;
-	lastName?: string;
-	email?: string;
-}
-
-interface Tutor {
-	id?: string;
-	name?: string;
-	firstName?: string;
-	lastName?: string;
-	email?: string;
-}
-
-interface Session {
-	id: string;
-	title: string;
-	subject: string;
-	tutorOrStudent: string;
-	roleLabel: string;
-	date: string;
-	time: string;
-	duration: string;
-	status: "Upcoming" | "Completed" | "Cancelled";
-	meetingUrl?: Route<string>;
-	rawStartDate: Date;
-}
-
 type FilterType = "all" | "upcoming" | "completed";
 
 const mapStatus = (status: string): "Upcoming" | "Completed" | "Cancelled" => {
@@ -52,14 +22,11 @@ const mapStatus = (status: string): "Upcoming" | "Completed" | "Cancelled" => {
 		case "UPCOMING":
 		case "SCHEDULED":
 			return "Upcoming";
-
 		case "COMPLETED":
 			return "Completed";
-
 		case "CANCELLED":
 		case "CANCELED":
 			return "Cancelled";
-
 		default:
 			return "Upcoming";
 	}
@@ -92,43 +59,21 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 		const prevDate = new Date(selectedYear, selectedMonth - 1, 1);
 		const nextDate = new Date(selectedYear, selectedMonth + 1, 1);
 
-		prevUrl =
-			`/dashboard/schedule?month=${prevDate.getMonth() + 1}` +
-			`&year=${prevDate.getFullYear()}` +
-			`&filter=${activeFilter}` +
-			`&page=1`;
-
-		nextUrl =
-			`/dashboard/schedule?month=${nextDate.getMonth() + 1}` +
-			`&year=${nextDate.getFullYear()}` +
-			`&filter=${activeFilter}` +
-			`&page=1`;
-
+		prevUrl = `/dashboard/schedule?month=${prevDate.getMonth() + 1}&year=${prevDate.getFullYear()}&filter=${activeFilter}&page=1`;
+		nextUrl = `/dashboard/schedule?month=${nextDate.getMonth() + 1}&year=${nextDate.getFullYear()}&filter=${activeFilter}&page=1`;
 		formattedDateHeader = activeDate.toLocaleDateString("en-US", {
 			month: "long",
 			year: "numeric",
 		});
 	} else {
-		prevUrl = `/dashboard/schedule?year=${selectedYear - 1}` + `&filter=${activeFilter}&page=1`;
-		nextUrl = `/dashboard/schedule?year=${selectedYear + 1}` + `&filter=${activeFilter}&page=1`;
+		prevUrl = `/dashboard/schedule?year=${selectedYear - 1}&filter=${activeFilter}&page=1`;
+		nextUrl = `/dashboard/schedule?year=${selectedYear + 1}&filter=${activeFilter}&page=1`;
 		formattedDateHeader = `${selectedYear}`;
 	}
-
-	/*
-  |--------------------------------------------------------------------------
-  | Authentication
-  |--------------------------------------------------------------------------
-  */
 
 	const session = await auth();
 	const isTeacher = session?.user?.role === "Teacher";
 	const token = session?.backendToken ?? "";
-
-	/*
-  |--------------------------------------------------------------------------
-  | Server data (Removed Duplicate Call)
-  |--------------------------------------------------------------------------
-  */
 
 	const [{ data: lessons }, rawAvailabilityResponse] = await Promise.all([
 		token ? api.bookings.getAll(token, { page: currentPage }) : null,
@@ -142,12 +87,6 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 	const bookings: Lesson[] = lessons ?? [];
 	const totalPages = lessons?.totalPages ?? 1;
 	const totalResults = lessons?.totalResults ?? bookings.length;
-
-	/*
-  |--------------------------------------------------------------------------
-  | Transform lessons
-  |--------------------------------------------------------------------------
-  */
 
 	const scheduleItems: Session[] = bookings
 		.map((item) => {
@@ -174,7 +113,6 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 			});
 
 			const targetPerson = isTeacher ? item.student : item.tutor;
-
 			const personName =
 				targetPerson?.name ||
 				[targetPerson?.firstName, targetPerson?.lastName].filter(Boolean).join(" ") ||
@@ -200,7 +138,6 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 		})
 		.filter((item) => {
 			const matchesYear = item.rawStartDate.getFullYear() === selectedYear;
-
 			if (!matchesYear) return false;
 
 			if (isMonthlyView) {
@@ -208,70 +145,33 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 				if (!matchesMonth) return false;
 			}
 
-			if (activeFilter === "upcoming") {
-				return item.status === "Upcoming";
-			}
-
-			if (activeFilter === "completed") {
-				return item.status === "Completed";
-			}
+			if (activeFilter === "upcoming") return item.status === "Upcoming";
+			if (activeFilter === "completed") return item.status === "Completed";
 
 			return true;
 		});
-	/*
-	|--------------------------------------------------------------------------
-	| Helpers
-	|--------------------------------------------------------------------------
-	*/
 
 	const getFilterClass = (filterName: FilterType) => {
 		const baseClass = "rounded-lg px-3 py-1.5 font-semibold text-xs transition-colors ";
-
 		if (activeFilter === filterName) {
 			return baseClass + "bg-blue-600 text-white shadow-xs";
 		}
-
 		return (
 			baseClass +
-			"border border-slate-200 text-slate-600 " +
-			"hover:bg-slate-100 dark:border-slate-800 " +
-			"dark:text-slate-400 dark:hover:bg-slate-800"
+			"border border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800"
 		);
 	};
 
 	const buildUrl = (newFilter: FilterType, newPage = 1) => {
 		const monthQuery = isMonthlyView ? `month=${selectedMonth + 1}&` : "";
-
-		return (
-			`/dashboard/schedule?${monthQuery}` +
-			`year=${selectedYear}` +
-			`&filter=${newFilter}` +
-			`&page=${newPage}`
-		);
+		return `/dashboard/schedule?${monthQuery}year=${selectedYear}&filter=${newFilter}&page=${newPage}`;
 	};
 
-	const getPaginationUrl = (pageNumber: number) => {
-		return buildUrl(activeFilter, pageNumber);
-	};
-
-	/*
-	|--------------------------------------------------------------------------
-	| UI
-	|--------------------------------------------------------------------------
-	*/
+	const getPaginationUrl = (pageNumber: number) => buildUrl(activeFilter, pageNumber);
 
 	return (
 		<div className='mx-auto max-w-6xl space-y-8'>
-			{/* PAGE HEADER */}
-
-			<ScheduleHeader
-				isTeacher={isTeacher}
-				token={token}
-				initialSlots={initialAvailability}
-			/>
-
-			{/* FILTER / DATE CONTROLS */}
-
+			<ScheduleHeader isTeacher={isTeacher} token={token} initialSlots={initialAvailability} />
 			<div className='flex flex-col gap-4 rounded-xl border border-slate-200/80 bg-white p-4 shadow-xs dark:border-slate-800/80 dark:bg-slate-900/50 md:flex-row md:items-center md:justify-between'>
 				<div className='flex flex-wrap items-center gap-2'>
 					<Link
@@ -280,19 +180,16 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 						className='rounded-lg border border-slate-200 p-2 text-slate-600 transition-colors hover:bg-slate-100 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800'>
 						<ChevronLeft size={16} />
 					</Link>
-
 					<div className='flex items-center gap-2 rounded-lg border border-slate-200/80 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-200'>
 						<CalendarIcon size={14} className='text-blue-500' />
 						<span>{formattedDateHeader}</span>
 					</div>
-
 					<Link
 						href={nextUrl}
 						aria-label={isMonthlyView ? "Next month" : "Next year"}
 						className='rounded-lg border border-slate-200 p-2 text-slate-600 transition-colors hover:bg-slate-100 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800'>
 						<ChevronRight size={16} />
 					</Link>
-
 					<Link
 						href={
 							isMonthlyView
@@ -303,13 +200,11 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 						{isMonthlyView ? "View All Year" : "View by Month"}
 					</Link>
 				</div>
-
 				<div className='flex flex-wrap items-center gap-2 text-xs font-medium'>
 					<span className='flex items-center gap-1 pr-1 text-slate-400 dark:text-slate-500'>
 						<Filter size={14} />
 						Filter:
 					</span>
-
 					<Link href={buildUrl("all")} className={getFilterClass("all")}>
 						All
 					</Link>
@@ -321,9 +216,6 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 					</Link>
 				</div>
 			</div>
-
-			{/* SCHEDULE LIST */}
-
 			<div className='space-y-4'>
 				{scheduleItems.length === 0 ? (
 					<div className='rounded-xl border border-slate-200/80 bg-white py-12 text-center shadow-xs dark:border-slate-800/80 dark:bg-slate-900/50'>
@@ -335,7 +227,6 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 				) : (
 					scheduleItems.map((item) => {
 						const isUpcoming = item.status === "Upcoming";
-
 						return (
 							<div
 								key={item.id}
@@ -344,16 +235,13 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 									<div className='flex flex-col items-center justify-center rounded-xl bg-blue-500/10 p-3 text-blue-600 dark:text-blue-400'>
 										<Clock size={20} />
 									</div>
-
 									<div>
 										<p className='text-sm font-bold text-slate-900 dark:text-slate-100'>
 											{item.date}
 										</p>
-
 										<p className='text-xs font-medium text-slate-500 dark:text-slate-400'>
 											{item.time} ({item.duration})
 										</p>
-
 										<span
 											className={`mt-2 inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-semibold ${
 												isUpcoming
@@ -364,19 +252,15 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 										</span>
 									</div>
 								</div>
-
 								<div className='space-y-1 md:w-1/3'>
 									<div className='flex items-center gap-2'>
 										<span className='rounded-md bg-blue-500/10 px-2 py-0.5 text-xs font-semibold text-blue-600 dark:text-blue-400'>
 											{item.subject}
 										</span>
 									</div>
-
 									<h3 className='font-semibold text-slate-900 dark:text-slate-100'>{item.title}</h3>
-
 									<p className='flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400'>
 										<GraduationCap size={14} />
-
 										<span>
 											{item.roleLabel}:{" "}
 											<strong className='text-slate-700 dark:text-slate-300'>
@@ -385,7 +269,6 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 										</span>
 									</p>
 								</div>
-
 								<div className='flex items-center justify-end gap-3 md:w-1/3'>
 									{isUpcoming && item.meetingUrl ? (
 										<Link
@@ -407,9 +290,6 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 					})
 				)}
 			</div>
-
-			{/* PAGINATION */}
-
 			{totalPages > 1 && (
 				<div className='flex flex-col gap-4 border-t border-slate-200/80 pt-6 sm:flex-row sm:items-center sm:justify-between dark:border-slate-800/80'>
 					<p className='text-xs font-medium text-slate-500 dark:text-slate-400'>
@@ -425,7 +305,6 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 							({totalResults} total lessons)
 						</span>
 					</p>
-
 					<nav aria-label='Pagination Navigation' className='flex items-center gap-1.5'>
 						<Link
 							href={getPaginationUrl(currentPage - 1)}
@@ -439,14 +318,8 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 							<ChevronLeft size={14} />
 							<span className='hidden sm:inline'>Previous</span>
 						</Link>
-
 						<div className='flex items-center gap-1'>
-							{Array.from(
-								{
-									length: totalPages,
-								},
-								(_, index) => index + 1,
-							)
+							{Array.from({ length: totalPages }, (_, index) => index + 1)
 								.filter(
 									(page) => page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1,
 								)
@@ -454,9 +327,7 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 									if (i > 0 && page - (arr[i - 1] as number) > 1) {
 										acc.push("...");
 									}
-
 									acc.push(page);
-
 									return acc;
 								}, [])
 								.map((item, idx) => {
@@ -469,11 +340,8 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 											</span>
 										);
 									}
-
 									const pageNum = item as number;
-
 									const isActive = pageNum === currentPage;
-
 									return (
 										<Link
 											key={pageNum}
@@ -489,7 +357,6 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 									);
 								})}
 						</div>
-
 						<Link
 							href={getPaginationUrl(currentPage + 1)}
 							aria-disabled={currentPage >= totalPages}
