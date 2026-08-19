@@ -1,13 +1,14 @@
 import { fetchData } from "@utils/fetchData";
 import { Teacher } from "../types/teacher";
 import type { SocialLoginResponse, SocialUserData } from "../types/auth";
+// import type { Lesson } from "@types/lesson";
 
 export interface AvailabilityPayloadItem {
 	startTime: string; // ISO 8601 string
 	durationInMinutes: number;
 }
 
-export interface GetBookingsParams {
+export interface GetLessonsParams {
 	page?: number;
 	limit?: number;
 	status?: string;
@@ -84,7 +85,7 @@ export const api = {
 			}),
 
 		studentDashboard: (token: string) =>
-			fetchData<APIResponse<{ totalBookings: number }>>("/dashboard/student", {
+			fetchData<APIResponse<{ totalLessons: number }>>("/dashboard/student", {
 				headers: {
 					Authorization: `Bearer ${token}`,
 				},
@@ -113,8 +114,8 @@ export const api = {
 			}),
 	},
 
-	bookings: {
-		getAll: (token: string, params?: GetBookingsParams) => {
+	lesson: {
+		getAll: (token: string, params?: GetLessonsParams) => {
 			const page = params?.page ?? 1;
 			const query = new URLSearchParams({ page: String(page) });
 
@@ -126,10 +127,8 @@ export const api = {
 				});
 			}
 
-			return fetchData<APIResponse<Booking[]>>(`/bookings?${query.toString()}`, {
-				headers: {
-					Authorization: `Bearer ${token}`,
-				},
+			return fetchData<APIResponse<Lesson[]>>(`/lessons?${query.toString()}`, {
+				headers: { Authorization: `Bearer ${token}` },
 			});
 		},
 	},

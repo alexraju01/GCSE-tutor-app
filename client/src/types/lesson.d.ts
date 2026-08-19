@@ -1,6 +1,6 @@
-import type { Route } from "next";
+// import type { Route } from "next";
 
-export interface Lesson {
+interface Lesson {
 	id: string;
 	title: string;
 	subject: string;
@@ -10,7 +10,7 @@ export interface Lesson {
 	time: string;
 	duration: string;
 	status: "Upcoming" | "Completed" | "Cancelled";
-	meetingUrl?: Route<string>;
+	// meetingUrl?: Route<string>;
 	rawStartDate: Date;
 }
 
@@ -27,9 +27,9 @@ export interface Lesson {
 // 	tutor?: Tutor;
 // }
 
-export type FilterType = "all" | "upcoming" | "completed";
+type FilterType = "all" | "upcoming" | "completed";
 
-export interface SchedulePageProps {
+interface SchedulePageProps {
 	searchParams: Promise<{
 		filter?: string;
 		month?: string;

@@ -14,7 +14,7 @@ export const canViewStudent = async (
   }
 
   if (viewer.role === Role.Teacher) {
-    const activeBooking = await prisma.booking.findFirst({
+    const activeLesson = await prisma.lesson.findFirst({
       where: {
         studentId: student.id,
         teacher: { userId: viewer.id },
@@ -22,7 +22,7 @@ export const canViewStudent = async (
       },
       select: { id: true }, // we only need existence, not the full row
     });
-    return activeBooking !== null;
+    return activeLesson !== null;
   }
 
   return false;

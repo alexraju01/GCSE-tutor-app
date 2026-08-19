@@ -76,7 +76,7 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 	const token = session?.backendToken ?? "";
 
 	const [{ data: lessons }, rawAvailabilityResponse] = await Promise.all([
-		token ? api.bookings.getAll(token, { page: currentPage }) : null,
+		api.lesson.getAll(token, { page: currentPage }),
 		isTeacher && token ? api.availability.getAll(token) : null,
 	]);
 
@@ -84,11 +84,11 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 		? rawAvailabilityResponse
 		: (rawAvailabilityResponse as { data?: TimeSlot[] })?.data || [];
 
-	const bookings: Lesson[] = lessons ?? [];
-	const totalPages = lessons?.totalPages ?? 1;
-	const totalResults = lessons?.totalResults ?? bookings.length;
+	const bookedLessons = lessons ?? [];
+	// const totalPages = lessons?.totalPages ?? 1;
+	// const totalResults = lessons?.totalResults ?? bookings.length;
 
-	const scheduleItems: Session[] = bookings
+	const scheduledLessons = bookedLessons
 		.map((item) => {
 			const startDate = new Date(item.startTime);
 			const endDate = new Date(startDate.getTime() + item.duration * 60000);
