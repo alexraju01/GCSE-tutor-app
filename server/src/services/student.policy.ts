@@ -18,7 +18,7 @@ export const canViewStudent = async (
       where: {
         studentId: student.id,
         teacher: { userId: viewer.id },
-        status: { in: ["CONFIRMED", "PENDING", "COMPLETED"] },
+        status: { in: ["Confirmed", "Pending", "Completed"] },
       },
       select: { id: true }, // we only need existence, not the full row
     });

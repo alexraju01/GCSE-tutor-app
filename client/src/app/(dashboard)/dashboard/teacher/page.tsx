@@ -8,9 +8,8 @@ import { api } from "@utils/api";
 const TeacherDashboardPage = async () => {
 	const session = await auth();
 	const teacherName = session?.user?.name || "Teacher";
-
 	const { data: dashboardData } = await api.dashboard.teacherDashboard(session?.backendToken || "");
-
+	console.log(dashboardData?.pendingRequests);
 	// Fallback subjects when API payload doesn't provide them yet
 	const fallbackSubjects = ["GCSE Chemistry", "GCSE Biology", "GCSE Physics"];
 

@@ -201,7 +201,7 @@ const ScheduleCalendarModal = ({
 					<button
 						type='button'
 						onClick={onClose}
-						className='rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200'>
+						className='rounded-lg p-2 cursor-pointer text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200'>
 						<X size={20} />
 					</button>
 				</div>
@@ -214,14 +214,14 @@ const ScheduleCalendarModal = ({
 							<button
 								type='button'
 								onClick={handlePreviousWeek}
-								className='rounded-lg border border-slate-200 p-1.5 text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800'>
+								className='rounded-lg border cursor-pointer border-slate-200 p-1.5 text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800'>
 								<ChevronLeft size={16} />
 							</button>
 
 							<button
 								type='button'
 								onClick={handleNextWeek}
-								className='rounded-lg border border-slate-200 p-1.5 text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800'>
+								className='rounded-lg border cursor-pointer border-slate-200 p-1.5 text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800'>
 								<ChevronRight size={16} />
 							</button>
 						</div>
@@ -229,7 +229,7 @@ const ScheduleCalendarModal = ({
 						<button
 							type='button'
 							onClick={handleToday}
-							className='rounded-lg border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800'>
+							className='rounded-lg border cursor-pointer border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800'>
 							Today
 						</button>
 
@@ -241,7 +241,7 @@ const ScheduleCalendarModal = ({
 					{/* LEGEND */}
 
 					<div className='hidden items-center gap-4 text-xs font-medium text-slate-600 dark:text-slate-400 sm:flex'>
-						<div className='flex items-center gap-1.5'>
+						<div className='flex items-center gap-1.5 cursor-pointer'>
 							<span className='h-2.5 w-2.5 rounded-full bg-blue-500' />
 							<span>Availability Set</span>
 						</div>
@@ -256,7 +256,7 @@ const ScheduleCalendarModal = ({
 				{/* CALENDAR */}
 
 				<div className='flex-1 overflow-auto p-5'>
-					<div className='min-w-[800px] overflow-hidden rounded-xl border border-slate-200/80 dark:border-slate-800/80'>
+					<div className='min-w-200 overflow-hidden rounded-xl border border-slate-200/80 dark:border-slate-800/80'>
 						{/* DAY HEADER */}
 
 						<div className='grid grid-cols-8 border-b border-slate-200/80 bg-slate-50 text-center text-xs font-semibold text-slate-700 dark:border-slate-800/80 dark:bg-slate-800/40 dark:text-slate-300'>

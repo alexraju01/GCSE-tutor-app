@@ -75,7 +75,7 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 	const isTeacher = session?.user?.role === "Teacher";
 	const token = session?.backendToken ?? "";
 
-	const [{ data: lessons }, rawAvailabilityResponse] = await Promise.all([
+	const [{ data: lessonsData }, rawAvailabilityResponse] = await Promise.all([
 		api.lesson.getAll(token, { page: currentPage }),
 		isTeacher && token ? api.availability.getAll(token) : null,
 	]);
@@ -84,11 +84,13 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 		? rawAvailabilityResponse
 		: (rawAvailabilityResponse as { data?: TimeSlot[] })?.data || [];
 
-	const bookedLessons = lessons ?? [];
-	// const totalPages = lessons?.totalPages ?? 1;
-	// const totalResults = lessons?.totalResults ?? bookings.length;
+	const bookedLessons = Array.isArray(lessonsData) ? lessonsData : (lessonsData?.data ?? []);
 
-	const scheduledLessons = bookedLessons
+	const totalPages = (lessonsData as { totalPages?: number })?.totalPages ?? 1;
+	const totalResults =
+		(lessonsData as { totalResults?: number })?.totalResults ?? bookedLessons.length;
+
+	const scheduleItems = bookedLessons
 		.map((item) => {
 			const startDate = new Date(item.startTime);
 			const endDate = new Date(startDate.getTime() + item.duration * 60000);
@@ -118,8 +120,9 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 				[targetPerson?.firstName, targetPerson?.lastName].filter(Boolean).join(" ") ||
 				"Unknown";
 
-			const formattedSubject =
-				item.subject.charAt(0).toUpperCase() + item.subject.slice(1).toLowerCase();
+			const formattedSubject = item.subject
+				? item.subject.charAt(0).toUpperCase() + item.subject.slice(1).toLowerCase()
+				: "General";
 
 			return {
 				id: item.id,

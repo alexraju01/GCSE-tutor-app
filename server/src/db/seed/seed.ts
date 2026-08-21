@@ -225,7 +225,9 @@ const main = async () => {
   const allAvailabilities = availabilityNestedArrays.flat();
 
   // 4. Create explicit lessons for Test Teacher
-  console.info(`${GREEN}Creating targeted completed and upcoming lessons for test teacher...`);
+  console.info(
+    `${GREEN}Creating targeted completed, upcoming, and pending lessons for test teacher...`,
+  );
   const testTeacherAvailabilities = allAvailabilities.filter((a) => a.teacherId === testTeacher.id);
 
   const pastTestSlots = testTeacherAvailabilities.filter((a) => new Date(a.endTime) < new Date());
@@ -248,16 +250,33 @@ const main = async () => {
     }
   }
 
-  // Book at least 2 future test teacher slots as CONFIRMED / PENDING
-  for (const slot of futureTestSlots.slice(0, 2)) {
+  // Explicitly allocate future slots: 1 Confirmed and 1 Pending Request
+  let confirmedCount = 0;
+  let pendingCount = 0;
+
+  if (futureTestSlots.length >= 1) {
     const student = students.find((s) => s!.userId === studentUsers[0].id) || students[0];
     if (student) {
       await processLessonAndClassroom(
-        slot,
+        futureTestSlots[0],
         student.id,
         testTeacherSubjects,
         LessonStatus.Confirmed,
       );
+      confirmedCount++;
+    }
+  }
+
+  if (futureTestSlots.length >= 2) {
+    const pendingStudent = students[1] || students[0];
+    if (pendingStudent) {
+      await processLessonAndClassroom(
+        futureTestSlots[1],
+        pendingStudent.id,
+        testTeacherSubjects,
+        LessonStatus.Pending,
+      );
+      pendingCount++;
     }
   }
 
@@ -295,13 +314,14 @@ const main = async () => {
   // 7. Terminal interface outputs
   console.info("\n-------------------------------------------------------");
   console.info(`${GREEN}🚀 Active Seed Accounts Ready for API Testing:`);
-  console.info(`\n👨‍🏫 TEST TEACHER (Has completed lessons, upcoming lessons & earnings):`);
+  console.info(`\n👨‍🏫 TEST TEACHER (Has completed, upcoming & pending lessons):`);
   console.info(`   Name:              ${teacherUsers[0].name}`);
   console.info(`   Email:             teacher@test.com`);
   console.info(`   Password:          ${DEFAULT_PASSWORD}`);
   console.info(`   Hourly Rate:       £${hourlyRate.toFixed(2)}/hr`);
   console.info(`   Completed Lessons: ${completedTestBookingsCount}`);
-  console.info(`   Upcoming Lessons:  ${Math.min(2, futureTestSlots.length)}`);
+  console.info(`   Upcoming Lessons:  ${confirmedCount}`);
+  console.info(`   Pending Requests:  ${pendingCount}`);
   console.info(`   Total Hours Taught:${updatedTestTeacher.totalHours} hrs`);
   console.info(`   Total Earnings:    £${testTeacherEarnings}`);
   console.info(`\n🧑‍🎓 TEST STUDENT (Has linked lessons):`);

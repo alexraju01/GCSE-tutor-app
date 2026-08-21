@@ -4,7 +4,6 @@ import { prisma } from "../db/prisma.js";
 
 import type { Request, Response, NextFunction } from "express";
 
-// Helper for date formatting e.g. "Fri, Aug 12"
 const formatDateLabel = (startTime: Date): string => {
   return startTime.toLocaleDateString("en-US", {
     weekday: "short",
@@ -13,7 +12,6 @@ const formatDateLabel = (startTime: Date): string => {
   });
 };
 
-// Helper for time slot formatting e.g. "3:00 PM - 4:00 PM"
 const formatTimeSlot = (startTime: Date, durationMinutes: number): string => {
   const endTime = new Date(startTime.getTime() + durationMinutes * 60 * 1000);
 
@@ -32,13 +30,11 @@ const formatTimeSlot = (startTime: Date, durationMinutes: number): string => {
   return `${startFormatted} - ${endFormatted}`;
 };
 
-// Helper for human duration label e.g. "1 hr" or "1.5 hrs"
 const formatDurationLabel = (durationMinutes: number): string => {
   const hours = durationMinutes / 60;
   return hours === 1 ? "1 hr" : `${hours} hrs`;
 };
 
-// Helper for combined upcoming session time e.g. "Aug 11, 4:00 PM - 5:00 PM"
 const formatSessionTime = (startTime: Date, durationMinutes: number): string => {
   const isToday = startTime.toDateString() === new Date().toDateString();
   const dayLabel = isToday ? "Today" : formatDateLabel(startTime);
@@ -48,61 +44,60 @@ const formatSessionTime = (startTime: Date, durationMinutes: number): string => 
 };
 
 export const getTeacherDashboard = async (req: Request, res: Response, next: NextFunction) => {
-  // 1. Authenticated user ID from protect middleware
-  const { id: userId } = req.user;
+  const userId = req.user?.id;
 
-  // 2. Locate the teacher profile
+  if (!userId) {
+    return next(new AppError("Unauthorized.", 401));
+  }
+
   const teacher = await prisma.teacher.findUnique({
     where: { userId },
-    select: { id: true, totalEarnings: true },
+    select: { id: true, totalEarnings: true, totalHours: true },
   });
 
   if (!teacher) {
     return next(new AppError("Teacher profile not found.", 404));
   }
 
-  // 3. Gather metrics, upcoming bookings, and pending requests concurrently
   const [
     completedLessonsCount,
     activeStudentsCount,
-    completedBookings,
+    durationAggregate,
     upcomingBookingsRaw,
     pendingRequestsRaw,
   ] = await Promise.all([
-    // Total completed lessons count
     prisma.lesson.count({
       where: {
         teacherId: teacher.id,
-        status: LessonStatus.COMPLETED,
+        status: LessonStatus.Completed,
       },
     }),
 
-    // Unique active students count (confirmed or completed sessions)
     prisma.student.count({
       where: {
         lessons: {
           some: {
             teacherId: teacher.id,
-            status: { in: [LessonStatus.CONFIRMED, LessonStatus.COMPLETED] },
+            status: { in: [LessonStatus.Confirmed, LessonStatus.Completed] },
           },
         },
       },
     }),
 
-    // Completed lessons duration to calculate total hours taught
-    prisma.lesson.findMany({
+    prisma.lesson.aggregate({
       where: {
         teacherId: teacher.id,
-        status: LessonStatus.COMPLETED,
+        status: LessonStatus.Completed,
       },
-      select: { duration: true },
+      _sum: {
+        duration: true,
+      },
     }),
 
-    // Upcoming confirmed bookings
     prisma.lesson.findMany({
       where: {
         teacherId: teacher.id,
-        status: LessonStatus.CONFIRMED,
+        status: LessonStatus.Confirmed,
         startTime: { gte: new Date() },
       },
       orderBy: { startTime: "asc" },
@@ -128,11 +123,10 @@ export const getTeacherDashboard = async (req: Request, res: Response, next: Nex
       },
     }),
 
-    // Pending booking requests requiring action
     prisma.lesson.findMany({
       where: {
         teacherId: teacher.id,
-        status: LessonStatus.PENDING,
+        status: LessonStatus.Pending,
         startTime: { gte: new Date() },
       },
       orderBy: { startTime: "asc" },
@@ -157,35 +151,29 @@ export const getTeacherDashboard = async (req: Request, res: Response, next: Nex
     }),
   ]);
 
-  // 4. Calculate total hours taught
-  const totalHoursTaught = completedBookings.reduce(
-    (total, booking) => total + booking.duration / 60,
-    0,
-  );
+  const totalMinutes = durationAggregate._sum.duration ?? 0;
+  const totalHoursTaught = totalMinutes / 60;
 
-  // 5. Transform upcoming bookings
   const upcomingBookings = upcomingBookingsRaw.map((booking) => ({
     id: booking.id,
     subject: booking.subject,
     topic: booking.topic ?? "General Session",
-    student: booking.student.user.name,
-    studentImage: booking.student.user.image ?? null,
+    student: booking.student?.user?.name ?? "Unknown Student",
+    studentImage: booking.student?.user?.image ?? null,
     time: formatSessionTime(booking.startTime, booking.duration),
     status: "Upcoming",
   }));
 
-  // 6. Transform pending booking requests
   const pendingRequests = pendingRequestsRaw.map((booking) => ({
     id: booking.id,
-    student: booking.student.user.name,
-    studentImage: booking.student.user.image ?? null,
+    student: booking.student?.user?.name ?? "Unknown Student",
+    studentImage: booking.student?.user?.image ?? null,
     subject: booking.subject,
     date: formatDateLabel(booking.startTime),
     timeSlot: formatTimeSlot(booking.startTime, booking.duration),
     duration: formatDurationLabel(booking.duration),
   }));
 
-  // 7. Send complete JSON response payload
   res.status(200).json({
     status: "success",
     data: {

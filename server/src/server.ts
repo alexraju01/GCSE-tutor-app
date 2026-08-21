@@ -36,7 +36,7 @@ app.use("/api/v1/auth", socialRouter);
 app.use("/api/v1/dashboard", dashboardRouter);
 app.use("/api/v1/lessons", lessonRouter);
 
-// app.use(globalErrorHandler);
+app.use(globalErrorHandler);
 
 // Unmatched routes
 app.all("/*splat", (req, res, next) => {

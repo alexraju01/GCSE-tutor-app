@@ -416,7 +416,7 @@ const SetAvailabilityModal = ({
 					<button
 						type='button'
 						onClick={handleAddSlot}
-						className='inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-slate-300 py-2 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800/50'>
+						className='inline-flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-dashed border-slate-300 py-2 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800/50'>
 						<Plus size={14} />
 						Add Another Slot
 					</button>
@@ -427,14 +427,14 @@ const SetAvailabilityModal = ({
 						<button
 							type='button'
 							onClick={onClose}
-							className='rounded-lg border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800'>
+							className='rounded-lg border cursor-pointer border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800'>
 							Cancel
 						</button>
 
 						<button
 							type='submit'
 							disabled={isPending}
-							className='rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white transition-all hover:bg-blue-500 disabled:opacity-50'>
+							className='rounded-lg bg-blue-600 cursor-pointer px-4 py-2 text-xs font-semibold text-white transition-all hover:bg-blue-500 disabled:opacity-50'>
 							{isPending ? "Saving..." : "Save Availability"}
 						</button>
 					</div>

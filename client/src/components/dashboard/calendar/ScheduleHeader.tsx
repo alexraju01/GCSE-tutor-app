@@ -35,7 +35,7 @@ const ScheduleHeader = ({ isTeacher, token, initialSlots = [] }: ScheduleHeaderP
 						<button
 							type='button'
 							onClick={() => setIsCalendarOpen(true)}
-							className='inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-xs transition-all hover:bg-blue-500 active:scale-[0.98]'>
+							className='inline-flex items-center gap-2 cursor-pointer rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-xs transition-all hover:bg-blue-500 active:scale-[0.98]'>
 							<Plus size={16} />
 							Set Availability
 						</button>
