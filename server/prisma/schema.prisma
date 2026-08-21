@@ -14,19 +14,19 @@ enum Role {
 }
 
 enum LessonStatus {
-  PENDING
-  CONFIRMED
-  CANCELLED
-  COMPLETED
+  Pending
+  Confirmed
+  Cancelled
+  Completed
 }
 
 enum Subject {
-  MATHEMATICS        @map("Mathematics")
-  PHYSICS            @map("Physics")
-  CHEMISTRY          @map("Chemistry")
-  BIOLOGY            @map("Biology")
-  ENGLISH_LITERATURE @map("English Literature")
-  COMPUTER_SCIENCE   @map("Computer Science")
+  Mathematics
+  Physics
+  Chemistry
+  Biology
+  English_Literature @map("English Literature")
+  Computer_Science   @map("Computer Science")
 }
 
 enum Level {
@@ -34,11 +34,6 @@ enum Level {
   A_LEVEL
 }
 
-// New Workspace configuration enum
-enum WorkspaceType {
-  INTEGRATED_CLASSROOM
-  EXTERNAL
-}
 
 model User {
   id                String    @id @default(uuid())
@@ -131,7 +126,7 @@ model Lesson {
   // Time & Duration (duration in minutes replaces endTime)
   startTime      DateTime
   duration       Int           @default(60) // Store minutes as SmallInt/Int
-  status         LessonStatus @default(PENDING)
+  status         LessonStatus @default(Pending)
 
   notes          String?       @db.VarChar(255)
   createdAt      DateTime      @default(now())

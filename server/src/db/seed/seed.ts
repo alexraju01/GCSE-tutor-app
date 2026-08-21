@@ -128,8 +128,8 @@ const processLessonAndClassroom = async (
   const status =
     forcedStatus ||
     (isPastSlot
-      ? LessonStatus.COMPLETED
-      : faker.helpers.arrayElement([LessonStatus.PENDING, LessonStatus.CONFIRMED]));
+      ? LessonStatus.Completed
+      : faker.helpers.arrayElement([LessonStatus.Pending, LessonStatus.Confirmed]));
 
   // Randomly assign a meeting room ID or leave it null
   const hasIntegratedClassroom = faker.datatype.boolean();
@@ -175,7 +175,7 @@ const processLessonAndClassroom = async (
         lessonId: lesson.id,
         meetingRoomId: generatedMeetingRoomId,
         joinCode: faker.string.numeric({ length: 6 }),
-        isActive: !isPastSlot && status === LessonStatus.CONFIRMED,
+        isActive: !isPastSlot && status === LessonStatus.Confirmed,
       },
     });
   }
@@ -243,7 +243,7 @@ const main = async () => {
         slot,
         student.id,
         testTeacherSubjects,
-        LessonStatus.COMPLETED,
+        LessonStatus.Completed,
       );
     }
   }
@@ -256,7 +256,7 @@ const main = async () => {
         slot,
         student.id,
         testTeacherSubjects,
-        LessonStatus.CONFIRMED,
+        LessonStatus.Confirmed,
       );
     }
   }
