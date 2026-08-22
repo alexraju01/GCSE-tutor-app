@@ -1,16 +1,23 @@
+import { formatString } from "@utils/stringFormat";
 import { Sparkles } from "lucide-react";
+
+export interface Subject {
+	id: string | number;
+	subject: string;
+	level?: string;
+}
 
 interface WelcomeBannerProps {
 	teacherName: string;
-	upcomingCount: number;
-	pendingCount: number;
-	teaches?: Teaches[];
+	upcomingCount?: number;
+	pendingCount?: number;
+	teaches?: Subject[];
 }
 
 export const WelcomeBanner = ({
 	teacherName,
-	upcomingCount,
-	pendingCount,
+	upcomingCount = 0,
+	pendingCount = 0,
 	teaches = [],
 }: WelcomeBannerProps) => {
 	return (
@@ -22,16 +29,19 @@ export const WelcomeBanner = ({
 						Teacher Workspace
 					</div>
 
-					{/* Render overall subjects taught */}
-					{teaches.map((subject) => (
-						<span
-							key={subject.id}
-							className='rounded-full border border-slate-200 bg-white/80 px-2.5 py-0.5 text-xs font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300'>
-							{subject.subject}
-						</span>
-					))}
-				</div>
+					{teaches.map((item) => {
+						const formattedLevel = formatString(item.level);
+						const label = formattedLevel ? `${formattedLevel} ${item.subject}` : item.subject;
 
+						return (
+							<span
+								key={item.id}
+								className='rounded-full border border-slate-200 bg-white/80 px-2.5 py-0.5 text-xs font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300'>
+								{label}
+							</span>
+						);
+					})}
+				</div>
 				<h1 className='text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 sm:text-3xl'>
 					Welcome back, {teacherName}!
 				</h1>
