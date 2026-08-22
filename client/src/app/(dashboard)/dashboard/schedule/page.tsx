@@ -13,6 +13,7 @@ import type { Route } from "next";
 import Link from "next/link";
 import { api } from "@utils/api";
 import { TimeSlot } from "@utils/actions/availability";
+import { formatScheduleDate, formatTimeRange, formatHeaderDate } from "@utils/date";
 
 type FilterType = "all" | "upcoming" | "completed";
 
@@ -20,13 +21,7 @@ const mapStatus = (status: string): "Upcoming" | "Completed" | "Cancelled" => {
 	switch (status.toUpperCase()) {
 		case "CONFIRMED":
 		case "UPCOMING":
-		case "SCHEDULED":
 			return "Upcoming";
-		case "COMPLETED":
-			return "Completed";
-		case "CANCELLED":
-		case "CANCELED":
-			return "Cancelled";
 		default:
 			return "Upcoming";
 	}
@@ -55,20 +50,16 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 	let formattedDateHeader = "";
 
 	if (isMonthlyView) {
-		const activeDate = new Date(selectedYear, selectedMonth, 1);
 		const prevDate = new Date(selectedYear, selectedMonth - 1, 1);
 		const nextDate = new Date(selectedYear, selectedMonth + 1, 1);
 
 		prevUrl = `/dashboard/schedule?month=${prevDate.getMonth() + 1}&year=${prevDate.getFullYear()}&filter=${activeFilter}&page=1`;
 		nextUrl = `/dashboard/schedule?month=${nextDate.getMonth() + 1}&year=${nextDate.getFullYear()}&filter=${activeFilter}&page=1`;
-		formattedDateHeader = activeDate.toLocaleDateString("en-US", {
-			month: "long",
-			year: "numeric",
-		});
+		formattedDateHeader = formatHeaderDate(selectedYear, selectedMonth);
 	} else {
 		prevUrl = `/dashboard/schedule?year=${selectedYear - 1}&filter=${activeFilter}&page=1`;
 		nextUrl = `/dashboard/schedule?year=${selectedYear + 1}&filter=${activeFilter}&page=1`;
-		formattedDateHeader = `${selectedYear}`;
+		formattedDateHeader = formatHeaderDate(selectedYear);
 	}
 
 	const session = await auth();
@@ -92,27 +83,9 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 
 	const scheduleItems = bookedLessons
 		.map((item) => {
-			const startDate = new Date(item.startTime);
-			const endDate = new Date(startDate.getTime() + item.duration * 60000);
+			const { startDate, formattedDate } = formatScheduleDate(item.startTime);
+			const timeRange = formatTimeRange(startDate, item.duration);
 			const mappedStatus = mapStatus(item.status);
-
-			const formattedDate = startDate.toLocaleDateString("en-US", {
-				month: "short",
-				day: "numeric",
-				year: "numeric",
-			});
-
-			const startTimeStr = startDate.toLocaleTimeString("en-US", {
-				hour: "numeric",
-				minute: "2-digit",
-				hour12: true,
-			});
-
-			const endTimeStr = endDate.toLocaleTimeString("en-US", {
-				hour: "numeric",
-				minute: "2-digit",
-				hour12: true,
-			});
 
 			const targetPerson = isTeacher ? item.student : item.tutor;
 			const personName =
@@ -131,7 +104,7 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 				tutorOrStudent: personName,
 				roleLabel: isTeacher ? "Student" : "Tutor",
 				date: formattedDate,
-				time: `${startTimeStr} - ${endTimeStr}`,
+				time: timeRange,
 				duration: `${item.duration} mins`,
 				status: mappedStatus,
 				meetingUrl:
