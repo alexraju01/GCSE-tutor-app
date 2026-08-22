@@ -17,15 +17,15 @@ import { formatScheduleDate, formatTimeRange, formatHeaderDate } from "@utils/da
 
 type FilterType = "all" | "upcoming" | "completed";
 
-const mapStatus = (status: string): "Upcoming" | "Completed" | "Cancelled" => {
-	switch (status.toUpperCase()) {
-		case "CONFIRMED":
-		case "UPCOMING":
-			return "Upcoming";
-		default:
-			return "Upcoming";
-	}
-};
+// const mapStatus = (status: string): "Upcoming" | "Completed" | "Cancelled" => {
+// 	switch (status.toUpperCase()) {
+// 		case "CONFIRMED":
+// 		case "UPCOMING":
+// 			return "Upcoming";
+// 		default:
+// 			return "Upcoming";
+// 	}
+// };
 
 interface SchedulePageProps {
 	searchParams: Promise<{
@@ -66,7 +66,7 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 	const isTeacher = session?.user?.role === "Teacher";
 	const token = session?.backendToken ?? "";
 
-	const [{ data: lessonsData }, rawAvailabilityResponse] = await Promise.all([
+	const [{ data: lessons }, rawAvailabilityResponse] = await Promise.all([
 		api.lesson.getAll(token, { page: currentPage }),
 		isTeacher && token ? api.availability.getAll(token) : null,
 	]);
@@ -75,40 +75,29 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 		? rawAvailabilityResponse
 		: (rawAvailabilityResponse as { data?: TimeSlot[] })?.data || [];
 
-	const bookedLessons = Array.isArray(lessonsData) ? lessonsData : (lessonsData?.data ?? []);
+	const totalPages = (lessons as { totalPages?: number })?.totalPages ?? 1;
+	const totalResults = (lessons as { totalResults?: number })?.totalResults ?? lessons?.length;
 
-	const totalPages = (lessonsData as { totalPages?: number })?.totalPages ?? 1;
-	const totalResults =
-		(lessonsData as { totalResults?: number })?.totalResults ?? bookedLessons.length;
-
-	const scheduleItems = bookedLessons
-		.map((item) => {
+	const scheduleItems = lessons
+		?.map((item) => {
 			const { startDate, formattedDate } = formatScheduleDate(item.startTime);
 			const timeRange = formatTimeRange(startDate, item.duration);
-			const mappedStatus = mapStatus(item.status);
 
-			const targetPerson = isTeacher ? item.student : item.tutor;
-			const personName =
-				targetPerson?.name ||
-				[targetPerson?.firstName, targetPerson?.lastName].filter(Boolean).join(" ") ||
-				"Unknown";
-
-			const formattedSubject = item.subject
-				? item.subject.charAt(0).toUpperCase() + item.subject.slice(1).toLowerCase()
-				: "General";
+			const targetPerson = isTeacher ? item.student : item.teacher;
+			const personName = targetPerson?.name || "Unknown";
 
 			return {
 				id: item.id,
 				title: item.topic,
-				subject: formattedSubject,
+				subject: item.subject,
 				tutorOrStudent: personName,
 				roleLabel: isTeacher ? "Student" : "Tutor",
 				date: formattedDate,
 				time: timeRange,
 				duration: `${item.duration} mins`,
-				status: mappedStatus,
+				status: item.status,
 				meetingUrl:
-					mappedStatus === "Upcoming" ? (`/dashboard/lessons/${item.id}` as Route) : undefined,
+					item.status === "Upcoming" ? (`/dashboard/lessons/${item.id}` as Route) : undefined,
 				rawStartDate: startDate,
 			};
 		})

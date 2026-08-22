@@ -2,16 +2,29 @@
 
 interface Lesson {
 	id: string;
-	title: string;
 	subject: string;
-	tutorOrStudent: string;
+	topic: string;
+	meetingRoomId: string;
+	startTime: string;
+	// tutorOrStudent: string;
+	duration: number;
+	status: "Upcoming" | "Completed" | "Cancelled" | "Pending";
+	notes: string;
 	roleLabel: string;
-	date: string;
-	time: string;
-	duration: string;
-	status: "Upcoming" | "Completed" | "Cancelled";
-	// meetingUrl?: Route<string>;
-	rawStartDate: Date;
+	student?: Student;
+	teacher?: Teacher;
+}
+
+interface Teacher {
+	name: string;
+	image: string;
+	email: string;
+}
+
+interface Student {
+	name: string;
+	image: string;
+	email: string;
 }
 
 // interface Lesson {
