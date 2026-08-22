@@ -1,47 +1,14 @@
 import { LessonStatus } from "@generated/client.js";
 import { AppError } from "@utils/AppError.js";
+import {
+  formatDateLabel,
+  formatTimeSlot,
+  formatDurationLabel,
+  formatSessionTime,
+} from "@utils/date.js";
 import { prisma } from "../db/prisma.js";
 
 import type { Request, Response, NextFunction } from "express";
-
-const formatDateLabel = (startTime: Date): string => {
-  return startTime.toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  });
-};
-
-const formatTimeSlot = (startTime: Date, durationMinutes: number): string => {
-  const endTime = new Date(startTime.getTime() + durationMinutes * 60 * 1000);
-
-  const startFormatted = startTime.toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  });
-
-  const endFormatted = endTime.toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  });
-
-  return `${startFormatted} - ${endFormatted}`;
-};
-
-const formatDurationLabel = (durationMinutes: number): string => {
-  const hours = durationMinutes / 60;
-  return hours === 1 ? "1 hr" : `${hours} hrs`;
-};
-
-const formatSessionTime = (startTime: Date, durationMinutes: number): string => {
-  const isToday = startTime.toDateString() === new Date().toDateString();
-  const dayLabel = isToday ? "Today" : formatDateLabel(startTime);
-  const slot = formatTimeSlot(startTime, durationMinutes);
-
-  return `${dayLabel}, ${slot}`;
-};
 
 export const getTeacherDashboard = async (req: Request, res: Response, next: NextFunction) => {
   const userId = req.user?.id;
@@ -52,7 +19,18 @@ export const getTeacherDashboard = async (req: Request, res: Response, next: Nex
 
   const teacher = await prisma.teacher.findUnique({
     where: { userId },
-    select: { id: true, totalEarnings: true, totalHours: true },
+    select: {
+      id: true,
+      totalEarnings: true,
+      totalHours: true,
+      teaches: {
+        select: {
+          id: true,
+          subject: true,
+          level: true,
+        },
+      },
+    },
   });
 
   if (!teacher) {
@@ -174,6 +152,12 @@ export const getTeacherDashboard = async (req: Request, res: Response, next: Nex
     duration: formatDurationLabel(booking.duration),
   }));
 
+  const subjects = teacher.teaches.map((item) => ({
+    id: item.id,
+    subject: item.subject,
+    level: item.level,
+  }));
+
   res.status(200).json({
     status: "success",
     data: {
@@ -184,6 +168,7 @@ export const getTeacherDashboard = async (req: Request, res: Response, next: Nex
       completedLessons: completedLessonsCount,
       activeStudents: activeStudentsCount,
       totalHoursTaught: Number(totalHoursTaught.toFixed(1)),
+      teaches: subjects,
       upcomingBookings,
       pendingRequests,
     },

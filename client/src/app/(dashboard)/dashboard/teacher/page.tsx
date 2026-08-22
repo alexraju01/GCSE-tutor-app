@@ -39,9 +39,7 @@ const TeacherDashboardPage = async () => {
 	const pendingRequests = dashboardData?.pendingRequests?.length
 		? dashboardData.pendingRequests
 		: fallbackRequests;
-	const teacherSubjects = dashboardData?.subjects?.length
-		? dashboardData.subjects
-		: fallbackSubjects;
+	const teacherSubjects = dashboardData?.teaches?.length ? dashboardData.teaches : fallbackSubjects;
 
 	return (
 		<div className='mx-auto max-w-6xl space-y-8'>
@@ -49,7 +47,7 @@ const TeacherDashboardPage = async () => {
 				teacherName={teacherName}
 				upcomingCount={upcomingBookings.length}
 				pendingCount={pendingRequests.length}
-				subjects={teacherSubjects}
+				teaches={teacherSubjects}
 			/>
 
 			<StatsGrid dashboardData={dashboardData} />

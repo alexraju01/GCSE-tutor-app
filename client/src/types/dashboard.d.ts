@@ -5,7 +5,13 @@ interface StudentSession {
 	student: string;
 	studentImage?: string;
 	time: string;
-	status: "Upcoming" | "Completed" | "Cancelled";
+	status: "Upcoming" | "Completed" | "Cancelled" | "Pending";
+}
+
+interface Teaches {
+	id: string;
+	subject: "Biology" | "Physics" | "Chemistry" | "English Literature" | "Computer Science";
+	level: "A LEVEL" | "GCSE";
 }
 
 interface BookingRequest {
@@ -23,6 +29,7 @@ interface TeacherDashboardData {
 		amount: number;
 		currency: string;
 	};
+	teaches: Teaches[];
 	completedLessons: number;
 	activeStudents: number;
 	totalHoursTaught: number;

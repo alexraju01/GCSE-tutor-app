@@ -4,14 +4,14 @@ interface WelcomeBannerProps {
 	teacherName: string;
 	upcomingCount: number;
 	pendingCount: number;
-	subjects?: string[];
+	teaches?: Teaches[];
 }
 
 export const WelcomeBanner = ({
 	teacherName,
 	upcomingCount,
 	pendingCount,
-	subjects = [],
+	teaches = [],
 }: WelcomeBannerProps) => {
 	return (
 		<div className='relative overflow-hidden rounded-2xl border border-blue-500/20 bg-linear-to-r from-blue-600/10 via-indigo-600/10 to-transparent p-6 sm:p-8 dark:border-blue-500/30'>
@@ -23,11 +23,11 @@ export const WelcomeBanner = ({
 					</div>
 
 					{/* Render overall subjects taught */}
-					{subjects.map((subject) => (
+					{teaches.map((subject) => (
 						<span
-							key={subject}
+							key={subject.id}
 							className='rounded-full border border-slate-200 bg-white/80 px-2.5 py-0.5 text-xs font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300'>
-							{subject}
+							{subject.subject}
 						</span>
 					))}
 				</div>
