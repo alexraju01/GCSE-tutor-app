@@ -1,9 +1,9 @@
 // TeacherDashboardPage.tsx
 import { auth } from "@auth";
-import { PendingRequests } from "@components/dashboard/PendingRequests";
-import { StatsGrid } from "@components/dashboard/StatsGrid";
-import { UpcomingSessions } from "@components/dashboard/UpcomingSessions";
-import { WelcomeBanner } from "@components/dashboard/WelcomeBanner";
+import PendingRequests from "@components/dashboard/PendingRequests";
+import StatsGrid from "@components/dashboard/StatsGrid";
+import UpcomingSessions from "@components/dashboard/UpcomingSessions";
+import WelcomeBanner from "@components/dashboard/WelcomeBanner";
 import { api } from "@utils/api";
 
 const TeacherDashboardPage = async () => {

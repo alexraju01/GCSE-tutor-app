@@ -4,7 +4,7 @@ interface StatsGridProps {
 	dashboardData?: TeacherDashboardData;
 }
 
-export const StatsGrid = ({ dashboardData }: StatsGridProps) => {
+const StatsGrid = ({ dashboardData }: StatsGridProps) => {
 	const formattedEarnings = dashboardData?.totalEarnings
 		? new Intl.NumberFormat("en-GB", {
 				style: "currency",
@@ -62,3 +62,5 @@ export const StatsGrid = ({ dashboardData }: StatsGridProps) => {
 		</div>
 	);
 };
+
+export default StatsGrid;

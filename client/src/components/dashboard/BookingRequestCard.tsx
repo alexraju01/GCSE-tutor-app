@@ -7,7 +7,7 @@ interface BookingRequestCardProps {
 	request: BookingRequest;
 }
 
-export const BookingRequestCard = ({ request }: BookingRequestCardProps) => {
+const BookingRequestCard = ({ request }: BookingRequestCardProps) => {
 	const handleAccept = async () => {
 		// Action handler logic here
 	};
@@ -71,3 +71,5 @@ export const BookingRequestCard = ({ request }: BookingRequestCardProps) => {
 		</div>
 	);
 };
+
+export default BookingRequestCard;

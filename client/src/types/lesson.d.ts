@@ -1,5 +1,3 @@
-// import type { Route } from "next";
-
 interface Lesson {
 	id: string;
 	subject: string;
@@ -8,9 +6,8 @@ interface Lesson {
 	startTime: string;
 	// tutorOrStudent: string;
 	duration: number;
-	status: "Upcoming" | "Completed" | "Cancelled" | "Pending";
+	status: StatusType;
 	notes: string;
-	roleLabel: string;
 	student?: Student;
 	teacher?: Teacher;
 }
@@ -40,7 +37,7 @@ interface Student {
 // 	tutor?: Tutor;
 // }
 
-type FilterType = "all" | "upcoming" | "completed";
+type StatusType = "all" | "Upcoming" | "Completed" | "Cancelled" | "Pending";
 
 interface SchedulePageProps {
 	searchParams: Promise<{

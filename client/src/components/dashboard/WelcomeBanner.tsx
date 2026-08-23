@@ -14,7 +14,7 @@ interface WelcomeBannerProps {
 	teaches?: Subject[];
 }
 
-export const WelcomeBanner = ({
+const WelcomeBanner = ({
 	teacherName,
 	upcomingCount = 0,
 	pendingCount = 0,
@@ -54,3 +54,5 @@ export const WelcomeBanner = ({
 		</div>
 	);
 };
+
+export default WelcomeBanner;

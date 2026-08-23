@@ -1,10 +1,10 @@
-import { BookingRequestCard } from "./BookingRequestCard";
+import BookingRequestCard from "@components/dashboard/BookingRequestCard";
 
 interface PendingRequestsProps {
 	requests?: BookingRequest[];
 }
 
-export const PendingRequests = ({ requests = [] }: PendingRequestsProps) => {
+const PendingRequests = ({ requests = [] }: PendingRequestsProps) => {
 	return (
 		<div className='space-y-4'>
 			<div className='flex items-center justify-between'>
@@ -26,3 +26,5 @@ export const PendingRequests = ({ requests = [] }: PendingRequestsProps) => {
 		</div>
 	);
 };
+
+export default PendingRequests;

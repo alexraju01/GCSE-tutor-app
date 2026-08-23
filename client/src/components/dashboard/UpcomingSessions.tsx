@@ -7,7 +7,7 @@ interface UpcomingSessionsProps {
 	sessions?: StudentSession[];
 }
 
-export const UpcomingSessions = ({ sessions = [] }: UpcomingSessionsProps) => {
+const UpcomingSessions = ({ sessions = [] }: UpcomingSessionsProps) => {
 	return (
 		<div className='space-y-4 lg:col-span-2'>
 			<div className='flex items-center justify-between'>
@@ -79,3 +79,5 @@ export const UpcomingSessions = ({ sessions = [] }: UpcomingSessionsProps) => {
 		</div>
 	);
 };
+
+export default UpcomingSessions;
