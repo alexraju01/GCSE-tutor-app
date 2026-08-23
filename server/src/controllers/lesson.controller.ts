@@ -1,8 +1,43 @@
+import { LessonStatus, Subject } from "@generated/enums.js";
+import { z } from "zod";
 import { prisma } from "../db/prisma.js";
 import { AppError } from "../utils/AppError.js";
 import type { NextFunction, Request, Response } from "express";
 
-// 1. Reusable Select Configuration
+const createEnumTransformer = <T extends Record<string, string>>(enumObj: T, paramName: string) => {
+  const allowedValues = Object.values(enumObj);
+  return z
+    .string()
+    .toLowerCase()
+    .optional()
+    .transform((val, ctx) => {
+      if (!val) return undefined;
+
+      const matchedEnum = allowedValues.find((enumValue) => enumValue.toLowerCase() === val);
+
+      if (!matchedEnum) {
+        ctx.addIssue({
+          code: "custom",
+          message: `Invalid ${paramName}. Allowed values: ${allowedValues
+            .map((v) => v.toLowerCase())
+            .join(", ")}`,
+        });
+        return z.NEVER;
+      }
+
+      return matchedEnum as T[keyof T];
+    });
+};
+
+// Query Schema Validation
+const GetLessonsQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(100).default(5),
+  status: createEnumTransformer(LessonStatus, "status"),
+  subject: createEnumTransformer(Subject, "subject"),
+});
+
+// Reusable Select Blocks
 const USER_PROFILE_SELECT = {
   select: {
     name: true,
@@ -29,65 +64,64 @@ export const getAllLessons = async (req: Request, res: Response, next: NextFunct
     return next(new AppError("Invalid user role for retrieving lessons.", 400));
   }
 
-  const page = Math.max(1, Number(req.query.page) || 1);
-  const limit = 5;
+  // Parse & validate query parameters
+  const queryResult = GetLessonsQuerySchema.safeParse(req.query);
+  if (!queryResult.success) {
+    const issue = queryResult.error.issues[0];
+    return next(new AppError(issue?.message || "Invalid query parameters provided.", 400));
+  }
+
+  const { page, limit, status, subject } = queryResult.data;
   const skip = (page - 1) * limit;
 
   const isStudent = role === "Student";
 
-  // 2. Separate branches for zero type assertions or runtime re-mapping
-  const [totalResults, bookings] = await Promise.all([
-    prisma.lesson.count({
-      where: isStudent ? { student: { userId } } : { teacher: { userId } },
-    }),
+  // Dynamic Prisma Where Clause (Incorporates Role, Status, and Subject Filters)
+  const where = {
+    ...(isStudent ? { student: { userId } } : { teacher: { userId } }),
+    ...(status && { status }),
+    ...(subject && { subject }),
+  };
 
-    isStudent
-      ? prisma.lesson
-          .findMany({
-            where: { student: { userId } },
-            skip,
-            take: limit,
-            orderBy: { startTime: "asc" },
-            select: {
-              ...BASE_BOOKING_SELECT,
-              teacher: {
-                select: { user: USER_PROFILE_SELECT },
-              },
-            },
-          })
-          .then((rows) =>
-            rows.map(({ teacher, ...booking }) => ({
-              ...booking,
-              teacher: teacher.user,
-            })),
-          )
-      : prisma.lesson
-          .findMany({
-            where: { teacher: { userId } },
-            skip,
-            take: limit,
-            orderBy: { startTime: "asc" },
-            select: {
-              ...BASE_BOOKING_SELECT,
-              student: {
-                select: { user: USER_PROFILE_SELECT },
-              },
-            },
-          })
-          .then((rows) =>
-            rows.map(({ student, ...booking }) => ({
-              ...booking,
-              student: student.user,
-            })),
-          ),
+  // Parallel Database Queries
+  const [totalResults, rawLessons] = await Promise.all([
+    prisma.lesson.count({ where }),
+    prisma.lesson.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: [{ startTime: "asc" }, { id: "asc" }], // Tie-breaker for stable pagination
+      select: {
+        ...BASE_BOOKING_SELECT,
+        teacher: {
+          select: { user: USER_PROFILE_SELECT },
+        },
+        student: {
+          select: { user: USER_PROFILE_SELECT },
+        },
+      },
+    }),
   ]);
+
+  // Clean payload formatting (exposes counterpart user based on current role)
+  const bookings = rawLessons.map(({ teacher, student, ...booking }) => ({
+    ...booking,
+    counterpart: isStudent ? teacher.user : student.user,
+  }));
+
+  const totalPages = Math.ceil(totalResults / limit);
 
   return res.status(200).json({
     status: "success",
-    currentPage: page,
-    results: bookings.length,
     data: bookings,
-    totalPages: Math.ceil(totalResults / limit),
-    totalResults,
+    meta: {
+      currentPage: page,
+      limit,
+      results: bookings.length,
+      totalResults,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+    },
   });
 };
