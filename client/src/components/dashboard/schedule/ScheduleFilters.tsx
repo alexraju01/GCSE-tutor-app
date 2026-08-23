@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Filter } from "lucide-react";
+import type { Route } from "next";
 
 // type FilterType = "all" | "upcoming" | "completed";
 
@@ -24,7 +25,7 @@ const ScheduleFilters = ({
 		params.set("year", String(year));
 		params.set("filter", newFilter);
 		params.set("page", "1");
-		return `/dashboard/schedule?${params.toString()}`;
+		return `/dashboard/schedule?${params.toString()}` as Route;
 	};
 
 	const prevUrl = isMonthlyView
@@ -43,16 +44,18 @@ const ScheduleFilters = ({
 			)
 		: buildUrl(activeFilter, selectedYear + 1);
 
-	const toggleViewUrl = isMonthlyView
-		? `/dashboard/schedule?year=${selectedYear}&filter=${activeFilter}&page=1`
-		: `/dashboard/schedule?month=${new Date().getMonth() + 1}&year=${selectedYear}&filter=${activeFilter}&page=1`;
+	const toggleViewUrl = (
+		isMonthlyView
+			? `/dashboard/schedule?year=${selectedYear}&filter=${activeFilter}&page=1`
+			: `/dashboard/schedule?month=${new Date().getMonth() + 1}&year=${selectedYear}&filter=${activeFilter}&page=1`
+	) as Route;
 
 	const getFilterClass = (filterName: StatusType) => {
-		const base = "rounded-lg px-3 py-1.5 font-semibold text-xs transition-colors ";
-		return activeFilter === filterName
-			? base + "bg-blue-600 text-white shadow-xs"
-			: base +
-					"border border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800";
+		const base = "rounded-lg px-3 py-1.5 font-semibold text-xs transition-colors";
+
+		if (activeFilter === filterName) return `${base} bg-blue-600 text-white shadow-xs`;
+
+		return `${base} border border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800`;
 	};
 
 	return (
@@ -86,10 +89,10 @@ const ScheduleFilters = ({
 				<Link href={buildUrl("all")} className={getFilterClass("all")}>
 					All
 				</Link>
-				<Link href={buildUrl("upcoming")} className={getFilterClass("upcoming")}>
+				<Link href={buildUrl("Completed")} className={getFilterClass("Upcoming")}>
 					Upcoming
 				</Link>
-				<Link href={buildUrl("completed")} className={getFilterClass("completed")}>
+				<Link href={buildUrl("Completed")} className={getFilterClass("Completed")}>
 					Completed
 				</Link>
 			</div>
