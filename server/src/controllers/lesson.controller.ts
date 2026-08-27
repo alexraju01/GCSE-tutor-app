@@ -103,10 +103,10 @@ export const getAllLessons = async (req: Request, res: Response, next: NextFunct
     }),
   ]);
 
-  // Clean payload formatting (exposes counterpart user based on current role)
+  // Clean payload formatting (exposes student user based on current role)
   const bookings = rawLessons.map(({ teacher, student, ...booking }) => ({
     ...booking,
-    counterpart: isStudent ? teacher.user : student.user,
+    student: isStudent ? teacher.user : student.user,
   }));
 
   const totalPages = Math.ceil(totalResults / limit);
