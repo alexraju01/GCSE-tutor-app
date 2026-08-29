@@ -6,10 +6,13 @@
   "author": "Alex Raju",
   "type": "module",
   "main": "server.ts",
- "scripts": {
-    "dev": "nodemon --exec tsx src/server.ts",
+  "scripts": {
+    "dev:server": "nodemon --exec tsx src/server.ts",
+    "dev:worker": "nodemon --exec tsx src/workers/availabilityWorker.ts",
+    "dev": "concurrently -k -p \"[{name}]\" -c \"cyan.bold,yellow.bold\" -n \"SERVER,WORKER\" \"pnpm run dev:server\" \"pnpm run dev:worker\"",
     "build": "tsc && tsc-alias",
-    "start": "pnpm run build && cross-env NODE_ENV=production node ./dist/server.js",
+    "start": "cross-env NODE_ENV=production node ./dist/server.js",
+    "start:worker": "cross-env NODE_ENV=production node ./dist/workers/availabilityWorker.js",
     "seed": "tsx src/db/seed/seed.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
@@ -27,6 +30,7 @@
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "morgan": "^1.10.1",
+    "node-cron": "^4.6.0",
     "nodemon": "^3.1.14",
     "pg": "^8.21.0",
     "zod": "^4.4.3"
@@ -39,7 +43,9 @@
     "@types/express": "^5.0.6",
     "@types/morgan": "^1.9.10",
     "@types/node": "^25.9.1",
+    "@types/node-cron": "^3.0.11",
     "@types/pg": "^8.20.0",
+    "concurrently": "^10.0.5",
     "eslint": "^10.4.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-perfectionist": "^5.9.0",
