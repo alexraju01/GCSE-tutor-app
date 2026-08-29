@@ -1,7 +1,5 @@
 import { prisma } from "@db/prisma.js";
 import { AppError } from "@utils/AppError.js";
-import type { Availability } from "@generated/client.js";
-import type { createAvailabilityInput, updateAvailabilityInput } from "@schemas";
 import type { Request, Response, NextFunction } from "express";
 
 const requireTeacherId = async (userId: string | undefined): Promise<string> => {
