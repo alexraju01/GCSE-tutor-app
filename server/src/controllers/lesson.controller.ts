@@ -2,7 +2,7 @@ import { LessonStatus, Subject } from "@generated/enums.js";
 import { z } from "zod";
 import { prisma } from "../db/prisma.js";
 import { AppError } from "../utils/AppError.js";
-import type { NextFunction, Request, Response } from "express";
+import type { Request, Response } from "express";
 
 const createEnumTransformer = <T extends Record<string, string>>(enumObj: T, paramName: string) => {
   const allowedValues = Object.values(enumObj);
@@ -57,18 +57,18 @@ const BASE_BOOKING_SELECT = {
   notes: true,
 } as const;
 
-export const getAllLessons = async (req: Request, res: Response, next: NextFunction) => {
+export const getAllLessons = async (req: Request, res: Response) => {
   const { id: userId, role } = req.user;
 
   if (role !== "Student" && role !== "Teacher") {
-    return next(new AppError("Invalid user role for retrieving lessons.", 400));
+    throw new AppError("Invalid user role for retrieving lessons.", 400);
   }
 
   // Parse & validate query parameters
   const queryResult = GetLessonsQuerySchema.safeParse(req.query);
   if (!queryResult.success) {
     const issue = queryResult.error.issues[0];
-    return next(new AppError(issue?.message || "Invalid query parameters provided.", 400));
+    throw new AppError(issue?.message || "Invalid query parameters provided.", 400);
   }
 
   const { page, limit, status, subject } = queryResult.data;
@@ -113,15 +113,13 @@ export const getAllLessons = async (req: Request, res: Response, next: NextFunct
 
   return res.status(200).json({
     status: "success",
+    results: bookings.length,
     data: bookings,
-    meta: {
-      currentPage: page,
-      limit,
-      results: bookings.length,
-      totalResults,
-      totalPages,
-      hasNextPage: page < totalPages,
-      hasPrevPage: page > 1,
-    },
+    currentPage: page,
+    limit,
+    totalResults,
+    totalPages,
+    hasNextPage: page < totalPages,
+    hasPrevPage: page > 1,
   });
 };

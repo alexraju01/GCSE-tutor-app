@@ -1,6 +1,6 @@
 import { faker } from "@faker-js/faker";
-import { Role, LessonStatus, Level, Subject } from "@generated/client.js";
-import { GREEN, BLUE, RED, RESET } from "@utils/colours.js";
+import { LessonStatus, Level, Role, Subject } from "@generated/client.js";
+import { BLUE, GREEN, RED, RESET } from "@utils/colours.js";
 import bcrypt from "bcrypt";
 import { prisma } from "../prisma.js";
 import type { Availability } from "@generated/client.js";
@@ -108,7 +108,6 @@ const createTeacherAvailabilities = async (teacherId: string, isTestTeacher = fa
         teacherId,
         startTime,
         endTime,
-        lessonConfirmed: false,
       },
     });
   });
@@ -140,12 +139,6 @@ const processLessonAndClassroom = async (
     teacherSubjects.length > 0
       ? faker.helpers.arrayElement(teacherSubjects)
       : faker.helpers.arrayElement(Object.values(Subject));
-
-  // Lock out the discrete availability block
-  await prisma.availability.update({
-    where: { id: slot.id },
-    data: { lessonConfirmed: true },
-  });
 
   // Calculate session duration in minutes based on availability slot
   const durationInMinutes = Math.round(
@@ -282,9 +275,8 @@ const main = async () => {
 
   // 5. Create additional lessons across remaining tutors
   console.info(`${GREEN}Creating additional general session lessons...`);
-  const remainingSlots = allAvailabilities.filter(
-    (a) => a.teacherId !== testTeacher.id && !a.lessonConfirmed,
-  );
+  const bookedSlotIds = new Set(testTeacherAvailabilities.map((a) => a.id));
+  const remainingSlots = allAvailabilities.filter((a) => !bookedSlotIds.has(a.id));
 
   for (let i = 0; i < Math.min(TOTAL_LESSONS, remainingSlots.length); i++) {
     const slot = remainingSlots[i];

@@ -55,19 +55,22 @@ model User {
 }
 
 model Teacher {
-  id             String   @id @default(uuid())
-  userId         String   @unique
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  bio            String   @db.Text
-  qualifications String   @db.Text
-  rating         Float    @default(5.0)
-  hourlyRate     Decimal  @db.Decimal(10, 2)
-  totalEarnings  Decimal  @default(0.00) @db.Decimal(10, 2)
-  totalHours     Float    @default(0.0)
+  id                    String   @id @default(uuid())
+  userId                String   @unique
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio                   String   @db.Text
+  qualifications         String   @db.Text
+  rating                Float    @default(5.0)
+  hourlyRate            Decimal  @db.Decimal(10, 2)
+  totalEarnings         Decimal  @default(0.00) @db.Decimal(10, 2)
+  totalHours            Float    @default(0.0)
 
-  teaches        Teaches[]
-  availabilities Availability[]
-  lessons       Lesson[]
+  // Teacher Preference Setting
+  requireApproval       Boolean  @default(false) // false = Instant Booking, true = Request & Approve
+
+  teaches               Teaches[]
+  availabilities        Availability[]
+  lessons               Lesson[]
 
   @@map("teachers")
 }
@@ -101,8 +104,7 @@ model Availability {
   startTime DateTime 
   endTime   DateTime 
 
-  lessonConfirmed  Boolean   @default(false)
-  lessons  Lesson[]
+  lessons   Lesson[]
 
   @@map("availabilities")
 }
