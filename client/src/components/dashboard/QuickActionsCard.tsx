@@ -1,6 +1,7 @@
 "use client";
 
 import { Calendar, Plus, Video, BookOpen, Clock } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import ScheduleCalendarModal from "./calendar/ScheduleCalendarModal";
@@ -22,6 +23,13 @@ interface QuickActionsCardProps {
 
 const QuickActionsCard = ({ availabilitySlots = [], token }: QuickActionsCardProps) => {
 	const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
+	const router = useRouter();
+
+	const handleModalClose = () => {
+		setIsCalendarModalOpen(false);
+		// Revalidates Server Component data from the backend
+		router.refresh();
+	};
 
 	return (
 		<>
@@ -100,7 +108,7 @@ const QuickActionsCard = ({ availabilitySlots = [], token }: QuickActionsCardPro
 			{/* Calendar Modal */}
 			<ScheduleCalendarModal
 				isOpen={isCalendarModalOpen}
-				onClose={() => setIsCalendarModalOpen(false)}
+				onClose={handleModalClose}
 				initialSlots={availabilitySlots as TimeSlot[]}
 				token={token}
 			/>

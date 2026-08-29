@@ -14,7 +14,7 @@ enum Role {
 }
 
 enum LessonStatus {
-  Pending
+  Upcoming
   Confirmed
   Cancelled
   Completed
@@ -128,7 +128,7 @@ model Lesson {
   // Time & Duration (duration in minutes replaces endTime)
   startTime      DateTime
   duration       Int           @default(60) // Store minutes as SmallInt/Int
-  status         LessonStatus @default(Pending)
+  status         LessonStatus @default(Upcoming)
 
   notes          String?       @db.VarChar(255)
   createdAt      DateTime      @default(now())

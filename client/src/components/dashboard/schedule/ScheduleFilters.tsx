@@ -89,7 +89,7 @@ const ScheduleFilters = ({
 				<Link href={buildUrl("all")} className={getFilterClass("all")}>
 					All
 				</Link>
-				<Link href={buildUrl("Completed")} className={getFilterClass("Upcoming")}>
+				<Link href={buildUrl("Upcoming")} className={getFilterClass("Upcoming")}>
 					Upcoming
 				</Link>
 				<Link href={buildUrl("Completed")} className={getFilterClass("Completed")}>
