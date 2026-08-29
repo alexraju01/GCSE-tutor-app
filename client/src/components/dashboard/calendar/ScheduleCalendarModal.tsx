@@ -43,7 +43,6 @@ const ScheduleCalendarModal = ({
 	const [isAvailabilityModalOpen, setIsAvailabilityModalOpen] = useState(false);
 	const [currentWeekStart, setCurrentWeekStart] = useState<Date>(() => getMonday(new Date()));
 
-	// Track initialSlots directly in state without useEffect trigger
 	const [prevInitialSlots, setPrevInitialSlots] = useState<TimeSlot[]>(initialSlots);
 	const [availabilitySlots, setAvailabilitySlots] = useState<TimeSlot[]>(initialSlots);
 
@@ -230,8 +229,8 @@ const ScheduleCalendarModal = ({
 						</div>
 
 						<div className='flex items-center gap-1.5'>
-							<span className='h-2.5 w-2.5 rounded-full bg-slate-300 dark:bg-slate-700' />
-							<span>Past</span>
+							<span className='h-2.5 w-2.5 rounded-sm bg-slate-50 dark:bg-slate-800/40 bg-[repeating-linear-gradient(135deg,rgba(203,213,225,0.4)_0,rgba(203,213,225,0.4)_1px,transparent_0,transparent_10px)] dark:bg-[repeating-linear-gradient(135deg,rgba(51,65,85,0.4)_0,rgba(51,65,85,0.4)_1px,transparent_0,transparent_10px)]' />
+							<span>Unavailable / Past</span>
 						</div>
 					</div>
 				</div>
@@ -285,21 +284,21 @@ const ScheduleCalendarModal = ({
 									let cellStyles = "hover:bg-blue-50/70 dark:hover:bg-blue-950/30";
 									if (isPast) {
 										cellStyles =
-											"cursor-not-allowed bg-slate-100/70 text-slate-400 dark:bg-slate-800/20 dark:text-slate-600";
+											"cursor-not-allowed bg-slate-50/60 dark:bg-slate-900/30 bg-[repeating-linear-gradient(135deg,rgba(203,213,225,0.4)_0,rgba(203,213,225,0.4)_1px,transparent_0,transparent_10px)] dark:bg-[repeating-linear-gradient(135deg,rgba(51,65,85,0.4)_0,rgba(51,65,85,0.4)_1px,transparent_0,transparent_10px)]";
 									} else if (isAvailable) {
 										cellStyles =
 											"bg-blue-500/20 font-semibold text-blue-700 ring-1 ring-inset ring-blue-500/30 dark:bg-blue-500/25 dark:text-blue-300";
 									}
 
-									let cellContent = (
-										<span className='hidden items-center justify-center gap-1 text-[10px] text-blue-500 group-hover:flex'>
-											<Plus size={12} />
-											Add
-										</span>
-									);
+									let cellContent = null;
 
-									if (isPast) {
-										cellContent = <span className='text-[10px]'>Past</span>;
+									if (!isPast && !isAvailable) {
+										cellContent = (
+											<span className='hidden items-center justify-center gap-1 text-[10px] text-blue-500 group-hover:flex'>
+												<Plus size={12} />
+												Add
+											</span>
+										);
 									} else if (isAvailable) {
 										cellContent = (
 											<span className='flex items-center justify-center gap-1 text-[10px] font-semibold'>

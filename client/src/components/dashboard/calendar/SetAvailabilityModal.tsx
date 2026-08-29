@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
-
+import { useState, useTransition } from "react";
 import { Clock, Plus, Trash2, X } from "lucide-react";
 
 import { api } from "@utils/api";
@@ -38,21 +37,15 @@ interface EditableSlot {
 
 const getNextDateForDay = (dayName: string, baseDateStr?: string): string => {
 	const dayIndex = DAYS.indexOf(dayName);
-
 	const base = baseDateStr ? new Date(`${baseDateStr}T00:00:00`) : new Date();
-
 	const currentDayIndex = (base.getDay() + 6) % 7;
-
 	const distance = dayIndex - currentDayIndex;
 
 	const targetDate = new Date(base);
-
 	targetDate.setDate(base.getDate() + distance);
 
 	const yyyy = targetDate.getFullYear();
-
 	const mm = String(targetDate.getMonth() + 1).padStart(2, "0");
-
 	const dd = String(targetDate.getDate()).padStart(2, "0");
 
 	return `${yyyy}-${mm}-${dd}`;
@@ -60,13 +53,10 @@ const getNextDateForDay = (dayName: string, baseDateStr?: string): string => {
 
 const calculateDuration = (start: string, end: string): number => {
 	const [startHours, startMinutes] = start.split(":").map(Number);
-
 	const [endHours, endMinutes] = end.split(":").map(Number);
 
 	const startTotal = startHours * 60 + startMinutes;
-
 	const endTotal = endHours * 60 + endMinutes;
-
 	const duration = endTotal - startTotal;
 
 	return duration > 0 ? duration : 60;
@@ -81,58 +71,61 @@ const SetAvailabilityModal = ({
 }: SetAvailabilityModalProps) => {
 	const [isPending, startTransition] = useTransition();
 
-	const [slots, setSlots] = useState<EditableSlot[]>([
-		{
-			date: getNextDateForDay("Monday"),
-			dayOfWeek: "Monday",
-			startTime: "09:00",
-			endTime: "10:00",
-		},
-	]);
+	const [prevInitialSlot, setPrevInitialSlot] = useState(initialSlot);
+	const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
 
-	const [error, setError] = useState<string | null>(null);
-
-	/*
-	|--------------------------------------------------------------------------
-	| Reset when opened / selected slot changes
-	|--------------------------------------------------------------------------
-	*/
-
-	useEffect(() => {
-		if (!isOpen) return;
-
+	const [slots, setSlots] = useState<EditableSlot[]>(() => {
 		if (initialSlot) {
-			const slotDate = initialSlot.date || getNextDateForDay(initialSlot.dayOfWeek);
-
-			setSlots([
+			return [
 				{
-					date: slotDate,
+					date: initialSlot.date || getNextDateForDay(initialSlot.dayOfWeek),
 					dayOfWeek: initialSlot.dayOfWeek,
 					startTime: initialSlot.startTime,
 					endTime: initialSlot.endTime,
 				},
-			]);
-		} else {
-			setSlots([
-				{
-					date: getNextDateForDay("Monday"),
-					dayOfWeek: "Monday",
-					startTime: "09:00",
-					endTime: "10:00",
-				},
-			]);
+			];
 		}
+		return [
+			{
+				date: getNextDateForDay("Monday"),
+				dayOfWeek: "Monday",
+				startTime: "09:00",
+				endTime: "10:00",
+			},
+		];
+	});
 
+	const [error, setError] = useState<string | null>(null);
+
+	if (isOpen !== prevIsOpen || initialSlot !== prevInitialSlot) {
+		setPrevIsOpen(isOpen);
+		setPrevInitialSlot(initialSlot);
 		setError(null);
-	}, [initialSlot, isOpen]);
+
+		if (isOpen) {
+			if (initialSlot) {
+				setSlots([
+					{
+						date: initialSlot.date || getNextDateForDay(initialSlot.dayOfWeek),
+						dayOfWeek: initialSlot.dayOfWeek,
+						startTime: initialSlot.startTime,
+						endTime: initialSlot.endTime,
+					},
+				]);
+			} else {
+				setSlots([
+					{
+						date: getNextDateForDay("Monday"),
+						dayOfWeek: "Monday",
+						startTime: "09:00",
+						endTime: "10:00",
+					},
+				]);
+			}
+		}
+	}
 
 	if (!isOpen) return null;
-
-	/*
-	|--------------------------------------------------------------------------
-	| Add
-	|--------------------------------------------------------------------------
-	*/
 
 	const handleAddSlot = () => {
 		setSlots((previous) => [
@@ -146,21 +139,9 @@ const SetAvailabilityModal = ({
 		]);
 	};
 
-	/*
-	|--------------------------------------------------------------------------
-	| Remove
-	|--------------------------------------------------------------------------
-	*/
-
 	const handleRemoveSlot = (index: number) => {
 		setSlots((previous) => previous.filter((_, i) => i !== index));
 	};
-
-	/*
-	|--------------------------------------------------------------------------
-	| Change
-	|--------------------------------------------------------------------------
-	*/
 
 	const handleSlotChange = (index: number, field: keyof EditableSlot, value: string) => {
 		setSlots((previous) =>
@@ -183,46 +164,31 @@ const SetAvailabilityModal = ({
 		);
 	};
 
-	/*
-	|--------------------------------------------------------------------------
-	| Submit
-	|--------------------------------------------------------------------------
-	*/
-
 	const handleSubmit = (event: React.FormEvent) => {
 		event.preventDefault();
-
 		setError(null);
 
 		if (slots.length === 0) {
 			setError("Please add at least one availability slot.");
-
 			return;
 		}
 
 		for (const slot of slots) {
 			if (!slot.date || !slot.startTime || !slot.endTime) {
 				setError("Please complete all availability fields.");
-
 				return;
 			}
 
 			if (calculateDuration(slot.startTime, slot.endTime) <= 0) {
 				setError("End time must be after start time.");
-
 				return;
 			}
 		}
 
 		startTransition(async () => {
 			try {
-				/*
-				 * Convert each local date/time into
-				 * the ISO format expected by the API.
-				 */
 				const payloads: AvailabilityPayloadItem[] = slots.map((slot) => {
 					const [hours, minutes] = slot.startTime.split(":").map(Number);
-
 					const [year, month, day] = slot.date.split("-").map(Number);
 
 					const isoStartTime = new Date(
@@ -231,59 +197,32 @@ const SetAvailabilityModal = ({
 
 					return {
 						startTime: isoStartTime,
-
 						durationInMinutes: calculateDuration(slot.startTime, slot.endTime),
 					};
 				});
 
-				/*
-				 * Save all slots.
-				 */
 				const responses = await Promise.all(
 					payloads.map((payload) => api.availability.create(payload, token)),
 				);
 
-				/*
-				 * Merge the API response with the
-				 * original UI slot.
-				 *
-				 * This is important because the
-				 * calendar needs:
-				 *
-				 * date
-				 * dayOfWeek
-				 * startTime
-				 * endTime
-				 */
 				const createdTimeSlots: TimeSlot[] = responses.map((response, index) => {
 					const rawSlot = slots[index];
 
 					return {
 						...response,
-
-						id: response?.id || `${rawSlot.date}-${rawSlot.startTime}`,
-
+						id: `${rawSlot.date}-${rawSlot.startTime}`,
 						date: rawSlot.date,
-
 						dayOfWeek: rawSlot.dayOfWeek,
-
 						startTime: rawSlot.startTime,
-
 						endTime: rawSlot.endTime,
 					} as TimeSlot;
 				});
 
-				/*
-				 * Immediately update calendar.
-				 */
 				onSuccess?.(createdTimeSlots);
-
 				onClose();
 			} catch (err: unknown) {
 				console.error("Availability submission error:", err);
-
 				const message = err instanceof Error ? err.message : "Failed to save availability slot.";
-
 				setError(message);
 			}
 		});
@@ -292,14 +231,11 @@ const SetAvailabilityModal = ({
 	return (
 		<div className='fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs'>
 			<div className='w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900'>
-				{/* HEADER */}
-
 				<div className='flex items-center justify-between border-b border-slate-100 pb-4 dark:border-slate-800'>
 					<div>
 						<h2 className='text-lg font-bold text-slate-900 dark:text-slate-100'>
 							Set Teaching Availability
 						</h2>
-
 						<p className='text-xs text-slate-500 dark:text-slate-400'>
 							Specify when students can book lessons with you.
 						</p>
@@ -314,15 +250,11 @@ const SetAvailabilityModal = ({
 				</div>
 
 				<form onSubmit={handleSubmit} className='mt-4 space-y-4'>
-					{/* ERROR */}
-
 					{error && (
 						<div className='rounded-lg bg-red-500/10 p-3 text-xs font-medium text-red-600 dark:text-red-400'>
 							{error}
 						</div>
 					)}
-
-					{/* SLOTS */}
 
 					<div className='max-h-60 space-y-3 overflow-y-auto pr-1'>
 						{slots.map((slot, index) => (
@@ -330,8 +262,6 @@ const SetAvailabilityModal = ({
 								key={index}
 								className='rounded-xl border border-slate-200/80 p-3 dark:border-slate-800'>
 								<div className='flex items-center gap-2'>
-									{/* DAY */}
-
 									<select
 										value={slot.dayOfWeek}
 										onChange={(event) => handleSlotChange(index, "dayOfWeek", event.target.value)}
@@ -343,8 +273,6 @@ const SetAvailabilityModal = ({
 										))}
 									</select>
 
-									{/* REMOVE */}
-
 									{slots.length > 1 && (
 										<button
 											type='button'
@@ -355,13 +283,10 @@ const SetAvailabilityModal = ({
 									)}
 								</div>
 
-								{/* DATE */}
-
 								<div className='mt-2'>
 									<label className='mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400'>
 										Date
 									</label>
-
 									<input
 										type='date'
 										value={slot.date}
@@ -370,17 +295,13 @@ const SetAvailabilityModal = ({
 									/>
 								</div>
 
-								{/* TIMES */}
-
 								<div className='mt-2 flex items-center gap-2'>
 									<div className='flex-1'>
 										<label className='mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400'>
 											Start
 										</label>
-
 										<div className='flex items-center gap-1'>
 											<Clock size={14} className='text-slate-400' />
-
 											<input
 												type='time'
 												value={slot.startTime}
@@ -398,7 +319,6 @@ const SetAvailabilityModal = ({
 										<label className='mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400'>
 											End
 										</label>
-
 										<input
 											type='time'
 											value={slot.endTime}
@@ -411,8 +331,6 @@ const SetAvailabilityModal = ({
 						))}
 					</div>
 
-					{/* ADD */}
-
 					<button
 						type='button'
 						onClick={handleAddSlot}
@@ -420,8 +338,6 @@ const SetAvailabilityModal = ({
 						<Plus size={14} />
 						Add Another Slot
 					</button>
-
-					{/* FOOTER */}
 
 					<div className='flex items-center justify-end gap-3 border-t border-slate-100 pt-4 dark:border-slate-800'>
 						<button

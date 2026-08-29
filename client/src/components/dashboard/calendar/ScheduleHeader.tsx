@@ -5,13 +5,11 @@ import { Plus } from "lucide-react";
 import Link from "next/link";
 import ScheduleCalendarModal from "./ScheduleCalendarModal";
 import { TimeSlot } from "@utils/actions/availability";
-import type { Booking } from "./ScheduleCalendar";
 
 interface ScheduleHeaderProps {
 	isTeacher: boolean;
 	token?: string;
 	initialSlots?: TimeSlot[];
-	bookings?: Booking[];
 }
 
 const ScheduleHeader = ({ isTeacher, token, initialSlots = [] }: ScheduleHeaderProps) => {
