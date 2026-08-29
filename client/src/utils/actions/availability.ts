@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { api, AvailabilityPayloadItem } from "@utils/api";
 
 export interface TimeSlot {
+	id: string;
 	dayOfWeek: string; // "Monday" or ISO date "YYYY-MM-DD"
 	startTime: string; // e.g., "10:00"
 	endTime: string; // e.g., "11:00"
