@@ -37,7 +37,7 @@ interface Student {
 // 	tutor?: Tutor;
 // }
 
-type StatusType = "all" | "Upcoming" | "Completed" | "Cancelled" | "Pending";
+type StatusType = "all" | "Upcoming" | "Completed" | "Cancelled";
 
 interface SchedulePageProps {
 	searchParams: Promise<{

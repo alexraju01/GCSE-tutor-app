@@ -1,8 +1,6 @@
+import type { Route } from "next";
 import Link from "next/link";
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Filter } from "lucide-react";
-import type { Route } from "next";
-
-// type FilterType = "all" | "upcoming" | "completed";
 
 interface ScheduleFiltersProps {
 	activeFilter: StatusType;
@@ -10,6 +8,13 @@ interface ScheduleFiltersProps {
 	selectedMonth?: number;
 	formattedDateHeader: string;
 }
+
+const FILTER_OPTIONS: { label: string; value: StatusType }[] = [
+	{ label: "All", value: "all" },
+	{ label: "Upcoming", value: "Upcoming" },
+	{ label: "Completed", value: "Completed" },
+	{ label: "Cancelled", value: "Cancelled" },
+];
 
 const ScheduleFilters = ({
 	activeFilter,
@@ -60,6 +65,7 @@ const ScheduleFilters = ({
 
 	return (
 		<div className='flex flex-col gap-4 rounded-xl border border-slate-200/80 bg-white p-4 shadow-xs dark:border-slate-800/80 dark:bg-slate-900/50 md:flex-row md:items-center md:justify-between'>
+			{/* Date Navigation & View Toggle */}
 			<div className='flex flex-wrap items-center gap-2'>
 				<Link
 					href={prevUrl}
@@ -82,21 +88,19 @@ const ScheduleFilters = ({
 				</Link>
 			</div>
 
+			{/* Looped Filter Pills */}
 			<div className='flex flex-wrap items-center gap-2 text-xs font-medium'>
 				<span className='flex items-center gap-1 pr-1 text-slate-400 dark:text-slate-500'>
 					<Filter size={14} /> Filter:
 				</span>
-				<Link href={buildUrl("all")} className={getFilterClass("all")}>
-					All
-				</Link>
-				<Link href={buildUrl("Upcoming")} className={getFilterClass("Upcoming")}>
-					Upcoming
-				</Link>
-				<Link href={buildUrl("Completed")} className={getFilterClass("Completed")}>
-					Completed
-				</Link>
+				{FILTER_OPTIONS.map(({ label, value }) => (
+					<Link key={value} href={buildUrl(value)} className={getFilterClass(value)}>
+						{label}
+					</Link>
+				))}
 			</div>
 		</div>
 	);
 };
+
 export default ScheduleFilters;

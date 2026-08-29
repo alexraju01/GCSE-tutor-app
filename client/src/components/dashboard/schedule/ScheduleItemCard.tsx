@@ -20,16 +20,32 @@ interface ScheduleItemCardProps {
 	isTeacher: boolean;
 }
 
+const getStatusBadgeStyles = (status: string) => {
+	switch (status) {
+		case "Confirmed":
+		case "Upcoming":
+			return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20";
+		case "Cancelled":
+			return "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20";
+		case "Completed":
+			return "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20";
+		default:
+			return "bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20";
+	}
+};
+
 const ScheduleItemCard = ({ lesson, isTeacher }: ScheduleItemCardProps) => {
 	const { startDate, formattedDate } = formatScheduleDate(lesson.startTime);
 	const timeRange = formatTimeRange(startDate, lesson.duration);
-	const isUpcoming = lesson.status === "Upcoming";
+
+	// Allow entering the classroom for active future bookings (Upcoming or Confirmed)
+	const isJoinable = lesson.status === "Upcoming" || lesson.status === "Confirmed";
 
 	const targetPerson = isTeacher ? lesson.student : lesson.teacher;
 	const personName = targetPerson?.name || "Unknown";
 	const personImage = targetPerson?.image;
 	const roleLabel = isTeacher ? "Student" : "Tutor";
-	const meetingUrl = isUpcoming ? (`/dashboard/lessons/${lesson.id}` as Route) : undefined;
+	const meetingUrl = isJoinable ? (`/dashboard/lessons/${lesson.id}` as Route) : undefined;
 
 	const initials = personName
 		.split(" ")
@@ -51,11 +67,9 @@ const ScheduleItemCard = ({ lesson, isTeacher }: ScheduleItemCardProps) => {
 						{timeRange} ({lesson.duration} mins)
 					</p>
 					<span
-						className={`mt-2 inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-semibold ${
-							isUpcoming
-								? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-								: "bg-slate-500/10 text-slate-600 dark:text-slate-400"
-						}`}>
+						className={`mt-2 inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-semibold ${getStatusBadgeStyles(
+							lesson.status,
+						)}`}>
 						{lesson.status}
 					</span>
 				</div>
@@ -94,7 +108,7 @@ const ScheduleItemCard = ({ lesson, isTeacher }: ScheduleItemCardProps) => {
 
 			{/* Actions Column */}
 			<div className='flex items-center justify-end gap-3 md:w-1/3'>
-				{isUpcoming && meetingUrl ? (
+				{isJoinable && meetingUrl ? (
 					<Link
 						href={meetingUrl}
 						className='inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-xs transition-all hover:bg-blue-500 active:scale-[0.98]'>
