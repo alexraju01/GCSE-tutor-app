@@ -90,8 +90,9 @@ const createTeacherAvailabilities = async (teacherId: string, isTestTeacher = fa
   let randomDates: Date[];
 
   if (isTestTeacher) {
+    // Increased slots for the test teacher to accommodate past, upcoming, and cancelled sessions
     const pastDates = Array.from({ length: 4 }, () => faker.date.recent({ days: 14 }));
-    const futureDates = Array.from({ length: 4 }, () => faker.date.soon({ days: 14 }));
+    const futureDates = Array.from({ length: 8 }, () => faker.date.soon({ days: 14 }));
     randomDates = [...pastDates, ...futureDates];
   } else {
     randomDates = Array.from({ length: 6 }, () => faker.date.soon({ days: 14 }));
@@ -128,10 +129,10 @@ const processLessonAndClassroom = async (
     forcedStatus ||
     (isPastSlot
       ? LessonStatus.Completed
-      : faker.helpers.arrayElement([LessonStatus.Pending, LessonStatus.Confirmed]));
+      : faker.helpers.arrayElement([LessonStatus.Upcoming, LessonStatus.Confirmed]));
 
   // Randomly assign a meeting room ID or leave it null
-  const hasIntegratedClassroom = faker.datatype.boolean();
+  const hasIntegratedClassroom = status !== LessonStatus.Cancelled && faker.datatype.boolean();
   const generatedMeetingRoomId = hasIntegratedClassroom ? faker.string.uuid() : null;
 
   // Pick a subject taught by the teacher or fallback to any available subject
@@ -219,7 +220,7 @@ const main = async () => {
 
   // 4. Create explicit lessons for Test Teacher
   console.info(
-    `${GREEN}Creating targeted completed, upcoming, and pending lessons for test teacher...`,
+    `${GREEN}Creating targeted completed, confirmed, upcoming, and cancelled lessons for test teacher...`,
   );
   const testTeacherAvailabilities = allAvailabilities.filter((a) => a.teacherId === testTeacher.id);
 
@@ -243,15 +244,18 @@ const main = async () => {
     }
   }
 
-  // Explicitly allocate future slots: 1 Confirmed and 1 Pending Request
+  // Explicitly allocate future slots across statuses
   let confirmedCount = 0;
-  let pendingCount = 0;
+  let upcomingCount = 0;
+  let cancelledCount = 0;
 
-  if (futureTestSlots.length >= 1) {
-    const student = students.find((s) => s!.userId === studentUsers[0].id) || students[0];
+  // Assign up to 3 CONFIRMED lessons
+  const confirmedTarget = Math.min(3, futureTestSlots.length);
+  for (let i = 0; i < confirmedTarget; i++) {
+    const student = faker.helpers.arrayElement(students);
     if (student) {
       await processLessonAndClassroom(
-        futureTestSlots[0],
+        futureTestSlots[i],
         student.id,
         testTeacherSubjects,
         LessonStatus.Confirmed,
@@ -260,16 +264,32 @@ const main = async () => {
     }
   }
 
-  if (futureTestSlots.length >= 2) {
-    const pendingStudent = students[1] || students[0];
-    if (pendingStudent) {
+  // Assign up to 3 UPCOMING lessons
+  const upcomingTarget = Math.min(6, futureTestSlots.length);
+  for (let i = confirmedTarget; i < upcomingTarget; i++) {
+    const student = faker.helpers.arrayElement(students);
+    if (student) {
       await processLessonAndClassroom(
-        futureTestSlots[1],
-        pendingStudent.id,
+        futureTestSlots[i],
+        student.id,
         testTeacherSubjects,
-        LessonStatus.Pending,
+        LessonStatus.Upcoming,
       );
-      pendingCount++;
+      upcomingCount++;
+    }
+  }
+
+  // Assign remaining future slots as CANCELLED
+  for (let i = upcomingTarget; i < futureTestSlots.length; i++) {
+    const student = faker.helpers.arrayElement(students);
+    if (student) {
+      await processLessonAndClassroom(
+        futureTestSlots[i],
+        student.id,
+        testTeacherSubjects,
+        LessonStatus.Cancelled,
+      );
+      cancelledCount++;
     }
   }
 
@@ -306,14 +326,15 @@ const main = async () => {
   // 7. Terminal interface outputs
   console.info("\n-------------------------------------------------------");
   console.info(`${GREEN}🚀 Active Seed Accounts Ready for API Testing:`);
-  console.info(`\n👨‍🏫 TEST TEACHER (Has completed, upcoming & pending lessons):`);
+  console.info(`\n👨‍🏫 TEST TEACHER (Has completed, confirmed, upcoming & cancelled lessons):`);
   console.info(`   Name:              ${teacherUsers[0].name}`);
   console.info(`   Email:             teacher@test.com`);
   console.info(`   Password:          ${DEFAULT_PASSWORD}`);
   console.info(`   Hourly Rate:       £${hourlyRate.toFixed(2)}/hr`);
   console.info(`   Completed Lessons: ${completedTestBookingsCount}`);
-  console.info(`   Upcoming Lessons:  ${confirmedCount}`);
-  console.info(`   Pending Requests:  ${pendingCount}`);
+  console.info(`   Confirmed Lessons: ${confirmedCount}`);
+  console.info(`   Upcoming Lessons:  ${upcomingCount}`);
+  console.info(`   Cancelled Lessons: ${cancelledCount}`);
   console.info(`   Total Hours Taught:${updatedTestTeacher.totalHours} hrs`);
   console.info(`   Total Earnings:    £${testTeacherEarnings}`);
   console.info(`\n🧑‍🎓 TEST STUDENT (Has linked lessons):`);
