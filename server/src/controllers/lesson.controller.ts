@@ -1,41 +1,7 @@
-import { LessonStatus, Subject } from "@generated/enums.js";
-import { z } from "zod";
 import { prisma } from "../db/prisma.js";
 import { AppError } from "../utils/AppError.js";
+import type { GetLessonsQuery } from "../schemas/lesson.schema.js";
 import type { Request, Response } from "express";
-
-const createEnumTransformer = <T extends Record<string, string>>(enumObj: T, paramName: string) => {
-  const allowedValues = Object.values(enumObj);
-  return z
-    .string()
-    .toLowerCase()
-    .optional()
-    .transform((val, ctx) => {
-      if (!val) return undefined;
-
-      const matchedEnum = allowedValues.find((enumValue) => enumValue.toLowerCase() === val);
-
-      if (!matchedEnum) {
-        ctx.addIssue({
-          code: "custom",
-          message: `Invalid ${paramName}. Allowed values: ${allowedValues
-            .map((v) => v.toLowerCase())
-            .join(", ")}`,
-        });
-        return z.NEVER;
-      }
-
-      return matchedEnum as T[keyof T];
-    });
-};
-
-// Query Schema Validation
-const GetLessonsQuerySchema = z.object({
-  page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().positive().max(100).default(5),
-  status: createEnumTransformer(LessonStatus, "status"),
-  subject: createEnumTransformer(Subject, "subject"),
-});
 
 // Reusable Select Blocks
 const USER_PROFILE_SELECT = {
@@ -64,19 +30,13 @@ export const getAllLessons = async (req: Request, res: Response) => {
     throw new AppError("Invalid user role for retrieving lessons.", 400);
   }
 
-  // Parse & validate query parameters
-  const queryResult = GetLessonsQuerySchema.safeParse(req.query);
-  if (!queryResult.success) {
-    const issue = queryResult.error.issues[0];
-    throw new AppError(issue?.message || "Invalid query parameters provided.", 400);
-  }
-
-  const { page, limit, status, subject } = queryResult.data;
+  // Extracted directly from req.query (populated by the validate middleware)
+  const { page, limit, status, subject } = req.query as unknown as GetLessonsQuery;
   const skip = (page - 1) * limit;
 
   const isStudent = role === "Student";
 
-  // Dynamic Prisma Where Clause (Incorporates Role, Status, and Subject Filters)
+  // Dynamic Prisma Where Clause
   const where = {
     ...(isStudent ? { student: { userId } } : { teacher: { userId } }),
     ...(status && { status }),
@@ -90,7 +50,7 @@ export const getAllLessons = async (req: Request, res: Response) => {
       where,
       skip,
       take: limit,
-      orderBy: [{ startTime: "asc" }, { id: "asc" }], // Tie-breaker for stable pagination
+      orderBy: [{ startTime: "asc" }, { id: "asc" }],
       select: {
         ...BASE_BOOKING_SELECT,
         teacher: {
@@ -103,10 +63,10 @@ export const getAllLessons = async (req: Request, res: Response) => {
     }),
   ]);
 
-  // Clean payload formatting (exposes student user based on current role)
+  // Format payload: dynamically attaches `teacher` for students or `student` for teachers
   const bookings = rawLessons.map(({ teacher, student, ...booking }) => ({
     ...booking,
-    student: isStudent ? teacher.user : student.user,
+    ...(isStudent ? { teacher: teacher.user } : { student: student.user }),
   }));
 
   const totalPages = Math.ceil(totalResults / limit);
