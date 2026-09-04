@@ -1,196 +1,245 @@
-import { auth } from "@auth";
-
+import Link from "next/link";
 import {
-	ArrowUpRight,
 	BookOpen,
 	Calendar,
-	CheckCircle2,
 	Clock,
-	GraduationCap,
-	Sparkles,
+	Video,
+	UserCheck,
+	CheckCircle,
+	Plus,
+	Compass,
 } from "lucide-react";
-import Link from "next/link";
+
+import { auth } from "@auth";
+import { redirect } from "next/navigation";
 import type { Route } from "next";
+import QuickToolsList from "@components/QuickToolsList";
 
 const StudentDashboardPage = async () => {
 	const session = await auth();
-	const userName = session?.user?.name?.split(" ")[0] || "Student";
 
-	const stats = [
-		{
-			label: "Upcoming Lessons",
-			value: "3",
-			icon: <Calendar size={20} className='text-blue-500' />,
-		},
-		{
-			label: "Hours Completed",
-			value: "14.5 hrs",
-			icon: <Clock size={20} className='text-emerald-500' />,
-		},
-		{
-			label: "Active Tutors",
-			value: "2 Tutors",
-			icon: <GraduationCap size={20} className='text-indigo-500' />,
-		},
-		{
-			label: "Assignments Done",
-			value: "12/12",
-			icon: <CheckCircle2 size={20} className='text-amber-500' />,
-		},
-	];
+	if (!session?.user) {
+		redirect("/sign-up");
+	}
 
-	const upcomingLessons = [
+	const { user } = session;
+
+	// Placeholder data matching layout structure
+	const activeTutorsCount = 2;
+	const learningHours = 14;
+	const completedLessons = 12;
+	const assignmentsDue = 1;
+
+	const todaySchedule = [
 		{
 			id: "1",
-			subject: "GCSE Higher Mathematics",
-			topic: "Quadratic Equations & Calculus Intro",
-			tutor: "Dr. Aris Thorne",
-			time: "Tomorrow, 4:00 PM - 5:00 PM",
-			status: "Confirmed",
+			subject: "GCSE English Literature",
+			tutorName: "Lydia Heathcote",
+			tutorAvatar:
+				"https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80",
+			title: "Upgradable composite emulation",
+			time: "Thu, Sep 3, 4:00 PM - 5:00 PM",
 		},
 		{
 			id: "2",
-			subject: "GCSE Physics",
-			topic: "Electromagnetism & Waves",
-			tutor: "Sarah Jenkins",
-			time: "Thursday, 5:30 PM - 6:30 PM",
-			status: "Confirmed",
+			subject: "A-Level Biology",
+			tutorName: "Keith Sporer-Leffler",
+			tutorAvatar:
+				"https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80",
+			title: "Team-oriented needs-based emulation",
+			time: "Thu, Sep 3, 5:00 PM - 6:00 PM",
+		},
+		{
+			id: "3",
+			subject: "GCSE English Literature",
+			tutorName: "Maiya Dooley",
+			tutorAvatar:
+				"https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80",
+			title: "Diverse incremental matrix",
+			time: "Sat, Sep 5, 8:00 PM - 9:00 PM",
 		},
 	];
 
 	return (
-		<div className='mx-auto max-w-6xl space-y-8'>
+		<div className='space-y-8'>
 			{/* WELCOME BANNER */}
-			<div className='relative overflow-hidden rounded-2xl border border-blue-500/20 bg-linear-to-r from-blue-600/10 via-indigo-600/10 to-transparent p-6 sm:p-8 dark:border-blue-500/30'>
-				<div className='relative z-10 max-w-2xl space-y-2'>
-					<div className='inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-600 dark:text-blue-400'>
-						<Sparkles size={14} />
-						GCSE Exams in 84 Days
-					</div>
-					<h2 className='text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 sm:text-3xl'>
-						Welcome back, {userName}!
-					</h2>
-					<p className='text-sm text-slate-600 dark:text-slate-400'>
-						You have 2 upcoming lessons this week. Keep up the consistent pace to reach your target
-						grades.
-					</p>
+			<section className='relative overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50/80 via-indigo-50/50 to-white p-6 dark:border-blue-900/30 dark:from-blue-950/20 dark:via-indigo-950/10 dark:to-transparent'>
+				<div className='flex flex-wrap items-center gap-2 mb-3'>
+					<span className='inline-flex items-center gap-1.5 rounded-md bg-blue-600/10 px-2.5 py-1 text-xs font-semibold text-blue-600 dark:bg-blue-500/20 dark:text-blue-400'>
+						<UserCheck size={14} />
+						Student Workspace
+					</span>
+					<span className='rounded-md border border-slate-200/80 bg-white/80 px-2.5 py-1 text-xs font-medium text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400'>
+						GCSE English Literature
+					</span>
+					<span className='rounded-md border border-slate-200/80 bg-white/80 px-2.5 py-1 text-xs font-medium text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400'>
+						A-LEVEL Biology
+					</span>
 				</div>
-			</div>
 
-			{/* STATS GRID */}
-			<div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-4'>
-				{stats.map((stat, i) => (
-					<div
-						key={i}
-						className='flex items-center justify-between rounded-xl border border-slate-200/80 bg-white p-5 shadow-xs transition-all dark:border-slate-800/80 dark:bg-slate-900/50'>
-						<div className='space-y-1'>
-							<p className='text-xs font-medium text-slate-500 dark:text-slate-400'>{stat.label}</p>
-							<p className='text-2xl font-bold text-slate-900 dark:text-slate-100'>{stat.value}</p>
+				<h1 className='text-2xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-3xl'>
+					Welcome back, {user.name || "Student"}!
+				</h1>
+				<p className='mt-1 text-sm text-slate-600 dark:text-slate-400'>
+					You have 3 scheduled sessions upcoming and 1 assignment awaiting completion.
+				</p>
+			</section>
+
+			{/* METRICS GRID */}
+			<section className='grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4'>
+				{/* Active Tutors */}
+				<div className='rounded-xl border border-slate-200/80 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900'>
+					<div className='flex items-center justify-between'>
+						<span className='text-xs font-semibold text-slate-500 dark:text-slate-400'>
+							Active Tutors
+						</span>
+						<div className='flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400'>
+							<UserCheck size={16} />
 						</div>
-						<div className='rounded-lg bg-slate-50 p-2.5 dark:bg-slate-800/60'>{stat.icon}</div>
 					</div>
-				))}
-			</div>
+					<p className='mt-3 text-3xl font-bold text-slate-900 dark:text-white'>
+						{activeTutorsCount}
+					</p>
+					<p className='mt-1 text-xs text-slate-500 dark:text-slate-400'>Current active tutors</p>
+				</div>
 
-			<div className='grid gap-8 lg:grid-cols-3'>
-				{/* UPCOMING LESSONS (2 COLUMNS) */}
+				{/* Learning Hours */}
+				<div className='rounded-xl border border-slate-200/80 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900'>
+					<div className='flex items-center justify-between'>
+						<span className='text-xs font-semibold text-slate-500 dark:text-slate-400'>
+							Learning Hours
+						</span>
+						<div className='flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400'>
+							<Clock size={16} />
+						</div>
+					</div>
+					<p className='mt-3 text-3xl font-bold text-slate-900 dark:text-white'>
+						{learningHours} hrs
+					</p>
+					<p className='mt-1 text-xs text-slate-500 dark:text-slate-400'>Total logged study time</p>
+				</div>
+
+				{/* Completed Lessons */}
+				<div className='rounded-xl border border-slate-200/80 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900'>
+					<div className='flex items-center justify-between'>
+						<span className='text-xs font-semibold text-slate-500 dark:text-slate-400'>
+							Completed Lessons
+						</span>
+						<div className='flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-400'>
+							<CheckCircle size={16} />
+						</div>
+					</div>
+					<p className='mt-3 text-3xl font-bold text-slate-900 dark:text-white'>
+						{completedLessons}
+					</p>
+					<p className='mt-1 text-xs text-slate-500 dark:text-slate-400'>Successfully attended</p>
+				</div>
+
+				{/* Assignments Due */}
+				<div className='rounded-xl border border-slate-200/80 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900'>
+					<div className='flex items-center justify-between'>
+						<span className='text-xs font-semibold text-slate-500 dark:text-slate-400'>
+							Assignments Due
+						</span>
+						<div className='flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-950/50 dark:text-amber-400'>
+							<BookOpen size={16} />
+						</div>
+					</div>
+					<p className='mt-3 text-3xl font-bold text-slate-900 dark:text-white'>{assignmentsDue}</p>
+					<p className='mt-1 text-xs text-slate-500 dark:text-slate-400'>Pending completion</p>
+				</div>
+			</section>
+
+			{/* TWO-COLUMN CONTENT AREA */}
+			<div className='grid grid-cols-1 gap-8 lg:grid-cols-3'>
+				{/* SCHEDULE COLUMN (2/3) */}
 				<div className='space-y-4 lg:col-span-2'>
 					<div className='flex items-center justify-between'>
-						<h3 className='text-lg font-bold text-slate-900 dark:text-slate-100'>
-							Upcoming Lessons
-						</h3>
+						<h2 className='text-base font-bold text-slate-900 dark:text-white'>
+							Today's Learning Schedule
+						</h2>
 						<Link
-							href={"/dashboard/schedule" as Route}
-							className='inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-500 dark:text-blue-400'>
-							View Schedule <ArrowUpRight size={14} />
+							href='/dashboard/schedule'
+							className='text-xs font-medium text-blue-600 transition-colors hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300'>
+							Full Calendar &rarr;
 						</Link>
 					</div>
 
 					<div className='space-y-3'>
-						{upcomingLessons.map((lesson) => (
+						{todaySchedule.map((sessionItem) => (
 							<div
-								key={lesson.id}
-								className='flex flex-col justify-between gap-4 rounded-xl border border-slate-200/80 bg-white p-5 transition-colors hover:border-slate-300 dark:border-slate-800/80 dark:bg-slate-900/50 dark:hover:border-slate-700 sm:flex-row sm:items-center'>
-								<div className='space-y-1'>
-									<div className='flex items-center gap-2'>
-										<span className='rounded-md bg-blue-500/10 px-2 py-0.5 text-xs font-semibold text-blue-600 dark:text-blue-400'>
-											{lesson.subject}
-										</span>
-										<span className='text-xs text-slate-400'>•</span>
-										<span className='text-xs font-medium text-slate-500 dark:text-slate-400'>
-											{lesson.tutor}
-										</span>
+								key={sessionItem.id}
+								className='flex flex-col gap-4 rounded-xl border border-slate-200/80 bg-white p-4 transition-all hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700 sm:flex-row sm:items-center sm:justify-between'>
+								<div className='flex items-start gap-3.5'>
+									<img
+										src={sessionItem.tutorAvatar}
+										alt={sessionItem.tutorName}
+										className='h-10 w-10 shrink-0 rounded-full object-cover'
+									/>
+									<div>
+										<div className='flex flex-wrap items-center gap-2'>
+											<span className='rounded bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-600 dark:bg-blue-950/60 dark:text-blue-400'>
+												{sessionItem.subject}
+											</span>
+											<span className='text-xs text-slate-500 dark:text-slate-400'>
+												Tutor:{" "}
+												<strong className='font-semibold text-slate-700 dark:text-slate-300'>
+													{sessionItem.tutorName}
+												</strong>
+											</span>
+										</div>
+										<h3 className='mt-1 text-sm font-semibold text-slate-900 dark:text-white'>
+											{sessionItem.title}
+										</h3>
+										<p className='mt-1 flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400'>
+											<Clock size={13} />
+											{sessionItem.time}
+										</p>
 									</div>
-									<h4 className='font-semibold text-slate-900 dark:text-slate-100'>
-										{lesson.topic}
-									</h4>
-									<p className='flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400'>
-										<Clock size={14} /> {lesson.time}
-									</p>
 								</div>
 
 								<Link
-									href={`/dashboard/lessons/${lesson.id}` as Route}
-									className='inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white transition-all hover:bg-blue-500 active:scale-[0.98]'>
-									Join Classroom
+									href={`/classroom/${sessionItem.id}` as Route}
+									className='inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-xs font-medium text-white transition-colors hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500'>
+									<Video size={14} />
+									<span>Launch Classroom</span>
 								</Link>
 							</div>
 						))}
 					</div>
 				</div>
-				{/* QUICK ACTIONS SIDEBAR (1 COLUMN) */}
-				<div className='space-y-4'>
-					<h3 className='text-lg font-bold text-slate-900 dark:text-slate-100'>Quick Actions</h3>
 
-					<div className='space-y-3'>
-						<Link
-							href='/teachers'
-							className='group flex items-center justify-between rounded-xl border border-slate-200/80 bg-white p-4 transition-all hover:border-blue-500/50 hover:shadow-md dark:border-slate-800/80 dark:bg-slate-900/50'>
-							<div className='flex items-center gap-3'>
-								<div className='rounded-lg bg-blue-500/10 p-2.5 text-blue-600 dark:text-blue-400'>
-									<GraduationCap size={20} />
-								</div>
-								<div>
-									<h4 className='text-sm font-semibold text-slate-900 dark:text-slate-100'>
-										Book a Tutor
-									</h4>
-									<p className='text-xs text-slate-500 dark:text-slate-400'>
-										Find 1-on-1 GCSE experts
-									</p>
-								</div>
+				{/* SIDEBAR WIDGETS COLUMN (1/3) */}
+				<div className='space-y-6'>
+					{/* BOOK NEW LESSON WIDGET */}
+					<div className='rounded-xl border border-slate-200/80 bg-white p-5 dark:border-slate-800 dark:bg-slate-900'>
+						<div className='flex items-center justify-between'>
+							<div className='flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white'>
+								<Calendar size={16} className='text-blue-600 dark:text-blue-400' />
+								<span>Book a Session</span>
 							</div>
-							<ArrowUpRight
-								size={18}
-								className='text-slate-400 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5'
-							/>
+						</div>
+						<p className='mt-2 text-xs text-slate-500 dark:text-slate-400'>
+							Find qualified GCSE tutors and schedule 1-on-1 live sessions.
+						</p>
+						<Link
+							href='/tutors'
+							className='mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500'>
+							<Plus size={14} />
+							<span>Find & Book Tutor</span>
 						</Link>
+					</div>
 
-						<Link
-							href={"/dashboard/lessons" as Route}
-							className='group flex items-center justify-between rounded-xl border border-slate-200/80 bg-white p-4 transition-all hover:border-blue-500/50 hover:shadow-md dark:border-slate-800/80 dark:bg-slate-900/50'>
-							<div className='flex items-center gap-3'>
-								<div className='rounded-lg bg-indigo-500/10 p-2.5 text-indigo-600 dark:text-indigo-400'>
-									<BookOpen size={20} />
-								</div>
-								<div>
-									<h4 className='text-sm font-semibold text-slate-900 dark:text-slate-100'>
-										Study Materials
-									</h4>
-									<p className='text-xs text-slate-500 dark:text-slate-400'>
-										Access past notes & canvases
-									</p>
-								</div>
-							</div>
-							<ArrowUpRight
-								size={18}
-								className='text-slate-400 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5'
-							/>
-						</Link>
+					{/* QUICK TOOLS */}
+					<div className='rounded-xl border border-slate-200/80 bg-white p-5 dark:border-slate-800 dark:bg-slate-900'>
+						<p className='text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500'>
+							Quick Tools
+						</p>
+						<QuickToolsList />
 					</div>
 				</div>
 			</div>
 		</div>
 	);
 };
-
 export default StudentDashboardPage;
