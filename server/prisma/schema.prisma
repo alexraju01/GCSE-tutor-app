@@ -91,9 +91,24 @@ model Student {
   id       String    @id @default(uuid())
   userId   String    @unique
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  subjects StudentSubject[]
   lessons Lesson[]
 
+
   @@map("students")
+}
+
+model StudentSubject {
+  id        String  @id @default(uuid())
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  subject   Subject
+  level     Level
+
+  @@unique([studentId, subject, level])
+  @@map("student_subjects")
 }
 
 model Availability {

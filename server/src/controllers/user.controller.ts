@@ -49,6 +49,13 @@ export const getUserProfile = async (req: Request, res: Response) => {
       student: {
         select: {
           id: true,
+          subjects: {
+            select: {
+              id: true,
+              subject: true,
+              level: true,
+            },
+          },
         },
       },
     },

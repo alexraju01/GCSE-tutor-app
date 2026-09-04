@@ -23,6 +23,17 @@ const generateMockTeachesPayload = () => {
   }));
 };
 
+// Helper to generate distinct Subject-Level combinations for a student
+const generateMockStudentSubjectsPayload = () => {
+  const allSubjects = Object.values(Subject);
+  const selectedSubjects = faker.helpers.arrayElements(allSubjects, { min: 1, max: 3 });
+
+  return selectedSubjects.map((subject) => ({
+    subject,
+    level: faker.helpers.arrayElement([Level.GCSE, Level.A_LEVEL]),
+  }));
+};
+
 // Clears data systematically to safeguard relational dependency trees
 const clearDatabase = async (): Promise<void> => {
   console.info("🧹 Wiping existing database records clean...");
@@ -30,6 +41,7 @@ const clearDatabase = async (): Promise<void> => {
   await prisma.lesson.deleteMany();
   await prisma.availability.deleteMany();
   await prisma.teaches.deleteMany();
+  await prisma.studentSubject.deleteMany();
   await prisma.student.deleteMany();
   await prisma.teacher.deleteMany();
   await prisma.user.deleteMany();
@@ -65,7 +77,7 @@ const createMockTeacher = async (passwordHash: string, customEmail?: string) => 
   });
 };
 
-// Generates a single mock student and links their profile
+// Generates a single mock student and links their profile with preferred subjects
 const createMockStudent = async (passwordHash: string, customEmail?: string) => {
   const firstName = faker.person.firstName();
   const lastName = faker.person.lastName();
@@ -79,9 +91,15 @@ const createMockStudent = async (passwordHash: string, customEmail?: string) => 
       password: passwordHash,
       role: Role.Student,
       provider: "credentials",
-      student: { create: {} },
+      student: {
+        create: {
+          subjects: {
+            create: generateMockStudentSubjectsPayload(),
+          },
+        },
+      },
     },
-    include: { student: true },
+    include: { student: { include: { subjects: true } } },
   });
 };
 
@@ -90,7 +108,6 @@ const createTeacherAvailabilities = async (teacherId: string, isTestTeacher = fa
   let randomDates: Date[];
 
   if (isTestTeacher) {
-    // Increased slots for the test teacher to accommodate past, upcoming, and cancelled sessions
     const pastDates = Array.from({ length: 4 }, () => faker.date.recent({ days: 14 }));
     const futureDates = Array.from({ length: 8 }, () => faker.date.soon({ days: 14 }));
     randomDates = [...pastDates, ...futureDates];
@@ -131,22 +148,18 @@ const processLessonAndClassroom = async (
       ? LessonStatus.Completed
       : faker.helpers.arrayElement([LessonStatus.Upcoming, LessonStatus.Confirmed]));
 
-  // Randomly assign a meeting room ID or leave it null
   const hasIntegratedClassroom = status !== LessonStatus.Cancelled && faker.datatype.boolean();
   const generatedMeetingRoomId = hasIntegratedClassroom ? faker.string.uuid() : null;
 
-  // Pick a subject taught by the teacher or fallback to any available subject
   const selectedSubject =
     teacherSubjects.length > 0
       ? faker.helpers.arrayElement(teacherSubjects)
       : faker.helpers.arrayElement(Object.values(Subject));
 
-  // Calculate session duration in minutes based on availability slot
   const durationInMinutes = Math.round(
     (new Date(slot.endTime).getTime() - new Date(slot.startTime).getTime()) / (1000 * 60),
   );
 
-  // Create lesson with updated schema fields
   const lesson = await prisma.lesson.create({
     data: {
       teacherId: slot.teacherId,
@@ -162,7 +175,6 @@ const processLessonAndClassroom = async (
     },
   });
 
-  // Seed classroom model if an integrated meeting room ID is assigned
   if (generatedMeetingRoomId) {
     await prisma.classroom.create({
       data: {
@@ -195,7 +207,6 @@ const main = async () => {
   const teachers = teacherUsers.map((u) => u.teacher).filter(Boolean);
   const testTeacher = teachers[0]!;
 
-  // Map teacher IDs to their assigned subjects
   const teacherSubjectsMap = new Map<string, Subject[]>();
   teachers.forEach((t) => {
     const subjects = t?.teaches.map((tp) => tp.subject) || [];
@@ -231,7 +242,6 @@ const main = async () => {
 
   const testTeacherSubjects = teacherSubjectsMap.get(testTeacher.id) || [];
 
-  // Book past test teacher slots as COMPLETED
   for (const slot of pastTestSlots) {
     const student = faker.helpers.arrayElement(students);
     if (student) {
@@ -244,12 +254,10 @@ const main = async () => {
     }
   }
 
-  // Explicitly allocate future slots across statuses
   let confirmedCount = 0;
   let upcomingCount = 0;
   let cancelledCount = 0;
 
-  // Assign up to 3 CONFIRMED lessons
   const confirmedTarget = Math.min(3, futureTestSlots.length);
   for (let i = 0; i < confirmedTarget; i++) {
     const student = faker.helpers.arrayElement(students);
@@ -264,7 +272,6 @@ const main = async () => {
     }
   }
 
-  // Assign up to 3 UPCOMING lessons
   const upcomingTarget = Math.min(6, futureTestSlots.length);
   for (let i = confirmedTarget; i < upcomingTarget; i++) {
     const student = faker.helpers.arrayElement(students);
@@ -279,7 +286,6 @@ const main = async () => {
     }
   }
 
-  // Assign remaining future slots as CANCELLED
   for (let i = upcomingTarget; i < futureTestSlots.length; i++) {
     const student = faker.helpers.arrayElement(students);
     if (student) {
@@ -337,10 +343,15 @@ const main = async () => {
   console.info(`   Cancelled Lessons: ${cancelledCount}`);
   console.info(`   Total Hours Taught:${updatedTestTeacher.totalHours} hrs`);
   console.info(`   Total Earnings:    £${testTeacherEarnings}`);
-  console.info(`\n🧑‍🎓 TEST STUDENT (Has linked lessons):`);
+  console.info(`\n🧑‍🎓 TEST STUDENT (Has linked lessons & enrolled subjects):`);
   console.info(`   Name:              ${studentUsers[0].name}`);
   console.info(`   Email:             student@test.com`);
   console.info(`   Password:          ${DEFAULT_PASSWORD}`);
+  console.info(
+    `   Subjects Learning: ${studentUsers[0].student?.subjects
+      .map((s) => `${s.subject} (${s.level})`)
+      .join(", ")}`,
+  );
   console.info("-------------------------------------------------------\n");
 
   console.info(`${BLUE}Successfully seeded the database with booked lessons! ${RESET}`);
