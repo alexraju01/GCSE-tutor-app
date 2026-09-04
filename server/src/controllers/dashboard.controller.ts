@@ -104,7 +104,7 @@ export const getTeacherDashboard = async (req: Request, res: Response, next: Nex
     prisma.lesson.findMany({
       where: {
         teacherId: teacher.id,
-        status: LessonStatus.Pending,
+        status: LessonStatus.Upcoming,
         startTime: { gte: new Date() },
       },
       orderBy: { startTime: "asc" },
@@ -258,7 +258,7 @@ export const getStudentDashboard = async (req: Request, res: Response, next: Nex
     prisma.lesson.findMany({
       where: {
         studentId: student.id,
-        status: LessonStatus.Pending,
+        status: LessonStatus.Upcoming,
         startTime: { gte: new Date() },
       },
       orderBy: { startTime: "asc" },
