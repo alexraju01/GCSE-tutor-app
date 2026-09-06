@@ -16,6 +16,7 @@ import Logo from "@/components/Logo";
 import UserMenu from "@/components/UserMenu";
 import Link from "next/link";
 import Breadcrumb from "@components/Breadcrumb";
+import { UserRole } from "@/types/role";
 
 const DashboardLayout = async ({ children }: { children: React.ReactNode }) => {
 	const session = await auth();
@@ -25,7 +26,7 @@ const DashboardLayout = async ({ children }: { children: React.ReactNode }) => {
 	}
 
 	const { user } = session;
-	const isTeacher = user.role === "Teacher";
+	const isTeacher = user.role === UserRole.Teacher;
 
 	const navItems: Array<{ label: string; href: Route; icon: React.ReactNode }> = [
 		{

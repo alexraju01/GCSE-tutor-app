@@ -2,6 +2,7 @@ import { auth } from "@auth";
 import { Clock, Download, ExternalLink, FileText, PlayCircle, Search, Video } from "lucide-react";
 import Link from "next/link";
 import type { Route } from "next";
+import { UserRole } from "@/types/role";
 
 interface Lesson {
 	id: string;
@@ -67,7 +68,7 @@ const renderActions = (lesson: Lesson) => {
 
 const LessonsPage = async () => {
 	const session = await auth();
-	const isTeacher = session?.user?.role === "Teacher";
+	const isTeacher = session?.user?.role === UserRole.Teacher;
 
 	const lessons: Lesson[] = [
 		{
