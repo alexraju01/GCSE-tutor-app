@@ -1,57 +1,71 @@
 import { formatString } from "@utils/stringFormat";
-import { Sparkles } from "lucide-react";
+import { Sparkles, GraduationCap } from "lucide-react";
 
-export interface Subject {
-	id: string | number;
-	subject: string;
-	level?: string;
-}
-
-interface WelcomeBannerProps {
-	teacherName: string;
+export interface WelcomeBannerProps {
+	userName: string;
+	role: "Teacher" | "Student";
 	upcomingCount?: number;
 	pendingCount?: number;
-	teaches?: Subject[];
+	subjects?: Subject[];
 }
 
+const BASE_STYLES = {
+	containerClasses:
+		"border-blue-500/20 bg-linear-to-r from-blue-600/10 via-indigo-600/10 to-transparent sm:p-8",
+	badgeClasses: "rounded-full border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400",
+	chipClasses:
+		"rounded-full border-slate-200 bg-white/80 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300",
+};
+
 const WelcomeBanner = ({
-	teacherName,
+	userName,
+	role,
 	upcomingCount = 0,
 	pendingCount = 0,
-	teaches = [],
+	subjects = [],
 }: WelcomeBannerProps) => {
+	const isTeacher = role === "Teacher";
+	const RoleIcon = isTeacher ? Sparkles : GraduationCap;
+	const roleLabel = isTeacher ? "Teacher Workspace" : "Student Workspace";
+
+	const pendingText = isTeacher
+		? `and ${pendingCount} new lesson ${pendingCount === 1 ? "request" : "requests"}`
+		: `and ${pendingCount} ${pendingCount === 1 ? "assignment" : "assignments"} awaiting completion.`;
+
 	return (
-		<div className='relative overflow-hidden rounded-2xl border border-blue-500/20 bg-linear-to-r from-blue-600/10 via-indigo-600/10 to-transparent p-6 sm:p-8 dark:border-blue-500/30'>
+		<section
+			className={`relative overflow-hidden rounded-2xl border p-6 dark:border-blue-500/30 ${BASE_STYLES.containerClasses}`}>
 			<div className='relative z-10 max-w-2xl space-y-2.5'>
-				<div className='flex flex-wrap items-center gap-2'>
-					<div className='inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-600 dark:text-blue-400'>
-						<Sparkles size={14} />
-						Teacher Workspace
+				<div className='mb-1 flex flex-wrap items-center gap-2'>
+					<div
+						className={`inline-flex items-center gap-2 border px-3 py-1 text-xs font-semibold ${BASE_STYLES.badgeClasses}`}>
+						<RoleIcon size={14} />
+						{roleLabel}
 					</div>
 
-					{teaches.map((item) => {
-						const formattedLevel = formatString(item.level);
-						const label = formattedLevel ? `${formattedLevel} ${item.subject}` : item.subject;
+					{subjects.map(({ id, level, subject }) => {
+						const label = [formatString(level), formatString(subject)].filter(Boolean).join(" ");
 
 						return (
 							<span
-								key={item.id}
-								className='rounded-full border border-slate-200 bg-white/80 px-2.5 py-0.5 text-xs font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300'>
+								key={id}
+								className={`border px-2.5 py-0.5 text-xs font-medium text-slate-700 ${BASE_STYLES.chipClasses}`}>
 								{label}
 							</span>
 						);
 					})}
 				</div>
+
 				<h1 className='text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 sm:text-3xl'>
-					Welcome back, {teacherName}!
+					Welcome back, {userName || (isTeacher ? "Teacher" : "Student")}!
 				</h1>
+
 				<p className='text-sm text-slate-600 dark:text-slate-400'>
-					You have {upcomingCount} scheduled {upcomingCount === 1 ? "session" : "sessions"} upcoming
-					and {pendingCount} new lesson {pendingCount === 1 ? "request" : "requests"} awaiting
-					confirmation.
+					You have {upcomingCount} scheduled {upcomingCount === 1 ? "lesson" : "lessons"} upcoming{" "}
+					{pendingText}
 				</p>
 			</div>
-		</div>
+		</section>
 	);
 };
 

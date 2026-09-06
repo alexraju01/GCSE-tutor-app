@@ -34,7 +34,6 @@ interface TeacherDashboardData {
 	activeStudents: number;
 	totalHoursTaught: number;
 	upcomingLessons?: StudentSession[];
-	pendingRequests?: BookingRequest[];
 }
 
 interface StudentDashboardData {
@@ -42,15 +41,20 @@ interface StudentDashboardData {
 	activeTeachers: number;
 	totalHoursLearned: number;
 	upcomingLessons?: StudentUpcomingLesson[];
-	pendingRequests?: BookingRequest[];
+	subjects?: Subject[];
 }
 
 interface StudentUpcomingLesson {
 	id: string;
-	subject: SubjectName;
+	subject: string;
 	topic: string;
 	teacher: SessionParticipant;
 	teacherImage?: string;
 	time: string;
 	status: StatusType;
+}
+interface Subject {
+	id: string | number;
+	subject: string;
+	level: string;
 }

@@ -1,81 +1,40 @@
 import Link from "next/link";
-import { BookOpen, Calendar, Clock, Video, UserCheck, CheckCircle, Plus } from "lucide-react";
+import { BookOpen, Clock, Video, UserCheck, CheckCircle, Plus, Calendar } from "lucide-react";
 
 import { auth } from "@auth";
 import { redirect } from "next/navigation";
 import type { Route } from "next";
 import QuickToolsList from "@components/QuickToolsList";
 import { api } from "@utils/api";
+import { WelcomeBanner } from "@components";
+import Image from "next/image";
 
 const StudentDashboardPage = async () => {
 	const session = await auth();
-	const { data: studentDashboard } = await api.dashboard.studentDashboard(
-		session?.backendToken || "",
-	);
-	console.log("Student Dashboard Data:", studentDashboard);
+
 	if (!session?.user) {
 		redirect("/sign-up");
 	}
 
+	const { data: studentDashboard } = await api.dashboard.studentDashboard(
+		session?.backendToken || "",
+	);
+
 	const { user } = session;
 
-	// Placeholder data matching layout structure
+	const upcomingCount = studentDashboard?.upcomingLessons?.length || 0;
 	const assignmentsDue = 1;
 
-	// const todaySchedule = [
-	// 	{
-	// 		id: "1",
-	// 		subject: "GCSE English Literature",
-	// 		tutorName: "Lydia Heathcote",
-	// 		tutorAvatar:
-	// 			"https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80",
-	// 		title: "Upgradable composite emulation",
-	// 		time: "Thu, Sep 3, 4:00 PM - 5:00 PM",
-	// 	},
-	// 	{
-	// 		id: "2",
-	// 		subject: "A-Level Biology",
-	// 		tutorName: "Keith Sporer-Leffler",
-	// 		tutorAvatar:
-	// 			"https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80",
-	// 		title: "Team-oriented needs-based emulation",
-	// 		time: "Thu, Sep 3, 5:00 PM - 6:00 PM",
-	// 	},
-	// 	{
-	// 		id: "3",
-	// 		subject: "GCSE English Literature",
-	// 		tutorName: "Maiya Dooley",
-	// 		tutorAvatar:
-	// 			"https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80",
-	// 		title: "Diverse incremental matrix",
-	// 		time: "Sat, Sep 5, 8:00 PM - 9:00 PM",
-	// 	},
-	// ];
-
 	return (
-		<div className='space-y-8'>
+		<div className='mx-auto max-w-6xl space-y-8'>
 			{/* WELCOME BANNER */}
-			<section className='relative overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50/80 via-indigo-50/50 to-white p-6 dark:border-blue-900/30 dark:from-blue-950/20 dark:via-indigo-950/10 dark:to-transparent'>
-				<div className='flex flex-wrap items-center gap-2 mb-3'>
-					<span className='inline-flex items-center gap-1.5 rounded-md bg-blue-600/10 px-2.5 py-1 text-xs font-semibold text-blue-600 dark:bg-blue-500/20 dark:text-blue-400'>
-						<UserCheck size={14} />
-						Student Workspace
-					</span>
-					<span className='rounded-md border border-slate-200/80 bg-white/80 px-2.5 py-1 text-xs font-medium text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400'>
-						GCSE English Literature
-					</span>
-					<span className='rounded-md border border-slate-200/80 bg-white/80 px-2.5 py-1 text-xs font-medium text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400'>
-						A-LEVEL Biology
-					</span>
-				</div>
-
-				<h1 className='text-2xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-3xl'>
-					Welcome back, {user.name || "Student"}!
-				</h1>
-				<p className='mt-1 text-sm text-slate-600 dark:text-slate-400'>
-					You have 3 scheduled sessions upcoming and 1 assignment awaiting completion.
-				</p>
-			</section>
+			<WelcomeBanner
+				role='Student'
+				userName={user.name || "Student"}
+				upcomingCount={upcomingCount}
+				pendingCount={assignmentsDue}
+				subjects={studentDashboard?.subjects}
+			/>
 
 			{/* METRICS GRID */}
 			<section className='grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4'>
@@ -90,7 +49,7 @@ const StudentDashboardPage = async () => {
 						</div>
 					</div>
 					<p className='mt-3 text-3xl font-bold text-slate-900 dark:text-white'>
-						{studentDashboard?.activeTeachers}
+						{studentDashboard?.activeTeachers ?? 0}
 					</p>
 					<p className='mt-1 text-xs text-slate-500 dark:text-slate-400'>Current active tutors</p>
 				</div>
@@ -106,7 +65,7 @@ const StudentDashboardPage = async () => {
 						</div>
 					</div>
 					<p className='mt-3 text-3xl font-bold text-slate-900 dark:text-white'>
-						{studentDashboard?.totalHoursLearned} hrs
+						{studentDashboard?.totalHoursLearned ?? 0} hrs
 					</p>
 					<p className='mt-1 text-xs text-slate-500 dark:text-slate-400'>Total logged study time</p>
 				</div>
@@ -122,7 +81,7 @@ const StudentDashboardPage = async () => {
 						</div>
 					</div>
 					<p className='mt-3 text-3xl font-bold text-slate-900 dark:text-white'>
-						{studentDashboard?.completedLessons}
+						{studentDashboard?.completedLessons ?? 0}
 					</p>
 					<p className='mt-1 text-xs text-slate-500 dark:text-slate-400'>Successfully attended</p>
 				</div>
@@ -163,9 +122,11 @@ const StudentDashboardPage = async () => {
 								key={lesson.id}
 								className='flex flex-col gap-4 rounded-xl border border-slate-200/80 bg-white p-4 transition-all hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700 sm:flex-row sm:items-center sm:justify-between'>
 								<div className='flex items-start gap-3.5'>
-									<img
-										src={lesson.teacherImage}
+									<Image
+										src={lesson.teacherImage || "/default-avatar.png"}
 										alt={lesson.teacher}
+										width={40}
+										height={40}
 										className='h-10 w-10 shrink-0 rounded-full object-cover'
 									/>
 									<div>
@@ -234,4 +195,5 @@ const StudentDashboardPage = async () => {
 		</div>
 	);
 };
+
 export default StudentDashboardPage;

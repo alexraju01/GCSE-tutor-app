@@ -184,131 +184,80 @@ export const getStudentDashboard = async (req: Request, res: Response, next: Nex
 
   const student = await prisma.student.findUnique({
     where: { userId },
-    select: { id: true },
+    select: {
+      id: true,
+      subjects: {
+        select: {
+          id: true,
+          subject: true,
+          level: true,
+        },
+      },
+    },
   });
 
   if (!student) {
     return next(new AppError("Student profile not found.", 404));
   }
 
-  const [
-    completedLessonsCount,
-    activeTeachersCount,
-    durationAggregate,
-    upcomingLessonsRaw,
-    pendingRequestsRaw,
-    recentLessonsRaw,
-  ] = await Promise.all([
-    prisma.lesson.count({
-      where: {
-        studentId: student.id,
-        status: LessonStatus.Completed,
-      },
-    }),
+  const [completedLessonsCount, activeTeachersCount, durationAggregate, upcomingLessonsRaw] =
+    await Promise.all([
+      prisma.lesson.count({
+        where: {
+          studentId: student.id,
+          status: LessonStatus.Completed,
+        },
+      }),
 
-    prisma.teacher.count({
-      where: {
-        lessons: {
-          some: {
-            studentId: student.id,
-            status: { in: [LessonStatus.Confirmed, LessonStatus.Completed] },
+      prisma.teacher.count({
+        where: {
+          lessons: {
+            some: {
+              studentId: student.id,
+              status: { in: [LessonStatus.Confirmed, LessonStatus.Completed] },
+            },
           },
         },
-      },
-    }),
+      }),
 
-    prisma.lesson.aggregate({
-      where: {
-        studentId: student.id,
-        status: LessonStatus.Completed,
-      },
-      _sum: {
-        duration: true,
-      },
-    }),
+      prisma.lesson.aggregate({
+        where: {
+          studentId: student.id,
+          status: LessonStatus.Completed,
+        },
+        _sum: {
+          duration: true,
+        },
+      }),
 
-    prisma.lesson.findMany({
-      where: {
-        studentId: student.id,
-        status: LessonStatus.Confirmed,
-        startTime: { gte: new Date() },
-      },
-      orderBy: { startTime: "asc" },
-      take: 5,
-      select: {
-        id: true,
-        subject: true,
-        topic: true,
-        startTime: true,
-        duration: true,
-        teacher: {
-          select: {
-            id: true,
-            user: {
-              select: {
-                name: true,
-                image: true,
+      prisma.lesson.findMany({
+        where: {
+          studentId: student.id,
+          status: LessonStatus.Confirmed,
+          startTime: { gte: new Date() },
+        },
+        orderBy: { startTime: "asc" },
+        take: 5,
+        select: {
+          id: true,
+          subject: true,
+          topic: true,
+          startTime: true,
+          duration: true,
+          teacher: {
+            select: {
+              id: true,
+              user: {
+                select: {
+                  name: true,
+                  image: true,
+                },
               },
             },
           },
         },
-      },
-    }),
-
-    prisma.lesson.findMany({
-      where: {
-        studentId: student.id,
-        status: LessonStatus.Upcoming,
-        startTime: { gte: new Date() },
-      },
-      orderBy: { startTime: "asc" },
-      select: {
-        id: true,
-        subject: true,
-        topic: true,
-        startTime: true,
-        duration: true,
-        teacher: {
-          select: {
-            id: true,
-            user: {
-              select: {
-                name: true,
-                image: true,
-              },
-            },
-          },
-        },
-      },
-    }),
-
-    prisma.lesson.findMany({
-      where: {
-        studentId: student.id,
-        status: LessonStatus.Completed,
-      },
-      orderBy: { startTime: "desc" },
-      take: 5,
-      select: {
-        id: true,
-        subject: true,
-        topic: true,
-        startTime: true,
-        duration: true,
-        teacher: {
-          select: {
-            id: true,
-            user: {
-              select: {
-                name: true,
-                image: true,
-              },
-            },
-          },
-        },
-      },
-    }),
-  ]);
+      }),
+    ]);
 
   const totalMinutes = durationAggregate._sum.duration ?? 0;
   const totalHoursLearned = totalMinutes / 60;
@@ -323,24 +272,10 @@ export const getStudentDashboard = async (req: Request, res: Response, next: Nex
     status: "Upcoming",
   }));
 
-  const pendingRequests = pendingRequestsRaw.map((booking) => ({
-    id: booking.id,
-    teacher: booking.teacher?.user?.name ?? "Unknown Teacher",
-    teacherImage: booking.teacher?.user?.image ?? null,
-    subject: booking.subject,
-    date: formatDateLabel(booking.startTime),
-    timeSlot: formatTimeSlot(booking.startTime, booking.duration),
-    duration: formatDurationLabel(booking.duration),
-  }));
-
-  const recentLessons = recentLessonsRaw.map((lesson) => ({
-    id: lesson.id,
-    subject: lesson.subject,
-    topic: lesson.topic ?? "General Session",
-    teacher: lesson.teacher?.user?.name ?? "Unknown Teacher",
-    teacherImage: lesson.teacher?.user?.image ?? null,
-    date: formatDateLabel(lesson.startTime),
-    duration: formatDurationLabel(lesson.duration),
+  const subjects = student.subjects.map((item) => ({
+    id: item.id,
+    subject: item.subject,
+    level: item.level,
   }));
 
   res.status(200).json({
@@ -349,9 +284,8 @@ export const getStudentDashboard = async (req: Request, res: Response, next: Nex
       completedLessons: completedLessonsCount,
       activeTeachers: activeTeachersCount,
       totalHoursLearned: Number(totalHoursLearned.toFixed(1)),
+      subjects,
       upcomingLessons,
-      pendingRequests,
-      recentLessons,
     },
   });
 };

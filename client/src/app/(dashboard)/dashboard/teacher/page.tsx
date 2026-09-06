@@ -22,15 +22,17 @@ const TeacherDashboardPage = async () => {
 	// Destructure `data` from the API response payload
 	const availabilitySlots = availabilityResponse?.data ?? [];
 
-	const upcomingBookings = dashboardData?.upcomingBookings ?? [];
+	const upcomingBookings = dashboardData?.upcomingLessons ?? [];
 	const teacherSubjects = dashboardData?.teaches ?? [];
 
 	return (
 		<div className='mx-auto max-w-6xl space-y-8'>
 			<WelcomeBanner
-				teacherName={teacherName}
-				upcomingCount={upcomingBookings.length}
-				teaches={teacherSubjects}
+				role='Teacher'
+				userName={teacherName}
+				upcomingCount={3}
+				pendingCount={2}
+				subjects={teacherSubjects}
 			/>
 
 			<StatsGrid dashboardData={dashboardData} />
