@@ -41,7 +41,7 @@ export const getTeacherDashboard = async (req: Request, res: Response, next: Nex
     completedLessonsCount,
     activeStudentsCount,
     durationAggregate,
-    upcomingBookingsRaw,
+    upcomingLessonsRaw,
     pendingRequestsRaw,
   ] = await Promise.all([
     prisma.lesson.count({
@@ -132,13 +132,13 @@ export const getTeacherDashboard = async (req: Request, res: Response, next: Nex
   const totalMinutes = durationAggregate._sum.duration ?? 0;
   const totalHoursTaught = totalMinutes / 60;
 
-  const upcomingBookings = upcomingBookingsRaw.map((booking) => ({
-    id: booking.id,
-    subject: booking.subject,
-    topic: booking.topic ?? "General Session",
-    student: booking.student?.user?.name ?? "Unknown Student",
-    studentImage: booking.student?.user?.image ?? null,
-    time: formatSessionTime(booking.startTime, booking.duration),
+  const upcomingLessons = upcomingLessonsRaw.map((lesson) => ({
+    id: lesson.id,
+    subject: lesson.subject,
+    topic: lesson.topic ?? "General Session",
+    student: lesson.student?.user?.name ?? "Unknown Student",
+    studentImage: lesson.student?.user?.image ?? null,
+    time: formatSessionTime(lesson.startTime, lesson.duration),
     status: "Upcoming",
   }));
 
@@ -169,7 +169,7 @@ export const getTeacherDashboard = async (req: Request, res: Response, next: Nex
       activeStudents: activeStudentsCount,
       totalHoursTaught: Number(totalHoursTaught.toFixed(1)),
       teaches: subjects,
-      upcomingBookings,
+      upcomingLessons,
       pendingRequests,
     },
   });
@@ -195,7 +195,7 @@ export const getStudentDashboard = async (req: Request, res: Response, next: Nex
     completedLessonsCount,
     activeTeachersCount,
     durationAggregate,
-    upcomingBookingsRaw,
+    upcomingLessonsRaw,
     pendingRequestsRaw,
     recentLessonsRaw,
   ] = await Promise.all([
@@ -313,13 +313,13 @@ export const getStudentDashboard = async (req: Request, res: Response, next: Nex
   const totalMinutes = durationAggregate._sum.duration ?? 0;
   const totalHoursLearned = totalMinutes / 60;
 
-  const upcomingBookings = upcomingBookingsRaw.map((booking) => ({
-    id: booking.id,
-    subject: booking.subject,
-    topic: booking.topic ?? "General Session",
-    teacher: booking.teacher?.user?.name ?? "Unknown Teacher",
-    teacherImage: booking.teacher?.user?.image ?? null,
-    time: formatSessionTime(booking.startTime, booking.duration),
+  const upcomingLessons = upcomingLessonsRaw.map((lesson) => ({
+    id: lesson.id,
+    subject: lesson.subject,
+    topic: lesson.topic ?? "General Session",
+    teacher: lesson.teacher?.user?.name ?? "Unknown Teacher",
+    teacherImage: lesson.teacher?.user?.image ?? null,
+    time: formatSessionTime(lesson.startTime, lesson.duration),
     status: "Upcoming",
   }));
 
@@ -349,7 +349,7 @@ export const getStudentDashboard = async (req: Request, res: Response, next: Nex
       completedLessons: completedLessonsCount,
       activeTeachers: activeTeachersCount,
       totalHoursLearned: Number(totalHoursLearned.toFixed(1)),
-      upcomingBookings,
+      upcomingLessons,
       pendingRequests,
       recentLessons,
     },

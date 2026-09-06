@@ -85,7 +85,7 @@ export const api = {
 			}),
 
 		studentDashboard: (token: string) =>
-			fetchData<APIResponse<{ totalLessons: number }>>("/dashboard/student", {
+			fetchData<APIResponse<StudentDashboardData>>("/dashboard/student", {
 				headers: {
 					Authorization: `Bearer ${token}`,
 				},
