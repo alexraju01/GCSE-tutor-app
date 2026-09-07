@@ -26,7 +26,7 @@ const StudentDashboardPage = async () => {
 	const assignmentsDue = 1;
 
 	return (
-		<div className='mx-auto max-w-6xl space-y-8'>
+		<div className='mx-auto max-w-[100rem] space-y-8'>
 			{/* WELCOME BANNER */}
 			<WelcomeBanner
 				role='Student'

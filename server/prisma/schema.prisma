@@ -7,6 +7,11 @@ datasource db {
   provider = "postgresql"
 }
 
+
+enum XpSource {
+  LESSON_BOOKED
+}
+
 enum Role {
   Student
   Teacher
@@ -55,22 +60,21 @@ model User {
 }
 
 model Teacher {
-  id                    String   @id @default(uuid())
-  userId                String   @unique
-  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  bio                   String   @db.Text
-  qualifications         String   @db.Text
-  rating                Float    @default(5.0)
-  hourlyRate            Decimal  @db.Decimal(10, 2)
-  totalEarnings         Decimal  @default(0.00) @db.Decimal(10, 2)
-  totalHours            Float    @default(0.0)
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio             String   @db.Text
+  qualifications  String   @db.Text
+  rating          Float    @default(5.0)
+  hourlyRate      Decimal  @db.Decimal(10, 2)
+  totalEarnings   Decimal  @default(0.00) @db.Decimal(10, 2)
+  totalHours      Float    @default(0.0)
 
-  // Teacher Preference Setting
-  requireApproval       Boolean  @default(false) // false = Instant Booking, true = Request & Approve
+  requireApproval Boolean  @default(false)
 
-  teaches               Teaches[]
-  availabilities        Availability[]
-  lessons               Lesson[]
+  teaches         Teaches[]
+  availabilities  Availability[]
+  lessons         Lesson[]
 
   @@map("teachers")
 }
@@ -88,13 +92,19 @@ model Teaches {
 }
 
 model Student {
-  id       String    @id @default(uuid())
-  userId   String    @unique
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id             String           @id @default(uuid())
+  userId         String           @unique
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   
-  subjects StudentSubject[]
-  lessons Lesson[]
+  // Gamification Fields (Student Only)
+  level          Int              @default(1)
+  currentXp      Int              @default(0)
+  xpForNextLevel Int              @default(100)
+  lastActiveDate DateTime?
 
+  subjects       StudentSubject[]
+  lessons        Lesson[]
+  xpTransactions XpTransaction[]
 
   @@map("students")
 }
@@ -133,17 +143,15 @@ model Lesson {
   availabilityId String
   availability   Availability  @relation(fields: [availabilityId], references: [id], onDelete: Cascade)
 
-// Subject and Topic tracking
   subject        Subject
   topic          String?       @db.VarChar(255)
-
-  // Workspace tracking
   meetingRoomId  String?       @db.Uuid
-
-  // Time & Duration (duration in minutes replaces endTime)
   startTime      DateTime
-  duration       Int           @default(60) // Store minutes as SmallInt/Int
-  status         LessonStatus @default(Upcoming)
+  duration       Int           @default(60)
+  status         LessonStatus  @default(Upcoming)
+
+  // XP awarded to student upon booking
+  xpAwarded      Int           @default(50)
 
   notes          String?       @db.VarChar(255)
   createdAt      DateTime      @default(now())
@@ -171,4 +179,19 @@ model Classroom {
   updatedAt       DateTime  @updatedAt
 
   @@map("classrooms")
+}
+
+
+model XpTransaction {
+  id          String   @id @default(uuid())
+  studentId   String
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  amount      Int
+  source      XpSource @default(LESSON_BOOKED)
+  description String?
+  createdAt   DateTime @default(now())
+
+  @@index([studentId])
+  @@map("xp_transactions")
 }

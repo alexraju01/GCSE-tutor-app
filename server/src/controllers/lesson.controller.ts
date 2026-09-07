@@ -12,6 +12,16 @@ const USER_PROFILE_SELECT = {
   },
 } as const;
 
+// Student profile select with Level & XP stats
+const STUDENT_PROFILE_SELECT = {
+  select: {
+    user: USER_PROFILE_SELECT,
+    level: true,
+    currentXp: true,
+    xpForNextLevel: true,
+  },
+} as const;
+
 const BASE_BOOKING_SELECT = {
   id: true,
   subject: true,
@@ -21,6 +31,7 @@ const BASE_BOOKING_SELECT = {
   duration: true,
   status: true,
   notes: true,
+  xpAwarded: true,
 } as const;
 
 export const getAllLessons = async (req: Request, res: Response) => {
@@ -30,20 +41,17 @@ export const getAllLessons = async (req: Request, res: Response) => {
     throw new AppError("Invalid user role for retrieving lessons.", 400);
   }
 
-  // Extracted directly from req.query (populated by the validate middleware)
   const { page, limit, status, subject } = req.query as unknown as GetLessonsQuery;
   const skip = (page - 1) * limit;
 
   const isStudent = role === "Student";
 
-  // Dynamic Prisma Where Clause
   const where = {
     ...(isStudent ? { student: { userId } } : { teacher: { userId } }),
     ...(status && { status }),
     ...(subject && { subject }),
   };
 
-  // Parallel Database Queries
   const [totalResults, rawLessons] = await Promise.all([
     prisma.lesson.count({ where }),
     prisma.lesson.findMany({
@@ -56,17 +64,23 @@ export const getAllLessons = async (req: Request, res: Response) => {
         teacher: {
           select: { user: USER_PROFILE_SELECT },
         },
-        student: {
-          select: { user: USER_PROFILE_SELECT },
-        },
+        student: STUDENT_PROFILE_SELECT,
       },
     }),
   ]);
 
-  // Format payload: dynamically attaches `teacher` for students or `student` for teachers
   const bookings = rawLessons.map(({ teacher, student, ...booking }) => ({
     ...booking,
-    ...(isStudent ? { teacher: teacher.user } : { student: student.user }),
+    ...(isStudent
+      ? { teacher: teacher.user }
+      : {
+          student: {
+            ...student.user,
+            level: student.level,
+            currentXp: student.currentXp,
+            xpForNextLevel: student.xpForNextLevel,
+          },
+        }),
   }));
 
   const totalPages = Math.ceil(totalResults / limit);

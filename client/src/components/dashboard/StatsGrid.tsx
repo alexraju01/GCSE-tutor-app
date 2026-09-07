@@ -1,4 +1,4 @@
-import { Clock, DollarSign, Star, Users } from "lucide-react";
+import { Clock, PoundSterling, Star, Users } from "lucide-react";
 
 interface StatsGridProps {
 	dashboardData?: TeacherDashboardData;
@@ -29,7 +29,7 @@ const StatsGrid = ({ dashboardData }: StatsGridProps) => {
 			label: "Total Earnings",
 			value: formattedEarnings,
 			change: "Lifetime earnings",
-			icon: <DollarSign size={20} className='text-indigo-500' />,
+			icon: <PoundSterling size={20} className='text-indigo-500' />,
 		},
 		{
 			label: "Completed Lessons",
