@@ -12,13 +12,9 @@ const USER_PROFILE_SELECT = {
   },
 } as const;
 
-// Student profile select with Level & XP stats
 const STUDENT_PROFILE_SELECT = {
   select: {
     user: USER_PROFILE_SELECT,
-    level: true,
-    currentXp: true,
-    xpForNextLevel: true,
   },
 } as const;
 
@@ -31,7 +27,6 @@ const BASE_BOOKING_SELECT = {
   duration: true,
   status: true,
   notes: true,
-  xpAwarded: true,
 } as const;
 
 export const getAllLessons = async (req: Request, res: Response) => {
@@ -73,14 +68,7 @@ export const getAllLessons = async (req: Request, res: Response) => {
     ...booking,
     ...(isStudent
       ? { teacher: teacher.user }
-      : {
-          student: {
-            ...student.user,
-            level: student.level,
-            currentXp: student.currentXp,
-            xpForNextLevel: student.xpForNextLevel,
-          },
-        }),
+      : { student: student.user }),
   }));
 
   const totalPages = Math.ceil(totalResults / limit);

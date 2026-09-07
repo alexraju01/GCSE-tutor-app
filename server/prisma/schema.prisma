@@ -7,11 +7,6 @@ datasource db {
   provider = "postgresql"
 }
 
-
-enum XpSource {
-  LESSON_BOOKED
-}
-
 enum Role {
   Student
   Teacher
@@ -38,7 +33,6 @@ enum Level {
   GCSE
   A_LEVEL
 }
-
 
 model User {
   id                String    @id @default(uuid())
@@ -72,9 +66,9 @@ model Teacher {
 
   requireApproval Boolean  @default(false)
 
-  teaches         Teaches[]
-  availabilities  Availability[]
-  lessons         Lesson[]
+  teaches        Teaches[]
+  availabilities Availability[]
+  lessons        Lesson[]
 
   @@map("teachers")
 }
@@ -92,19 +86,12 @@ model Teaches {
 }
 
 model Student {
-  id             String           @id @default(uuid())
-  userId         String           @unique
-  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  // Gamification Fields (Student Only)
-  level          Int              @default(1)
-  currentXp      Int              @default(0)
-  xpForNextLevel Int              @default(100)
-  lastActiveDate DateTime?
+  id        String           @id @default(uuid())
+  userId    String           @unique
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  subjects       StudentSubject[]
-  lessons        Lesson[]
-  xpTransactions XpTransaction[]
+  subjects  StudentSubject[]
+  lessons   Lesson[]
 
   @@map("students")
 }
@@ -135,26 +122,23 @@ model Availability {
 }
 
 model Lesson {
-  id             String        @id @default(uuid())
+  id             String       @id @default(uuid())
   teacherId      String
-  teacher        Teacher       @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  teacher        Teacher      @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   studentId      String
-  student        Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  student        Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
   availabilityId String
-  availability   Availability  @relation(fields: [availabilityId], references: [id], onDelete: Cascade)
+  availability   Availability @relation(fields: [availabilityId], references: [id], onDelete: Cascade)
 
   subject        Subject
-  topic          String?       @db.VarChar(255)
-  meetingRoomId  String?       @db.Uuid
+  topic          String?      @db.VarChar(255)
+  meetingRoomId  String?      @db.Uuid
   startTime      DateTime
-  duration       Int           @default(60)
-  status         LessonStatus  @default(Upcoming)
+  duration       Int          @default(60)
+  status         LessonStatus @default(Upcoming)
 
-  // XP awarded to student upon booking
-  xpAwarded      Int           @default(50)
-
-  notes          String?       @db.VarChar(255)
-  createdAt      DateTime      @default(now())
+  notes          String?      @db.VarChar(255)
+  createdAt      DateTime     @default(now())
 
   classroom      Classroom?
 
@@ -165,12 +149,12 @@ model Lesson {
 }
 
 model Classroom {
-  id        String  @id @default(uuid())
-  lessonId String  @unique
-  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  id            String   @id @default(uuid())
+  lessonId      String   @unique
+  lesson        Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 
-  meetingRoomId String  @unique
-  isActive      Boolean @default(false)
+  meetingRoomId String   @unique
+  isActive      Boolean  @default(false)
   joinCode      String 
 
   teacherJoinedAt DateTime?
@@ -179,19 +163,4 @@ model Classroom {
   updatedAt       DateTime  @updatedAt
 
   @@map("classrooms")
-}
-
-
-model XpTransaction {
-  id          String   @id @default(uuid())
-  studentId   String
-  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
-
-  amount      Int
-  source      XpSource @default(LESSON_BOOKED)
-  description String?
-  createdAt   DateTime @default(now())
-
-  @@index([studentId])
-  @@map("xp_transactions")
 }
