@@ -10,7 +10,7 @@ const purgeExpiredAvailabilities = async (): Promise<void> => {
     });
 
     if (result.count > 0) {
-      console.log(`[Worker] Purged ${result.count} expired availability slots.`);
+      console.info(`[Worker] Purged ${result.count} expired availability slots.`);
     }
   } catch (error) {
     console.error("[Worker] Error during availability cleanup:", error);
@@ -18,7 +18,7 @@ const purgeExpiredAvailabilities = async (): Promise<void> => {
 };
 
 export const startAvailabilityWorker = (): void => {
-  console.log("[Worker] Availability cleanup worker running every 5 minutes.");
+  console.info("[Worker] Availability cleanup worker running every 5 minutes.");
 
   // Mark immediate execution with void operator
   void purgeExpiredAvailabilities();

@@ -6,16 +6,20 @@ import Image from "next/image";
 import type { Route } from "next";
 import { GraduationCap } from "lucide-react";
 import BookLessonModal from "./BookLessonModal";
+import type { Teacher, TeachesSubject } from "@/types/teacher";
 
 interface TeacherCardProps {
-  teacher: any;
+  teacher: Teacher;
 }
 
-export default function TeacherCard({ teacher }: TeacherCardProps) {
+const TeacherCard = ({ teacher }: TeacherCardProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const groupedTeaches = teacher.teaches
-    ? Object.groupBy(teacher.teaches, (item: any) => item.level || "UNKNOWN")
+    ? Object.groupBy(
+        teacher.teaches,
+        (item: TeachesSubject) => item.level || "UNKNOWN",
+      )
     : {};
 
   return (
@@ -60,7 +64,7 @@ export default function TeacherCard({ teacher }: TeacherCardProps) {
                     {level.replace("_", " ")}
                   </span>
                   <div className="flex flex-wrap gap-1.5 flex-1">
-                    {(Subjects as any[])?.map((item, index) => (
+                    {Subjects?.map((item, index) => (
                       <span
                         key={index}
                         className="text-xs bg-white text-slate-700 font-medium px-2.5 py-0.5 rounded-md border border-slate-200 shadow-2xs capitalize"
@@ -105,4 +109,6 @@ export default function TeacherCard({ teacher }: TeacherCardProps) {
       />
     </>
   );
-}
+};
+
+export default TeacherCard;

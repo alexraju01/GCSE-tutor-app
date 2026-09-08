@@ -180,8 +180,6 @@ export const getTeacherAvailabilities = async (
 ) => {
   const { teacherId } = req.params;
 
-  console.log("Fetching availabilities for teacherId:", teacherId);
-
   const availabilities = await prisma.availability.findMany({
     where: {
       teacherId,

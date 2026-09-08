@@ -14,7 +14,7 @@ interface BookLessonModalProps {
   isOpen: boolean;
   onClose: () => void;
   teacherId: string;
-  teacherName: string;
+  teacherName: string | null;
   hourlyRate: number;
 }
 
@@ -129,7 +129,7 @@ const BookLessonModal = ({
         <div className="flex items-center justify-between border-b border-slate-100 p-5 dark:border-slate-800">
           <div>
             <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
-              Book Lesson with {teacherName}
+              Book Lesson with {teacherName} || Teacher
             </h2>
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
               Select an available time slot to schedule your session (£

@@ -17,7 +17,6 @@ const TeacherDashboardPage = async () => {
     api.dashboard.teacherDashboard(backendToken),
     api.availability.getMyTeacherAvailabilities(backendToken),
   ]);
-  console.log("availabilityResponse:", availabilityResponse);
 
   const dashboardData = dashboardResponse?.data;
 

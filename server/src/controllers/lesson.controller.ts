@@ -66,9 +66,7 @@ export const getAllLessons = async (req: Request, res: Response) => {
 
   const bookings = rawLessons.map(({ teacher, student, ...booking }) => ({
     ...booking,
-    ...(isStudent
-      ? { teacher: teacher.user }
-      : { student: student.user }),
+    ...(isStudent ? { teacher: teacher.user } : { student: student.user }),
   }));
 
   const totalPages = Math.ceil(totalResults / limit);
