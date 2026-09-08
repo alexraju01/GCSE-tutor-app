@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import type { Route } from "next";
 
 interface SchedulePaginationProps {
 	currentPage: number;
@@ -18,13 +19,13 @@ const SchedulePagination = ({
 	selectedYear,
 	selectedMonth,
 }: SchedulePaginationProps) => {
-	const getPaginationUrl = (page: number) => {
+	const getPaginationUrl = (page: number): Route => {
 		const params = new URLSearchParams();
 		if (selectedMonth !== undefined) params.set("month", String(selectedMonth + 1));
 		params.set("year", String(selectedYear));
 		params.set("filter", activeFilter);
 		params.set("page", String(page));
-		return `/dashboard/schedule?${params.toString()}`;
+		return `/dashboard/schedule?${params.toString()}` as Route;
 	};
 
 	const pages = Array.from({ length: totalPages }, (_, i) => i + 1)

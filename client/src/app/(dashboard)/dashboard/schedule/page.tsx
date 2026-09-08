@@ -16,6 +16,23 @@ interface SchedulePageProps {
 	}>;
 }
 
+const resolveInitialAvailability = (availabilityResponse: unknown): TimeSlot[] => {
+	if (
+		typeof availabilityResponse === "object" &&
+		availabilityResponse !== null &&
+		"data" in availabilityResponse &&
+		Array.isArray((availabilityResponse as { data: unknown }).data)
+	) {
+		return (availabilityResponse as { data: TimeSlot[] }).data;
+	}
+
+	if (Array.isArray(availabilityResponse)) {
+		return availabilityResponse as TimeSlot[];
+	}
+
+	return [];
+};
+
 const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 	const params = await searchParams;
 	const activeFilter = (params.filter?.toLowerCase() as StatusType) || "all";
@@ -34,13 +51,16 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 	const teacherId = session?.user?.id ?? "";
 	const token = session?.backendToken ?? "";
 
+	const lessonStatus = activeFilter !== "all" ? activeFilter : undefined;
+	const lessonMonth = selectedMonth !== undefined ? selectedMonth + 1 : undefined;
+
 	// Parallel data fetching on the server
 	const [lessonsResponse, availabilityResponse] = await Promise.all([
 		api.lesson.getAll(token, {
 			page: currentPage,
-			status: activeFilter !== "all" ? activeFilter : undefined,
+			status: lessonStatus,
 			year: selectedYear,
-			month: selectedMonth !== undefined ? selectedMonth + 1 : undefined,
+			month: lessonMonth,
 		}),
 		isTeacher && teacherId ? api.availability.getByTeacherId(teacherId, token) : null,
 	]);
@@ -49,14 +69,10 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 	const totalPages = lessonsResponse?.totalPages ?? 1;
 	const totalResults = lessonsResponse?.totalResults ?? lessons.length;
 
-	// Safely extract slots matching the APIResponse<T> structure
-	const initialAvailability: TimeSlot[] = (
-		Array.isArray(availabilityResponse?.data)
-			? availabilityResponse.data
-			: Array.isArray(availabilityResponse)
-				? availabilityResponse
-				: []
-	) as TimeSlot[];
+	// Extract initial availability without nested ternaries
+	const initialAvailability = resolveInitialAvailability(availabilityResponse);
+
+	const filterLabel = activeFilter !== "all" ? `${activeFilter} ` : "";
 
 	return (
 		<div className='mx-auto max-w-6xl space-y-8'>
@@ -73,8 +89,7 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 				{lessons.length === 0 ? (
 					<div className='rounded-xl border border-slate-200/80 bg-white py-12 text-center shadow-xs dark:border-slate-800/80 dark:bg-slate-900/50'>
 						<p className='text-sm font-medium text-slate-500 dark:text-slate-400'>
-							No {activeFilter !== "all" ? activeFilter : ""} scheduled lessons found for{" "}
-							{formattedDateHeader}.
+							No {filterLabel}scheduled lessons found for {formattedDateHeader}.
 						</p>
 					</div>
 				) : (
