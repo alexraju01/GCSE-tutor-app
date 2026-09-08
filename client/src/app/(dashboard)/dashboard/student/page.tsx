@@ -26,7 +26,7 @@ const StudentDashboardPage = async () => {
   }
 
   const { data: studentDashboard } = await api.dashboard.studentDashboard(
-    session?.backendToken || ""
+    session?.backendToken || "",
   );
 
   const { user } = session;
@@ -60,7 +60,9 @@ const StudentDashboardPage = async () => {
           <p className="mt-3 text-3xl font-bold text-slate-900 dark:text-white">
             {studentDashboard?.activeTeachers ?? 0}
           </p>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Current active tutors</p>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            Current active tutors
+          </p>
         </div>
 
         {/* Learning Hours */}
@@ -76,7 +78,9 @@ const StudentDashboardPage = async () => {
           <p className="mt-3 text-3xl font-bold text-slate-900 dark:text-white">
             {studentDashboard?.totalHoursLearned ?? 0} hrs
           </p>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Total logged study time</p>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            Total logged study time
+          </p>
         </div>
 
         {/* Completed Lessons */}
@@ -92,7 +96,9 @@ const StudentDashboardPage = async () => {
           <p className="mt-3 text-3xl font-bold text-slate-900 dark:text-white">
             {studentDashboard?.completedLessons ?? 0}
           </p>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Successfully attended</p>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            Successfully attended
+          </p>
         </div>
 
         {/* Assignments Due */}
@@ -105,8 +111,12 @@ const StudentDashboardPage = async () => {
               <BookOpen size={16} />
             </div>
           </div>
-          <p className="mt-3 text-3xl font-bold text-slate-900 dark:text-white">{assignmentsDue}</p>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Pending completion</p>
+          <p className="mt-3 text-3xl font-bold text-slate-900 dark:text-white">
+            {assignmentsDue}
+          </p>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            Pending completion
+          </p>
         </div>
       </section>
 
@@ -123,12 +133,16 @@ const StudentDashboardPage = async () => {
               className="group inline-flex items-center gap-1 text-xs font-medium text-blue-600 transition-colors hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
             >
               <span>Full Calendar</span>
-              <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" />
+              <ArrowRight
+                size={14}
+                className="transition-transform group-hover:translate-x-0.5"
+              />
             </Link>
           </div>
 
           <div className="space-y-3">
-            {studentDashboard?.upcomingLessons && studentDashboard.upcomingLessons.length > 0 ? (
+            {studentDashboard?.upcomingLessons &&
+            studentDashboard.upcomingLessons.length > 0 ? (
               studentDashboard.upcomingLessons.map((lesson) => (
                 <div
                   key={lesson.id}
@@ -182,7 +196,8 @@ const StudentDashboardPage = async () => {
                   No upcoming lessons scheduled today
                 </h3>
                 <p className="mt-1 max-w-xs text-xs text-slate-500 dark:text-slate-400">
-                  Book a session with one of your tutors or explore available teachers.
+                  Book a session with one of your tutors or explore available
+                  teachers.
                 </p>
               </div>
             )}
@@ -195,7 +210,10 @@ const StudentDashboardPage = async () => {
           <div className="rounded-xl border border-slate-200/80 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white">
-                <Calendar size={16} className="text-blue-600 dark:text-blue-400" />
+                <Calendar
+                  size={16}
+                  className="text-blue-600 dark:text-blue-400"
+                />
                 <span>Book a Session</span>
               </div>
             </div>

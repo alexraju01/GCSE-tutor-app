@@ -35,7 +35,10 @@ export default function TeacherCard({ teacher }: TeacherCardProps) {
             </div>
             <div className="flex-1 min-w-0">
               <h2 className="font-bold text-lg text-slate-900 truncate group-hover:text-blue-600 transition-colors">
-                <Link href={`/teachers/${teacher.id}` as Route} className="hover:underline">
+                <Link
+                  href={`/teachers/${teacher.id}` as Route}
+                  className="hover:underline"
+                >
                   {teacher.name}
                 </Link>
               </h2>
@@ -78,7 +81,9 @@ export default function TeacherCard({ teacher }: TeacherCardProps) {
 
         <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
           <div>
-            <span className="text-2xl font-extrabold text-slate-900">£{teacher.hourlyRate}</span>
+            <span className="text-2xl font-extrabold text-slate-900">
+              £{teacher.hourlyRate}
+            </span>
             <span className="text-xs text-slate-500 font-medium"> / hr</span>
           </div>
           <button

@@ -19,7 +19,8 @@ export interface WelcomeBannerProps {
 const BASE_STYLES = {
   containerClasses:
     "border-blue-500/20 bg-linear-to-r from-blue-600/10 via-indigo-600/10 to-transparent sm:p-8",
-  badgeClasses: "rounded-full border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400",
+  badgeClasses:
+    "rounded-full border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400",
   chipClasses:
     "rounded-full border-slate-200 bg-white/80 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300",
 };
@@ -75,8 +76,8 @@ const WelcomeBanner = ({
           </h1>
 
           <p className="text-sm text-slate-600 dark:text-slate-400">
-            You have {upcomingCount} scheduled {upcomingCount === 1 ? "lesson" : "lessons"} upcoming{" "}
-            {pendingText}
+            You have {upcomingCount} scheduled{" "}
+            {upcomingCount === 1 ? "lesson" : "lessons"} upcoming {pendingText}
           </p>
         </div>
       </div>

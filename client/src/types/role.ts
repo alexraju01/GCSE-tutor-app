@@ -7,9 +7,9 @@
 // } as const;
 
 export enum UserRole {
-	Student = "Student",
-	Teacher = "Teacher",
-	// Admin = "Admin", // Adding a role later only happens here
+  Student = "Student",
+  Teacher = "Teacher",
+  // Admin = "Admin", // Adding a role later only happens here
 }
 
 // export type UserRole = (typeof UserRole)[keyof typeof UserRole];

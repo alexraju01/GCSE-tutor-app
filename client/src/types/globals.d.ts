@@ -1,22 +1,22 @@
 interface APIResponse<T = unknown> {
-	status?: string;
-	results?: number;
-	data?: T;
-	message?: string;
-	currentPage?: number;
-	totalPages?: number;
-	totalResults?: number;
+  status?: string;
+  results?: number;
+  data?: T;
+  message?: string;
+  currentPage?: number;
+  totalPages?: number;
+  totalResults?: number;
 }
 
 interface AuthCredentials {
-	name: string;
-	email: string;
-	password: string;
-	confirmPassword: string;
+  name: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
 }
 
 type AuthResponse = APIResponse<{ user: User }> & {
-	token: string;
+  token: string;
 };
 
 // interface TeacherDashboardData {

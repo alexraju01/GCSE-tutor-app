@@ -1,27 +1,27 @@
 interface Lesson {
-	id: string;
-	subject: string;
-	topic: string;
-	meetingRoomId: string;
-	startTime: string;
-	// tutorOrStudent: string;
-	duration: number;
-	status: StatusType;
-	notes: string;
-	student?: Student;
-	teacher?: Teacher;
+  id: string;
+  subject: string;
+  topic: string;
+  meetingRoomId: string;
+  startTime: string;
+  // tutorOrStudent: string;
+  duration: number;
+  status: StatusType;
+  notes: string;
+  student?: Student;
+  teacher?: Teacher;
 }
 
 interface Teacher {
-	name: string;
-	image: string;
-	email: string;
+  name: string;
+  image: string;
+  email: string;
 }
 
 interface Student {
-	name: string;
-	image: string;
-	email: string;
+  name: string;
+  image: string;
+  email: string;
 }
 
 // interface Lesson {
@@ -40,10 +40,10 @@ interface Student {
 type StatusType = "all" | "Upcoming" | "Completed" | "Cancelled";
 
 interface SchedulePageProps {
-	searchParams: Promise<{
-		filter?: string;
-		month?: string;
-		year?: string;
-		page?: string;
-	}>;
+  searchParams: Promise<{
+    filter?: string;
+    month?: string;
+    year?: string;
+    page?: string;
+  }>;
 }
