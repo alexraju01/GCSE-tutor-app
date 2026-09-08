@@ -29,10 +29,10 @@ import {
 } from "react-hook-form";
 import { toast } from "sonner";
 import type { ZodType } from "zod";
-import type z from "zod";
 
 interface AuthFormProps<T extends FieldValues> {
-  schema: ZodType<T>;
+  // Specify both output and input generic types for ZodType
+  schema: ZodType<T, T>;
   defaultValues: T;
   onSubmit: (data: T) => Promise<APIResponse>;
   formType: "SIGN-IN" | "SIGN-UP";
@@ -45,7 +45,9 @@ const AuthForm = <T extends FieldValues>({
   onSubmit,
 }: AuthFormProps<T>) => {
   const router = useRouter();
-  const form = useForm<z.infer<typeof schema>>({
+
+  // Use T directly instead of z.infer<typeof schema>
+  const form = useForm<T>({
     resolver: standardSchemaResolver(schema),
     defaultValues: defaultValues as DefaultValues<T>,
   });
@@ -67,9 +69,9 @@ const AuthForm = <T extends FieldValues>({
       });
     }
   };
+
   const isSignIn = formType === "SIGN-IN";
   const buttonText = isSignIn ? "Login In" : "Sign Up";
-
   const loadingText = isSignIn ? "Signing In..." : "Signing Up...";
   const displayButtonContent = form.formState.isSubmitting
     ? loadingText
@@ -86,10 +88,10 @@ const AuthForm = <T extends FieldValues>({
       <CardContent className="mt-5">
         <form id="form-rhf-demo" onSubmit={form.handleSubmit(handleSubmit)}>
           <FieldGroup>
-            {Object.keys(defaultValues).map((fieldName) => (
+            {(Object.keys(defaultValues) as Array<Path<T>>).map((fieldName) => (
               <Controller
                 key={fieldName}
-                name={fieldName as Path<T>}
+                name={fieldName}
                 control={form.control}
                 render={({ field, fieldState }) => {
                   let inputType = "text";
@@ -115,7 +117,6 @@ const AuthForm = <T extends FieldValues>({
                       <Input
                         {...field}
                         id={`auth-field-${fieldName}`}
-                        // required
                         type={inputType}
                         className="w-full rounded-md border border-gray-300 px-4 py-6 transition outline-none focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-blue-500 data-[invalid=true]:border-red-500"
                         aria-invalid={fieldState.invalid}
