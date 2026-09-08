@@ -34,7 +34,7 @@ jobs:
           cache-dependency-path: "./server/pnpm-lock.yaml"
 
       - name: Install Dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-workspace
 
       - name: Generate Prisma Client
         run: pnpm exec prisma generate
@@ -76,7 +76,7 @@ jobs:
           cache-dependency-path: "./client/pnpm-lock.yaml"
 
       - name: Install Dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-workspace
 
       - name: Check Prettier Formatting & Tailwind Ordering
         run: pnpm run format:check
