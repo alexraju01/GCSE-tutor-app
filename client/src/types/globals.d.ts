@@ -3,6 +3,9 @@ interface APIResponse<T = unknown> {
   results?: number;
   data?: T;
   message?: string;
+  currentPage?: number;
+  totalPages?: number;
+  totalResults?: number;
 }
 
 interface AuthCredentials {
@@ -15,3 +18,22 @@ interface AuthCredentials {
 type AuthResponse = APIResponse<{ user: User }> & {
   token: string;
 };
+
+// interface TeacherDashboardData {
+// 	totalEarnings: { amount: number; currency: "GBP" };
+// 	completedLessons: number;
+// 	activeStudents: number;
+// 	totalHoursTaught: number;
+// 	upcomingLessons: UpcomingLesson[];
+// 	pendingRequests: PendingRequest[];
+// }
+
+// interface UpcomingLesson {
+// 	id: string;
+// 	subject: string;
+// 	topic: string;
+// 	student: string;
+// 	studentImage: string;
+// 	time: string;
+// 	status: string;
+// }

@@ -1,4 +1,5 @@
 import { auth } from "@auth";
+import { UserRole } from "@/types/role";
 import { redirect } from "next/navigation";
 
 const DashboardGatewayPage = async () => {
@@ -8,7 +9,7 @@ const DashboardGatewayPage = async () => {
 
   const { role } = session.user;
 
-  if (role === "Teacher") {
+  if (role === UserRole.Teacher) {
     redirect("/dashboard/teacher");
   } else {
     redirect("/dashboard/student");

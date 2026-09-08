@@ -1,4 +1,4 @@
-import { getTeacherDashboard } from "@controllers/dashboard.controller.js";
+import { getTeacherDashboard, getStudentDashboard } from "@controllers/dashboard.controller.js";
 import { Role } from "@generated/enums.js";
 import { protect, authorize } from "@middleware";
 import { Router } from "express";
@@ -7,17 +7,12 @@ export const dashboardRouter = Router();
 
 /**
  * TEACHER DASHBOARD
- * GET /api/dashboards/teacher
+ * GET /api/dashboard/teacher
  */
 dashboardRouter.get("/teacher", protect, authorize(Role.Teacher), getTeacherDashboard);
 
 /**
  * STUDENT DASHBOARD
- * GET /api/dashboards/student
+ * GET /api/dashboard/student
  */
-// dashboardRouter.get(
-//   "/student",
-//   protect, // 1. Verifies the JWT and sets req.user
-//   authorize("STUDENT"), // 2. Blocks the request if user.role !== 'STUDENT'
-//   getStudentDashboard, // 3. Executes database query and returns data
-// );
+dashboardRouter.get("/student", protect, authorize(Role.Student), getStudentDashboard);

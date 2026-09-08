@@ -1,73 +1,291 @@
-import { BookingStatus } from "@generated/client.js";
+import { LessonStatus } from "@generated/client.js";
 import { AppError } from "@utils/AppError.js";
+import {
+  formatDateLabel,
+  formatTimeSlot,
+  formatDurationLabel,
+  formatSessionTime,
+} from "@utils/date.js";
 import { prisma } from "../db/prisma.js";
 
 import type { Request, Response, NextFunction } from "express";
 
 export const getTeacherDashboard = async (req: Request, res: Response, next: NextFunction) => {
-  // 1. Authenticated user ID from protect middleware
-  const { id: userId } = req.user;
+  const userId = req.user?.id;
 
-  // 2. Locate the teacher profile associated with this user
+  if (!userId) {
+    return next(new AppError("Unauthorized.", 401));
+  }
+
   const teacher = await prisma.teacher.findUnique({
     where: { userId },
-    select: { id: true, totalEarnings: true },
+    select: {
+      id: true,
+      totalEarnings: true,
+      totalHours: true,
+      teaches: {
+        select: {
+          id: true,
+          subject: true,
+          level: true,
+        },
+      },
+    },
   });
 
   if (!teacher) {
     return next(new AppError("Teacher profile not found.", 404));
   }
 
-  // 3. Run queries concurrently to gather dashboard data
-  const [completedLessonsCount, activeStudentsCount, completedBookings] = await Promise.all([
-    // Total number of completed lessons
-    prisma.booking.count({
+  const [
+    completedLessonsCount,
+    activeStudentsCount,
+    durationAggregate,
+    upcomingLessonsRaw,
+    pendingRequestsRaw,
+  ] = await Promise.all([
+    prisma.lesson.count({
       where: {
         teacherId: teacher.id,
-        status: BookingStatus.COMPLETED,
+        status: LessonStatus.Completed,
       },
     }),
 
-    // Unique count of active students who have booked valid sessions
     prisma.student.count({
       where: {
-        bookings: {
+        lessons: {
           some: {
             teacherId: teacher.id,
-            status: { in: [BookingStatus.CONFIRMED, BookingStatus.COMPLETED] },
+            status: { in: [LessonStatus.Confirmed, LessonStatus.Completed] },
           },
         },
       },
     }),
 
-    // Fetch intervals for completed lessons to calculate total duration
-    prisma.booking.findMany({
+    prisma.lesson.aggregate({
       where: {
         teacherId: teacher.id,
-        status: BookingStatus.COMPLETED,
+        status: LessonStatus.Completed,
       },
+      _sum: {
+        duration: true,
+      },
+    }),
+
+    prisma.lesson.findMany({
+      where: {
+        teacherId: teacher.id,
+        status: LessonStatus.Confirmed,
+        startTime: { gte: new Date() },
+      },
+      orderBy: { startTime: "asc" },
+      take: 5,
       select: {
+        id: true,
+        subject: true,
+        topic: true,
         startTime: true,
-        endTime: true,
+        duration: true,
+        status: true,
+        student: {
+          select: {
+            id: true,
+            user: {
+              select: {
+                name: true,
+                image: true,
+              },
+            },
+          },
+        },
+      },
+    }),
+
+    prisma.lesson.findMany({
+      where: {
+        teacherId: teacher.id,
+        status: LessonStatus.Upcoming,
+        startTime: { gte: new Date() },
+      },
+      orderBy: { startTime: "asc" },
+      select: {
+        id: true,
+        subject: true,
+        topic: true,
+        startTime: true,
+        duration: true,
+        student: {
+          select: {
+            id: true,
+            user: {
+              select: {
+                name: true,
+                image: true,
+              },
+            },
+          },
+        },
       },
     }),
   ]);
 
-  // 4. Calculate total hours taught from completed bookings
-  const totalHoursTaught = completedBookings.reduce((total, booking) => {
-    const durationMs = booking.endTime.getTime() - booking.startTime.getTime();
-    const hours = durationMs / (1000 * 60 * 60);
-    return total + hours;
-  }, 0);
+  const totalMinutes = durationAggregate._sum.duration ?? 0;
+  const totalHoursTaught = totalMinutes / 60;
 
-  // 5. Construct the clean response payload
+  const upcomingLessons = upcomingLessonsRaw.map((lesson) => ({
+    id: lesson.id,
+    subject: lesson.subject,
+    topic: lesson.topic ?? "General Session",
+    student: lesson.student?.user?.name ?? "Unknown Student",
+    studentImage: lesson.student?.user?.image ?? null,
+    time: formatSessionTime(lesson.startTime, lesson.duration),
+    status: "Upcoming",
+  }));
+
+  const pendingRequests = pendingRequestsRaw.map((booking) => ({
+    id: booking.id,
+    student: booking.student?.user?.name ?? "Unknown Student",
+    studentImage: booking.student?.user?.image ?? null,
+    subject: booking.subject,
+    date: formatDateLabel(booking.startTime),
+    timeSlot: formatTimeSlot(booking.startTime, booking.duration),
+    duration: formatDurationLabel(booking.duration),
+  }));
+
+  const subjects = teacher.teaches.map((item) => ({
+    id: item.id,
+    subject: item.subject,
+    level: item.level,
+  }));
+
   res.status(200).json({
     status: "success",
     data: {
-      totalEarnings: teacher.totalEarnings,
+      totalEarnings: {
+        amount: Number(teacher.totalEarnings),
+        currency: "GBP",
+      },
       completedLessons: completedLessonsCount,
       activeStudents: activeStudentsCount,
-      totalHoursTaught: Number(totalHoursTaught.toFixed(1)), // Formatted to 1 decimal place
+      totalHoursTaught: Number(totalHoursTaught.toFixed(1)),
+      teaches: subjects,
+      upcomingLessons,
+      pendingRequests,
+    },
+  });
+};
+
+export const getStudentDashboard = async (req: Request, res: Response, next: NextFunction) => {
+  const userId = req.user?.id;
+
+  if (!userId) {
+    return next(new AppError("Unauthorized.", 401));
+  }
+
+  const student = await prisma.student.findUnique({
+    where: { userId },
+    select: {
+      id: true,
+      subjects: {
+        select: {
+          id: true,
+          subject: true,
+          level: true,
+        },
+      },
+    },
+  });
+
+  if (!student) {
+    return next(new AppError("Student profile not found.", 404));
+  }
+
+  const [completedLessonsCount, activeTeachersCount, durationAggregate, upcomingLessonsRaw] =
+    await Promise.all([
+      prisma.lesson.count({
+        where: {
+          studentId: student.id,
+          status: LessonStatus.Completed,
+        },
+      }),
+
+      prisma.teacher.count({
+        where: {
+          lessons: {
+            some: {
+              studentId: student.id,
+              status: { in: [LessonStatus.Confirmed, LessonStatus.Completed] },
+            },
+          },
+        },
+      }),
+
+      prisma.lesson.aggregate({
+        where: {
+          studentId: student.id,
+          status: LessonStatus.Completed,
+        },
+        _sum: {
+          duration: true,
+        },
+      }),
+
+      prisma.lesson.findMany({
+        where: {
+          studentId: student.id,
+          status: LessonStatus.Confirmed,
+          startTime: { gte: new Date() },
+        },
+        orderBy: { startTime: "asc" },
+        take: 5,
+        select: {
+          id: true,
+          subject: true,
+          topic: true,
+          startTime: true,
+          duration: true,
+          teacher: {
+            select: {
+              id: true,
+              user: {
+                select: {
+                  name: true,
+                  image: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+    ]);
+
+  const totalMinutes = durationAggregate._sum.duration ?? 0;
+  const totalHoursLearned = totalMinutes / 60;
+
+  const upcomingLessons = upcomingLessonsRaw.map((lesson) => ({
+    id: lesson.id,
+    subject: lesson.subject,
+    topic: lesson.topic ?? "General Session",
+    teacher: lesson.teacher?.user?.name ?? "Unknown Teacher",
+    teacherImage: lesson.teacher?.user?.image ?? null,
+    time: formatSessionTime(lesson.startTime, lesson.duration),
+    status: "Upcoming",
+  }));
+
+  const subjects = student.subjects.map((item) => ({
+    id: item.id,
+    subject: item.subject,
+    level: item.level,
+  }));
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      completedLessons: completedLessonsCount,
+      activeTeachers: activeTeachersCount,
+      totalHoursLearned: Number(totalHoursLearned.toFixed(1)),
+      subjects,
+      upcomingLessons,
     },
   });
 };

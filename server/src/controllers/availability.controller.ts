@@ -1,7 +1,5 @@
 import { prisma } from "@db/prisma.js";
 import { AppError } from "@utils/AppError.js";
-import type { Availability } from "@generated/client.js";
-import type { createAvailabilityInput, updateAvailabilityInput } from "@schemas";
 import type { Request, Response, NextFunction } from "express";
 
 const requireTeacherId = async (userId: string | undefined): Promise<string> => {
@@ -42,12 +40,38 @@ const checkOverlap = async (
 
 export const getAllAvailabilities = async (req: Request, res: Response) => {
   const userId = req.user?.id;
-  const teacherId = await requireTeacherId(userId);
 
+  // 1. Check if teacherId is provided via route param or query string
+  const targetTeacherId = (req.params.teacherId || req.query.teacherId) as string | undefined;
+
+  let teacherId: string;
+  let isOwner = false;
+
+  if (targetTeacherId) {
+    // Student or public user looking up a specific teacher
+    teacherId = targetTeacherId;
+  } else {
+    // Teacher managing their own calendar
+    const teacher = await prisma.teacher.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+
+    if (!teacher) {
+      throw new AppError("Teacher profile not found.", 404);
+    }
+
+    teacherId = teacher.id;
+    isOwner = true;
+  }
+
+  // 2. Query availability slots
   const availabilities = await prisma.availability.findMany({
     where: {
       teacherId,
       startTime: { gte: new Date() },
+      // Important: If a student is viewing, only show open/unbooked slots!
+      ...(!isOwner && { isBooked: false }),
     },
     orderBy: { startTime: "asc" },
   });
@@ -147,5 +171,30 @@ export const deleteAvailability = async (req: Request<{ id: string }>, res: Resp
   return res.status(204).json({
     status: "success",
     data: null,
+  });
+};
+
+export const getTeacherAvailabilities = async (
+  req: Request<{ teacherId: string }>,
+  res: Response,
+) => {
+  const { teacherId } = req.params;
+
+  const availabilities = await prisma.availability.findMany({
+    where: {
+      teacherId,
+      startTime: { gte: new Date() },
+      // Check if there are no associated lessons (meaning the slot is open)
+      lessons: {
+        none: {},
+      },
+    },
+    orderBy: { startTime: "asc" },
+  });
+
+  return res.status(200).json({
+    status: "success",
+    results: availabilities.length,
+    data: availabilities,
   });
 };

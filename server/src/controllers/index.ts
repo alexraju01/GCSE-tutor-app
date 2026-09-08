@@ -5,4 +5,4 @@ export * from "./student.controller.js";
 export * from "./availability.controller.js";
 export * from "./auth.controller.js";
 export * from "./dashboard.controller.js";
-export * from "./booking.controller.js";
+export * from "./lesson.controller.js";

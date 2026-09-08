@@ -10,7 +10,6 @@ import { protect, authorize } from "@middleware";
 import { Router } from "express";
 import { validate } from "../middleware/validate.js";
 import { updateTeacherFieldsSchema } from "../schemas/teacher.schema.js";
-
 export const teacherRouter = Router();
 
 // -----------------------------------------------------------------------------

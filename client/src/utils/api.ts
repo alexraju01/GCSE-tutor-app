@@ -1,6 +1,19 @@
 import { fetchData } from "@utils/fetchData";
 import { Teacher } from "../types/teacher";
 import type { SocialLoginResponse, SocialUserData } from "../types/auth";
+// import type { Lesson } from "@types/lesson";
+
+export interface AvailabilityPayloadItem {
+  startTime: string; // ISO 8601 string
+  durationInMinutes: number;
+}
+
+export interface GetLessonsParams {
+  page?: number;
+  limit?: number;
+  status?: string;
+  [key: string]: unknown;
+}
 
 export const api = {
   auth: {
@@ -40,16 +53,16 @@ export const api = {
         role: role || "Student",
       };
 
-      const res = await fetchData<SocialLoginResponse<SocialUserData>>(
+      return fetchData<SocialLoginResponse<SocialUserData>>(
         "/auth/social-sync",
         {
           method: "POST",
           body: payload,
         },
       );
-      return res;
     },
   },
+
   teacher: {
     getAll: () => fetchData<APIResponse<Teacher[]>>("/teachers"),
     getOne: (id: string) => fetchData<APIResponse<Teacher>>(`/teachers/${id}`),
@@ -64,5 +77,76 @@ export const api = {
         method: "PATCH",
         body: data,
       }),
+  },
+
+  dashboard: {
+    teacherDashboard: (token: string) =>
+      fetchData<APIResponse<TeacherDashboardData>>("/dashboard/teacher", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }),
+
+    studentDashboard: (token: string) =>
+      fetchData<APIResponse<StudentDashboardData>>("/dashboard/student", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }),
+  },
+
+  availability: {
+    getByTeacherId: (teacherId: string, token?: string) =>
+      fetchData<APIResponse<AvailabilityPayloadItem[]>>(
+        `/availability/${teacherId}`,
+        {
+          method: "GET",
+          headers: token
+            ? {
+                Authorization: `Bearer ${token}`,
+              }
+            : undefined,
+        },
+      ),
+
+    getMyTeacherAvailabilities: (token?: string) =>
+      fetchData<APIResponse<AvailabilityPayloadItem[]>>(`/availability/me`, {
+        method: "GET",
+        headers: token
+          ? {
+              Authorization: `Bearer ${token}`,
+            }
+          : undefined,
+      }),
+
+    create: (data: AvailabilityPayloadItem, token?: string) =>
+      fetchData<APIResponse>("/availability", {
+        method: "POST",
+        body: data,
+        headers: token
+          ? {
+              Authorization: `Bearer ${token}`,
+            }
+          : undefined,
+      }),
+  },
+
+  lesson: {
+    getAll: (token: string, params?: GetLessonsParams) => {
+      const page = params?.page ?? 1;
+      const query = new URLSearchParams({ page: String(page) });
+
+      if (params) {
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== undefined && key !== "page") {
+            query.append(key, String(value));
+          }
+        });
+      }
+
+      return fetchData<APIResponse<Lesson[]>>(`/lessons?${query.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    },
   },
 };

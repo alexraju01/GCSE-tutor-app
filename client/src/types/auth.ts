@@ -1,4 +1,4 @@
-import type { UserRole } from "./next-auth";
+import type { UserRole } from "./role";
 
 export interface UserSession {
   name?: string | null;

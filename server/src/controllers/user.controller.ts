@@ -10,8 +10,56 @@ export const getAllUsers = async (_: Request, res: Response) => {
 
 export const getOneUser = async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
-
   const user = await prisma.user.findUniqueOrThrow({ where: { id } });
+
+  res.status(200).json({ status: "success", data: user });
+};
+
+export const getUserProfile = async (req: Request, res: Response) => {
+  const { id: userId } = req.user;
+
+  const user = await prisma.user.findUniqueOrThrow({
+    where: { id: userId },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      image: true,
+      provider: true,
+      createdAt: true,
+      teacher: {
+        select: {
+          id: true,
+          bio: true,
+          qualifications: true,
+          hourlyRate: true,
+          rating: true,
+          totalHours: true,
+          totalEarnings: true,
+          teaches: {
+            select: {
+              id: true,
+              subject: true,
+              level: true,
+            },
+          },
+        },
+      },
+      student: {
+        select: {
+          id: true,
+          subjects: {
+            select: {
+              id: true,
+              subject: true,
+              level: true,
+            },
+          },
+        },
+      },
+    },
+  });
 
   res.status(200).json({ status: "success", data: user });
 };

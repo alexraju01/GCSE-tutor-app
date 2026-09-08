@@ -5,6 +5,7 @@ import Google from "next-auth/providers/google";
 
 import { api } from "@utils/api";
 import { SignInSchema } from "@utils/validation";
+import type { UserRole } from "@/types/role";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
@@ -70,7 +71,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
       }
 
-      // ✅ Always allow credentials logins
+      // Always allow credentials logins
       return true;
     },
 
@@ -91,7 +92,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
-        session.user.role = token.role as "Student" | "Teacher";
+        session.user.role = token.role as UserRole;
       }
       session.backendToken = token.backendJwt as string;
       return session;

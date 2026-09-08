@@ -1,18 +1,18 @@
 // src/services/teacher.service.ts
 import { prisma } from "../db/prisma.js";
-import { teacherInclude, flattenTeacher } from "./teacher.select.js";
+import { teacherSelect, flattenTeacher } from "./teacher.select.js";
 import type { UpdateTeacherInput } from "../schemas/teacher.schema.js";
 
 export const teacherService = {
   findAll: async () => {
-    const teachers = await prisma.teacher.findMany({ include: teacherInclude });
+    const teachers = await prisma.teacher.findMany({ select: teacherSelect });
     return teachers.map(flattenTeacher);
   },
 
   findById: async (id: string) => {
     const teacher = await prisma.teacher.findUniqueOrThrow({
       where: { id },
-      include: teacherInclude,
+      select: teacherSelect,
     });
     return flattenTeacher(teacher);
   },
@@ -20,7 +20,7 @@ export const teacherService = {
   findByUserId: async (userId: string) => {
     const teacher = await prisma.teacher.findUnique({
       where: { userId },
-      include: teacherInclude,
+      select: teacherSelect,
     });
     return teacher ? flattenTeacher(teacher) : null;
   },
@@ -44,7 +44,7 @@ export const teacherService = {
           },
         }),
       },
-      include: teacherInclude,
+      select: teacherSelect,
     });
 
     return flattenTeacher(updated);

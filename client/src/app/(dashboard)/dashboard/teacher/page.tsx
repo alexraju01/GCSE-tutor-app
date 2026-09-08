@@ -1,0 +1,59 @@
+// TeacherDashboardPage.tsx
+import { auth } from "@auth";
+import QuickActionsCard from "@components/dashboard/QuickActionsCard";
+import StatsGrid from "@components/dashboard/StatsGrid";
+import UpcomingSessions from "@components/dashboard/UpcomingSessions";
+import WelcomeBanner from "@components/dashboard/WelcomeBanner";
+import { api } from "@utils/api";
+
+const TeacherDashboardPage = async () => {
+  const session = await auth();
+  const teacherName = session?.user?.name || "Teacher";
+  // const teacherId = session?.user?.id || "";
+  const backendToken = session?.backendToken || "";
+
+  // Fetch dashboard summary and availability concurrently
+  const [dashboardResponse, availabilityResponse] = await Promise.all([
+    api.dashboard.teacherDashboard(backendToken),
+    api.availability.getMyTeacherAvailabilities(backendToken),
+  ]);
+
+  const dashboardData = dashboardResponse?.data;
+
+  // Destructure `data` from the API response payload
+  const availabilitySlots = availabilityResponse?.data ?? [];
+
+  const upcomingBookings = dashboardData?.upcomingLessons ?? [];
+  const teacherSubjects = dashboardData?.teaches ?? [];
+
+  return (
+    <div className="mx-auto max-w-6xl space-y-8">
+      <WelcomeBanner
+        role="Teacher"
+        userName={teacherName}
+        upcomingCount={3}
+        pendingCount={2}
+        subjects={teacherSubjects}
+      />
+
+      <StatsGrid dashboardData={dashboardData} />
+
+      <div className="grid gap-8 lg:grid-cols-3">
+        {/* Main section: Upcoming sessions takes 2 columns */}
+        <div className="lg:col-span-2">
+          <UpcomingSessions sessions={upcomingBookings} />
+        </div>
+
+        {/* Sidebar: Availability & Quick Actions takes 1 column */}
+        <div className="lg:col-span-1">
+          <QuickActionsCard
+            availabilitySlots={availabilitySlots}
+            token={backendToken}
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default TeacherDashboardPage;

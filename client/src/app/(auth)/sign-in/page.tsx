@@ -8,7 +8,7 @@ import AuthForm from "@components/Forms/AuthForm";
 const SignIn = () => {
   return (
     <AuthForm
-      formType="SIGN-UP"
+      formType="SIGN-IN"
       schema={SignInSchema}
       defaultValues={{ email: "", password: "" }}
       onSubmit={signInWithCredentials}
