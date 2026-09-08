@@ -173,3 +173,30 @@ export const deleteAvailability = async (req: Request<{ id: string }>, res: Resp
     data: null,
   });
 };
+
+export const getTeacherAvailabilities = async (
+  req: Request<{ teacherId: string }>,
+  res: Response,
+) => {
+  const { teacherId } = req.params;
+
+  console.log("Fetching availabilities for teacherId:", teacherId);
+
+  const availabilities = await prisma.availability.findMany({
+    where: {
+      teacherId,
+      startTime: { gte: new Date() },
+      // Check if there are no associated lessons (meaning the slot is open)
+      lessons: {
+        none: {},
+      },
+    },
+    orderBy: { startTime: "asc" },
+  });
+
+  return res.status(200).json({
+    status: "success",
+    results: availabilities.length,
+    data: availabilities,
+  });
+};

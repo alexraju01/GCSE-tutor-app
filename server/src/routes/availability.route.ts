@@ -1,5 +1,6 @@
 import {
   createAvailabilities,
+  getTeacherAvailabilities,
   getAllAvailabilities,
   updateAvailability,
   deleteAvailability,
@@ -14,9 +15,9 @@ import {
 
 export const availabilityRouter = Router();
 // Logged-in teacher routes to manage their own slots
-// availabilityRouter.get("/me", protect, authorize(Role.Teacher), getMyAvailabilities);
+availabilityRouter.get("/me", protect, authorize(Role.Teacher), getAllAvailabilities);
+availabilityRouter.get("/:teacherId", getTeacherAvailabilities);
 
-availabilityRouter.get("/", protect, getAllAvailabilities);
 availabilityRouter.post(
   "/",
   protect,

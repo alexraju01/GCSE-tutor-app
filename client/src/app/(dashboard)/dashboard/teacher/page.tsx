@@ -9,13 +9,15 @@ import { api } from "@utils/api";
 const TeacherDashboardPage = async () => {
 	const session = await auth();
 	const teacherName = session?.user?.name || "Teacher";
+	// const teacherId = session?.user?.id || "";
 	const backendToken = session?.backendToken || "";
 
-	// Fetch dashboard summary and availability concurrently to save response time
+	// Fetch dashboard summary and availability concurrently
 	const [dashboardResponse, availabilityResponse] = await Promise.all([
 		api.dashboard.teacherDashboard(backendToken),
-		api.availability.getAll(backendToken),
+		api.availability.getMyTeacherAvailabilities(backendToken),
 	]);
+	console.log("availabilityResponse:", availabilityResponse);
 
 	const dashboardData = dashboardResponse?.data;
 

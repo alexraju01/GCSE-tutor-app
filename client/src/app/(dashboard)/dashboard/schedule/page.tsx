@@ -1,11 +1,11 @@
 import { auth } from "@auth";
 import ScheduleHeader from "@components/dashboard/calendar/ScheduleHeader";
-import { api } from "@utils/api";
-import { formatHeaderDate } from "@utils/date";
-import type { TimeSlot } from "@utils/actions/availability";
 import ScheduleFilters from "@components/dashboard/schedule/ScheduleFilters";
 import ScheduleItemCard from "@components/dashboard/schedule/ScheduleItemCard";
 import SchedulePagination from "@components/dashboard/schedule/SchedulePagination";
+import type { TimeSlot } from "@utils/actions/availability";
+import { api } from "@utils/api";
+import { formatHeaderDate } from "@utils/date";
 
 interface SchedulePageProps {
 	searchParams: Promise<{
@@ -31,26 +31,32 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 
 	const session = await auth();
 	const isTeacher = session?.user?.role === "Teacher";
+	const teacherId = session?.user?.id ?? "";
 	const token = session?.backendToken ?? "";
 
 	// Parallel data fetching on the server
-	const [lessonsResponse, rawAvailabilityResponse] = await Promise.all([
+	const [lessonsResponse, availabilityResponse] = await Promise.all([
 		api.lesson.getAll(token, {
 			page: currentPage,
 			status: activeFilter !== "all" ? activeFilter : undefined,
 			year: selectedYear,
 			month: selectedMonth !== undefined ? selectedMonth + 1 : undefined,
 		}),
-		isTeacher && token ? api.availability.getAll(token) : null,
+		isTeacher && teacherId ? api.availability.getByTeacherId(teacherId, token) : null,
 	]);
 
 	const lessons = lessonsResponse?.data ?? [];
 	const totalPages = lessonsResponse?.totalPages ?? 1;
 	const totalResults = lessonsResponse?.totalResults ?? lessons.length;
 
-	const initialAvailability: TimeSlot[] = Array.isArray(rawAvailabilityResponse)
-		? rawAvailabilityResponse
-		: (rawAvailabilityResponse as { data?: TimeSlot[] })?.data || [];
+	// Safely extract slots matching the APIResponse<T> structure
+	const initialAvailability: TimeSlot[] = (
+		Array.isArray(availabilityResponse?.data)
+			? availabilityResponse.data
+			: Array.isArray(availabilityResponse)
+				? availabilityResponse
+				: []
+	) as TimeSlot[];
 
 	return (
 		<div className='mx-auto max-w-6xl space-y-8'>
@@ -91,4 +97,5 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 		</div>
 	);
 };
+
 export default SchedulePage;

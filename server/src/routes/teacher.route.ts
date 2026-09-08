@@ -1,4 +1,3 @@
-import { getAllAvailabilities } from "@controllers/availability.controller.js";
 import {
   getAllTeachers,
   getOneTeacher,
@@ -30,4 +29,3 @@ teacherRouter.route("/").get(getAllTeachers);
 
 // Dynamic parameter route captures everything else at the end
 teacherRouter.route("/:id").get(getOneTeacher);
-teacherRouter.get("/:teacherId/availabilities", protect, getAllAvailabilities);

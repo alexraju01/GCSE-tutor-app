@@ -93,19 +93,30 @@ export const api = {
 	},
 
 	availability: {
-		create: (data: AvailabilityPayloadItem, token?: string) =>
-			fetchData<APIResponse>("/availability", {
-				method: "POST",
-				body: data,
+		getByTeacherId: (teacherId: string, token?: string) =>
+			fetchData<APIResponse<AvailabilityPayloadItem[]>>(`/availability/${teacherId}`, {
+				method: "GET",
 				headers: token
 					? {
 							Authorization: `Bearer ${token}`,
 						}
 					: undefined,
 			}),
-		getAll: (token?: string) =>
-			fetchData<APIResponse<AvailabilityPayloadItem[]>>("/availability", {
+
+		getMyTeacherAvailabilities: (token?: string) =>
+			fetchData<APIResponse<AvailabilityPayloadItem[]>>(`/availability/me`, {
 				method: "GET",
+				headers: token
+					? {
+							Authorization: `Bearer ${token}`,
+						}
+					: undefined,
+			}),
+
+		create: (data: AvailabilityPayloadItem, token?: string) =>
+			fetchData<APIResponse>("/availability", {
+				method: "POST",
+				body: data,
 				headers: token
 					? {
 							Authorization: `Bearer ${token}`,
