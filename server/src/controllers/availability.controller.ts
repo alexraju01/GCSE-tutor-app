@@ -1,110 +1,77 @@
 import { prisma } from "@db/prisma.js";
 import { AppError } from "@utils/AppError.js";
-import type { Request, Response, NextFunction } from "express";
+import { formatPagination, getPaginationOptions } from "@utils/pagination.js";
+import {
+  findTeacherAvailabilities,
+  requireTeacherId,
+  checkOverlap,
+} from "../services/availability.service.js";
+import type { Request, Response } from "express";
 
-const requireTeacherId = async (userId: string | undefined): Promise<string> => {
-  const teacher = await prisma.teacher.findUnique({
-    where: { userId },
-    select: { id: true },
-  });
+/**
+ * Public: Get unbooked availability slots for a specific teacher with pagination.
+ */
+export const getTeacherAvailabilities = async (
+  req: Request<{ teacherId: string }, unknown, unknown, { page?: string; limit?: string }>,
+  res: Response,
+) => {
+  const { teacherId } = req.params;
+  const { page, limit, skip } = getPaginationOptions(req.query.page, req.query.limit);
 
-  if (!teacher)
-    throw new AppError("Access denied. Only registered tutors can manage availability.", 403);
-
-  return teacher.id;
-};
-
-const checkOverlap = async (
-  teacherId: string,
-  startTime: Date,
-  endTime: Date,
-  excludeAvailabilityId?: string,
-): Promise<void> => {
-  const overlap = await prisma.availability.findFirst({
-    where: {
-      teacherId,
-      ...(excludeAvailabilityId && { id: { not: excludeAvailabilityId } }),
-      startTime: { lt: endTime },
-      endTime: { gt: startTime },
-    },
-    select: { id: true }, // Optimized selection
-  });
-
-  if (overlap) {
-    throw new AppError(
-      "This time slot overlaps with an availability block you've already scheduled.",
-      409,
-    );
-  }
-};
-
-export const getAllAvailabilities = async (req: Request, res: Response) => {
-  const userId = req.user?.id;
-
-  // 1. Check if teacherId is provided via route param or query string
-  const targetTeacherId = (req.params.teacherId || req.query.teacherId) as string | undefined;
-
-  let teacherId: string;
-  let isOwner = false;
-
-  if (targetTeacherId) {
-    // Student or public user looking up a specific teacher
-    teacherId = targetTeacherId;
-  } else {
-    // Teacher managing their own calendar
-    const teacher = await prisma.teacher.findUnique({
-      where: { userId },
-      select: { id: true },
-    });
-
-    if (!teacher) {
-      throw new AppError("Teacher profile not found.", 404);
-    }
-
-    teacherId = teacher.id;
-    isOwner = true;
-  }
-
-  // 2. Query availability slots
-  const availabilities = await prisma.availability.findMany({
-    where: {
-      teacherId,
-      startTime: { gte: new Date() },
-      // Important: If a student is viewing, only show open/unbooked slots!
-      ...(!isOwner && { isBooked: false }),
-    },
-    orderBy: { startTime: "asc" },
+  const { availabilities, totalResults } = await findTeacherAvailabilities({
+    teacherId,
+    skip,
+    limit,
+    onlyUnbooked: true,
   });
 
   return res.status(200).json({
     status: "success",
     results: availabilities.length,
     data: availabilities,
+    pagination: formatPagination(totalResults, page, limit),
+  });
+};
+
+/**
+ * Private: Get all availability slots (booked & unbooked) for the authenticated teacher with pagination.
+ */
+export const getOwnAvailabilities = async (
+  req: Request<unknown, unknown, unknown, { page?: string; limit?: string }>,
+  res: Response,
+) => {
+  const teacherId = await requireTeacherId(req.user?.id);
+  const { page, limit, skip } = getPaginationOptions(req.query.page, req.query.limit);
+
+  const { availabilities, totalResults } = await findTeacherAvailabilities({
+    teacherId,
+    skip,
+    limit,
+    onlyUnbooked: false,
+  });
+
+  return res.status(200).json({
+    status: "success",
+    results: availabilities.length,
+    data: availabilities,
+    pagination: formatPagination(totalResults, page, limit),
   });
 };
 
 export const createAvailabilities = async (req: Request, res: Response) => {
-  const userId = req.user?.id;
+  const teacherId = await requireTeacherId(req.user?.id);
   const { startTime: startIsoString, durationInMinutes } = req.body;
 
-  const teacherId = await requireTeacherId(userId);
   const startTime = new Date(startIsoString);
-
   if (startTime < new Date()) {
     throw new AppError("Cannot create availability in the past. Please select a future time.", 400);
   }
 
   const endTime = new Date(startTime.getTime() + durationInMinutes * 60 * 1000);
-
-  // Validate overlap
   await checkOverlap(teacherId, startTime, endTime);
 
   const newAvailability = await prisma.availability.create({
-    data: {
-      teacherId,
-      startTime,
-      endTime,
-    },
+    data: { teacherId, startTime, endTime },
   });
 
   return res.status(201).json({
@@ -112,31 +79,29 @@ export const createAvailabilities = async (req: Request, res: Response) => {
     data: newAvailability,
   });
 };
-export const updateAvailability = async (
-  req: Request<{ id: string }>,
-  res: Response,
-  next: NextFunction,
-) => {
-  const userId = req.user?.id;
+
+export const updateAvailability = async (req: Request<{ id: string }>, res: Response) => {
+  const teacherId = await requireTeacherId(req.user?.id);
   const { id: availabilityId } = req.params;
   const { startTime: startIsoString, durationInMinutes } = req.body;
 
-  if (!startIsoString && durationInMinutes === undefined)
-    return next(new AppError("Please provide at least one field to update.", 400));
-
-  const teacherId = await requireTeacherId(userId);
+  if (!startIsoString && durationInMinutes === undefined) {
+    throw new AppError("Please provide at least one field to update.", 400);
+  }
 
   const existing = await prisma.availability.findFirst({
     where: { id: availabilityId, teacherId },
     select: { startTime: true, endTime: true },
   });
 
-  if (!existing) return next(new AppError("Availability record not found or access denied.", 404));
+  if (!existing) {
+    throw new AppError("Availability record not found or access denied.", 404);
+  }
 
   const startTime = startIsoString ? new Date(startIsoString) : existing.startTime;
-
-  if (startIsoString && startTime < new Date())
-    next(new AppError("Cannot schedule availability in the past.", 400));
+  if (startIsoString && startTime < new Date()) {
+    throw new AppError("Cannot schedule availability in the past.", 400);
+  }
 
   const currentDuration = (existing.endTime.getTime() - existing.startTime.getTime()) / 60000;
   const finalDuration = durationInMinutes !== undefined ? durationInMinutes : currentDuration;
@@ -156,10 +121,8 @@ export const updateAvailability = async (
 };
 
 export const deleteAvailability = async (req: Request<{ id: string }>, res: Response) => {
-  const { id: userId } = req.user;
+  const teacherId = await requireTeacherId(req.user?.id);
   const { id: availabilityId } = req.params;
-
-  const teacherId = await requireTeacherId(userId);
 
   await prisma.availability.delete({
     where: {
@@ -168,33 +131,5 @@ export const deleteAvailability = async (req: Request<{ id: string }>, res: Resp
     },
   });
 
-  return res.status(204).json({
-    status: "success",
-    data: null,
-  });
-};
-
-export const getTeacherAvailabilities = async (
-  req: Request<{ teacherId: string }>,
-  res: Response,
-) => {
-  const { teacherId } = req.params;
-
-  const availabilities = await prisma.availability.findMany({
-    where: {
-      teacherId,
-      startTime: { gte: new Date() },
-      // Check if there are no associated lessons (meaning the slot is open)
-      lessons: {
-        none: {},
-      },
-    },
-    orderBy: { startTime: "asc" },
-  });
-
-  return res.status(200).json({
-    status: "success",
-    results: availabilities.length,
-    data: availabilities,
-  });
+  return res.status(204).send();
 };

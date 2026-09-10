@@ -1,33 +1,7 @@
-import { prisma } from "../db/prisma.js";
+import { LessonStatus, Subject } from "@generated/client.js";
+import * as lessonService from "../services/lesson.service.js";
 import { AppError } from "../utils/AppError.js";
-import type { GetLessonsQuery } from "../schemas/lesson.schema.js";
 import type { Request, Response } from "express";
-
-// Reusable Select Blocks
-const USER_PROFILE_SELECT = {
-  select: {
-    name: true,
-    image: true,
-    email: true,
-  },
-} as const;
-
-const STUDENT_PROFILE_SELECT = {
-  select: {
-    user: USER_PROFILE_SELECT,
-  },
-} as const;
-
-const BASE_BOOKING_SELECT = {
-  id: true,
-  subject: true,
-  topic: true,
-  meetingRoomId: true,
-  startTime: true,
-  duration: true,
-  status: true,
-  notes: true,
-} as const;
 
 export const getAllLessons = async (req: Request, res: Response) => {
   const { id: userId, role } = req.user;
@@ -36,50 +10,31 @@ export const getAllLessons = async (req: Request, res: Response) => {
     throw new AppError("Invalid user role for retrieving lessons.", 400);
   }
 
-  const { page, limit, status, subject } = req.query as unknown as GetLessonsQuery;
-  const skip = (page - 1) * limit;
+  // Rely on middleware-validated query params
+  const { page = 1, limit = 10, status, subject } = req.query;
 
-  const isStudent = role === "Student";
+  const { lessons, totalResults } = await lessonService.findLessonsByRole({
+    userId,
+    role,
+    page: Number(page),
+    limit: Number(limit),
+    status: status as LessonStatus,
+    subject: subject as Subject,
+  });
 
-  const where = {
-    ...(isStudent ? { student: { userId } } : { teacher: { userId } }),
-    ...(status && { status }),
-    ...(subject && { subject }),
-  };
-
-  const [totalResults, rawLessons] = await Promise.all([
-    prisma.lesson.count({ where }),
-    prisma.lesson.findMany({
-      where,
-      skip,
-      take: limit,
-      orderBy: [{ startTime: "asc" }, { id: "asc" }],
-      select: {
-        ...BASE_BOOKING_SELECT,
-        teacher: {
-          select: { user: USER_PROFILE_SELECT },
-        },
-        student: STUDENT_PROFILE_SELECT,
-      },
-    }),
-  ]);
-
-  const bookings = rawLessons.map(({ teacher, student, ...booking }) => ({
-    ...booking,
-    ...(isStudent ? { teacher: teacher.user } : { student: student.user }),
-  }));
-
-  const totalPages = Math.ceil(totalResults / limit);
+  const totalPages = Math.ceil(totalResults / Number(limit)) || 1;
 
   return res.status(200).json({
     status: "success",
-    results: bookings.length,
-    data: bookings,
-    currentPage: page,
-    limit,
-    totalResults,
-    totalPages,
-    hasNextPage: page < totalPages,
-    hasPrevPage: page > 1,
+    results: lessons.length,
+    data: lessons,
+    pagination: {
+      page: Number(page),
+      limit: Number(limit),
+      totalResults,
+      totalPages,
+      hasNextPage: Number(page) < totalPages,
+      hasPrevPage: Number(page) > 1,
+    },
   });
 };

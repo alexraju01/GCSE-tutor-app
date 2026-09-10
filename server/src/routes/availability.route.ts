@@ -1,7 +1,6 @@
 import {
+  getOwnAvailabilities,
   createAvailabilities,
-  getTeacherAvailabilities,
-  getAllAvailabilities,
   updateAvailability,
   deleteAvailability,
 } from "@controllers/availability.controller.js";
@@ -14,10 +13,11 @@ import {
 } from "../schemas/availability.schema.js";
 
 export const availabilityRouter = Router();
-// Logged-in teacher routes to manage their own slots
-availabilityRouter.get("/me", protect, authorize(Role.Teacher), getAllAvailabilities);
-availabilityRouter.get("/:teacherId", getTeacherAvailabilities);
 
+// /availabilities/me
+availabilityRouter.get("/me", protect, authorize(Role.Teacher), getOwnAvailabilities);
+
+// /availabilities
 availabilityRouter.post(
   "/",
   protect,
@@ -25,6 +25,8 @@ availabilityRouter.post(
   validate(createAvailabilitySchema),
   createAvailabilities,
 );
+
+// /availabilities/:id
 availabilityRouter.patch(
   "/:id",
   protect,
@@ -33,4 +35,5 @@ availabilityRouter.patch(
   updateAvailability,
 );
 
+// /availabilities/:id
 availabilityRouter.delete("/:id", protect, authorize(Role.Teacher), deleteAvailability);
