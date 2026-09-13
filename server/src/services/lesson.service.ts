@@ -2,11 +2,9 @@ import { prisma } from "../db/prisma.js";
 import type { GetLessonsQuery } from "../schemas/lesson.schema.js";
 
 const USER_SELECT = {
-  select: {
-    name: true,
-    image: true,
-    email: true,
-  },
+  name: true,
+  image: true,
+  email: true,
 } as const;
 
 const BASE_LESSON_SELECT = {
@@ -42,10 +40,28 @@ export const findLessonsByRole = async ({
     ...(subject && { subject }),
   };
 
-  // Conditionally include ONLY the opposite user profile at the Prisma query level
-  const targetRelationSelect = isStudent
-    ? { teacher: { select: { user: USER_SELECT } } }
-    : { student: { select: { user: USER_SELECT } } };
+  if (isStudent) {
+    const [totalResults, rawLessons] = await Promise.all([
+      prisma.lesson.count({ where }),
+      prisma.lesson.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: [{ startTime: "asc" }, { id: "asc" }],
+        select: {
+          ...BASE_LESSON_SELECT,
+          teacher: { select: { user: { select: USER_SELECT } } },
+        },
+      }),
+    ]);
+
+    const lessons = rawLessons.map(({ teacher, ...lesson }) => ({
+      ...lesson,
+      teacher: teacher.user,
+    }));
+
+    return { lessons, totalResults };
+  }
 
   const [totalResults, rawLessons] = await Promise.all([
     prisma.lesson.count({ where }),
@@ -56,23 +72,15 @@ export const findLessonsByRole = async ({
       orderBy: [{ startTime: "asc" }, { id: "asc" }],
       select: {
         ...BASE_LESSON_SELECT,
-        ...targetRelationSelect,
+        student: { select: { user: { select: USER_SELECT } } },
       },
     }),
   ]);
 
-  // Clean up structural nesting (e.g., rawLesson.teacher.user -> rawLesson.teacher)
-  const lessons = rawLessons.map((lesson) => {
-    if ("teacher" in lesson && lesson.teacher) {
-      const { teacher, ...rest } = lesson;
-      return { ...rest, teacher: teacher.user };
-    }
-    if ("student" in lesson && lesson.student) {
-      const { student, ...rest } = lesson;
-      return { ...rest, student: student.user };
-    }
-    return lesson;
-  });
+  const lessons = rawLessons.map(({ student, ...lesson }) => ({
+    ...lesson,
+    student: student.user,
+  }));
 
   return { lessons, totalResults };
 };
