@@ -1,4 +1,4 @@
-import { getAllLessons } from "@controllers/lesson.controller.js";
+import { getAllLessons, createLesson } from "@controllers/lesson.controller.js";
 import { Role } from "@generated/enums.js";
 import { authorize, protect, validate } from "@middleware";
 import { Router } from "express";
@@ -12,6 +12,6 @@ lessonRouter.use(protect);
 lessonRouter
   .route("/")
   .get(validate(getLessonsQuerySchema, "query"), getAllLessons)
-  .post(authorize(Role.Student));
+  .post(authorize(Role.Student), createLesson);
 
 lessonRouter.route("/:lessonId").delete(authorize(Role.Student));

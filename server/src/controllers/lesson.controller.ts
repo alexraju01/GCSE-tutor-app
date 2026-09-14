@@ -38,3 +38,33 @@ export const getAllLessons = async (req: Request, res: Response) => {
     },
   });
 };
+
+export const createLesson = async (req: Request, res: Response) => {
+  const { id: studentUserId, role } = req.user;
+
+  if (role !== "Student") {
+    throw new AppError("Only students can book a lesson.", 403);
+  }
+
+  const { teacherProfileId, availabilityId, startTime, endTime, subject, topic, notes } = req.body;
+
+  if (!teacherProfileId || !availabilityId || !startTime || !endTime || !subject) {
+    throw new AppError("Missing required fields for lesson creation.", 400);
+  }
+
+  const lesson = await lessonService.createLessonBooking({
+    studentUserId,
+    teacherId: teacherProfileId,
+    availabilityId,
+    startTime: new Date(startTime),
+    endTime: new Date(endTime),
+    subject: subject as Subject,
+    topic,
+    notes,
+  });
+
+  return res.status(201).json({
+    status: "success",
+    data: lesson,
+  });
+};
