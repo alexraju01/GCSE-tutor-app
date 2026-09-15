@@ -11,7 +11,7 @@ import type { SessionData } from "@/types/auth";
 
 interface TeacherCardProps {
 	teacher: Teacher;
-	session: SessionData | null; // Adjust the type based on your session structure
+	session: SessionData | null;
 }
 
 const TeacherCard = ({ teacher, session }: TeacherCardProps) => {
@@ -20,7 +20,7 @@ const TeacherCard = ({ teacher, session }: TeacherCardProps) => {
 	const groupedTeaches = teacher.teaches
 		? Object.groupBy(teacher.teaches, (item: TeachesSubject) => item.level || "UNKNOWN")
 		: {};
-
+	console.log("teacher Subjects:", teacher.teaches);
 	return (
 		<>
 			<div className='bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-md hover:border-blue-200 transition-all flex flex-col justify-between group relative overflow-hidden'>
@@ -95,6 +95,7 @@ const TeacherCard = ({ teacher, session }: TeacherCardProps) => {
 				teacherId={teacher.id}
 				teacherName={teacher.name}
 				hourlyRate={teacher.hourlyRate}
+				teacherSubjects={teacher.teaches?.map((t) => t.subject) || []}
 				session={session}
 			/>
 		</>

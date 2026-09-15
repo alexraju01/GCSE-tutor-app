@@ -1,15 +1,7 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
-import {
-	Clock,
-	Calendar as CalendarIcon,
-	X,
-	Check,
-	ChevronLeft,
-	ChevronRight,
-	AlertCircle,
-} from "lucide-react";
+import { useEffect, useState, useMemo, ChangeEvent } from "react";
+import { Clock, X, Check, ChevronLeft, ChevronRight, AlertCircle, BookOpen } from "lucide-react";
 import type { SessionData } from "@/types/auth";
 
 interface RawAvailability {
@@ -19,6 +11,11 @@ interface RawAvailability {
 	endTime: string;
 }
 
+interface TeacherProfile {
+	id: string;
+	subjects?: string[];
+}
+
 interface BookLessonModalProps {
 	isOpen: boolean;
 	onClose: () => void;
@@ -26,6 +23,7 @@ interface BookLessonModalProps {
 	teacherName: string | null;
 	hourlyRate: number;
 	session: SessionData | null;
+	teacherSubjects?: string[];
 }
 
 const BookLessonModal = ({
@@ -35,38 +33,61 @@ const BookLessonModal = ({
 	teacherName,
 	hourlyRate,
 	session,
+	teacherSubjects,
 }: BookLessonModalProps) => {
 	const [slots, setSlots] = useState<RawAvailability[]>([]);
+	const [availableSubjects, setAvailableSubjects] = useState<string[]>(teacherSubjects || []);
 	const [isLoading, setIsLoading] = useState<boolean>(false);
 	const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
 	const [selectedSlot, setSelectedSlot] = useState<RawAvailability | null>(null);
 	const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
 	const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
+
+	// Lesson specific details
+	const [subject, setSubject] = useState<string>("");
+	const [topic, setTopic] = useState<string>("");
 	const [notes, setNotes] = useState<string>("");
 
-	// Extract access token from the passed session prop
 	const token = session?.backendToken;
 
-	// Fetch teacher availability slots
 	useEffect(() => {
 		if (!isOpen || !teacherId) return;
 
-		const fetchTeacherSlots = async () => {
+		const fetchTeacherDetailsAndSlots = async () => {
 			setIsLoading(true);
 			setErrorMessage(null);
 			try {
-				const res = await fetch(
+				const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+				// Fetch slots and teacher profile concurrently if subjects weren't provided as a prop
+				const slotsPromise = fetch(
 					`http://localhost:8000/api/v1/teachers/${teacherId}/availabilities`,
-					{
-						headers: token ? { Authorization: `Bearer ${token}` } : {},
-					},
+					{ headers },
 				);
-				const result = await res.json();
-				const loadedSlots: RawAvailability[] = result.data || [];
+
+				const teacherPromise = !teacherSubjects
+					? fetch(`http://localhost:8000/api/v1/teachers/${teacherId}`, { headers })
+					: Promise.resolve(null);
+
+				const [slotsRes, teacherRes] = await Promise.all([slotsPromise, teacherPromise]);
+
+				const slotsResult = await slotsRes.json();
+				const loadedSlots: RawAvailability[] = slotsResult.data || [];
 				setSlots(loadedSlots);
 
-				// Auto-select first date with availability & align calendar month
+				let fetchedSubjects: string[] = teacherSubjects || [];
+				if (teacherRes && teacherRes.ok) {
+					const teacherData = await teacherRes.json();
+					const profile: TeacherProfile = teacherData.data || teacherData;
+					fetchedSubjects = profile.subjects || [];
+				}
+
+				setAvailableSubjects(fetchedSubjects);
+				if (fetchedSubjects.length > 0) {
+					setSubject(fetchedSubjects[0]);
+				}
+
 				if (loadedSlots.length > 0) {
 					const firstSlotDate = new Date(loadedSlots[0].startTime);
 					const firstDateKey = firstSlotDate.toISOString().split("T")[0];
@@ -74,16 +95,15 @@ const BookLessonModal = ({
 					setCurrentMonth(new Date(firstSlotDate.getFullYear(), firstSlotDate.getMonth(), 1));
 				}
 			} catch (err) {
-				console.error("Failed to load availability slots:", err);
+				console.error("Failed to load availability slots or teacher info:", err);
 			} finally {
 				setIsLoading(false);
 			}
 		};
 
-		void fetchTeacherSlots();
-	}, [isOpen, teacherId, token]);
+		void fetchTeacherDetailsAndSlots();
+	}, [isOpen, teacherId, token, teacherSubjects]);
 
-	// Group slots by Date Key (YYYY-MM-DD)
 	const groupedSlots = useMemo(() => {
 		const groups: Record<string, RawAvailability[]> = {};
 
@@ -102,7 +122,6 @@ const BookLessonModal = ({
 		return groups;
 	}, [slots]);
 
-	// Generate Days Grid for Current Month View
 	const calendarDays = useMemo(() => {
 		const year = currentMonth.getFullYear();
 		const month = currentMonth.getMonth();
@@ -135,12 +154,16 @@ const BookLessonModal = ({
 		setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
 	};
 
-	// Post booking submission with backend bearer token
 	const handleConfirmBooking = async () => {
 		if (!selectedSlot) return;
 
 		if (!token) {
 			setErrorMessage("You must be logged in to book a lesson.");
+			return;
+		}
+
+		if (!subject) {
+			setErrorMessage("Please select a subject for the lesson.");
 			return;
 		}
 
@@ -159,6 +182,8 @@ const BookLessonModal = ({
 					availabilityId: selectedSlot.id,
 					startTime: selectedSlot.startTime,
 					endTime: selectedSlot.endTime,
+					subject,
+					topic: topic || undefined,
 					notes: notes || undefined,
 				}),
 			});
@@ -170,6 +195,7 @@ const BookLessonModal = ({
 
 			setSlots((prev) => prev.filter((s) => s.id !== selectedSlot.id));
 			setSelectedSlot(null);
+			setTopic("");
 			setNotes("");
 			onClose();
 		} catch (err: unknown) {
@@ -185,89 +211,92 @@ const BookLessonModal = ({
 
 	return (
 		<div className='fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs'>
-			<div className='flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900'>
+			<div className='flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900'>
 				{/* Header */}
-				<div className='flex items-center justify-between border-b border-slate-100 p-5 dark:border-slate-800'>
+				<div className='flex items-center justify-between border-b border-slate-100 p-6 dark:border-slate-800'>
 					<div>
-						<h2 className='text-lg font-bold text-slate-900 dark:text-slate-100'>
+						<h2 className='text-xl font-bold text-slate-900 dark:text-slate-100'>
 							Book Lesson with {teacherName || "Teacher"}
 						</h2>
-						<p className='mt-0.5 text-xs text-slate-500 dark:text-slate-400'>
-							Select an available date and time slot (£{hourlyRate}/hr).
+						<p className='mt-1 text-xs text-slate-500 dark:text-slate-400'>
+							Select an available date, time slot, and lesson subject (£{hourlyRate}/hr).
 						</p>
 					</div>
 					<button
 						type='button'
 						onClick={onClose}
 						className='rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200 cursor-pointer transition-colors'>
-						<X size={18} />
+						<X size={20} />
 					</button>
 				</div>
 
 				{/* Content Body */}
-				<div className='flex-1 overflow-y-auto p-5'>
+				<div className='flex-1 overflow-y-auto p-6'>
 					{errorMessage && (
-						<div className='mb-4 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700 dark:border-red-900 dark:bg-red-950/50 dark:text-red-400'>
+						<div className='mb-5 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-3.5 text-xs text-red-700 dark:border-red-900 dark:bg-red-950/50 dark:text-red-400'>
 							<AlertCircle size={16} className='shrink-0' />
 							<span>{errorMessage}</span>
 						</div>
 					)}
 
 					{isLoading ? (
-						<div className='py-16 text-center text-sm text-slate-500 dark:text-slate-400'>
+						<div className='py-20 text-center text-sm text-slate-500 dark:text-slate-400'>
 							Loading availability calendar...
 						</div>
 					) : slots.length === 0 ? (
-						<div className='py-16 text-center text-sm text-slate-500 dark:text-slate-400'>
+						<div className='py-20 text-center text-sm text-slate-500 dark:text-slate-400'>
 							No available slots found for this teacher.
 						</div>
 					) : (
-						<div className='grid grid-cols-1 md:grid-cols-12 gap-6'>
-							{/* Left Column: Visual Calendar Grid Component */}
-							<div className='md:col-span-7 border-b md:border-b-0 md:border-r border-slate-100 dark:border-slate-800 pb-4 md:pb-0 md:pr-4'>
-								<div className='flex items-center justify-between mb-4'>
+						<div className='grid grid-cols-1 lg:grid-cols-12 gap-8'>
+							{/* Left Column: Calendar Grid */}
+							<div className='lg:col-span-7 border-b lg:border-b-0 lg:border-r border-slate-100 dark:border-slate-800 pb-6 lg:pb-0 lg:pr-6'>
+								<div className='flex items-center justify-between mb-5'>
 									<span className='text-xs font-semibold uppercase tracking-wider text-slate-400'>
 										1. Select Date
 									</span>
-									<div className='flex items-center gap-2'>
-										<span className='text-xs font-bold text-slate-800 dark:text-slate-200'>
+									<div className='flex items-center gap-3'>
+										<span className='text-sm font-bold text-slate-800 dark:text-slate-200'>
 											{currentMonth.toLocaleDateString("en-GB", { month: "long", year: "numeric" })}
 										</span>
 										<div className='flex items-center gap-1'>
 											<button
 												type='button'
 												onClick={handlePrevMonth}
-												className='rounded-md p-1 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer'>
-												<ChevronLeft size={14} />
+												className='rounded-lg p-1.5 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors'>
+												<ChevronLeft size={16} />
 											</button>
 											<button
 												type='button'
 												onClick={handleNextMonth}
-												className='rounded-md p-1 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer'>
-												<ChevronRight size={14} />
+												className='rounded-lg p-1.5 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors'>
+												<ChevronRight size={16} />
 											</button>
 										</div>
 									</div>
 								</div>
 
-								{/* Days of Week Header */}
-								<div className='grid grid-cols-7 gap-1 text-center mb-1'>
+								{/* Days Header */}
+								<div className='grid grid-cols-7 gap-2 text-center mb-2'>
 									{["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
-										<span key={day} className='text-[10px] font-semibold text-slate-400 uppercase'>
+										<span
+											key={day}
+											className='text-xs font-semibold text-slate-400 uppercase tracking-wide'>
 											{day}
 										</span>
 									))}
 								</div>
 
-								{/* Calendar Days Grid */}
-								<div className='grid grid-cols-7 gap-1'>
+								{/* Days Grid */}
+								<div className='grid grid-cols-7 gap-2'>
 									{calendarDays.map((date, idx) => {
 										if (!date) {
-											return <div key={`empty-${idx}`} className='h-9 w-full' />;
+											return <div key={`empty-${idx}`} className='h-12 w-full' />;
 										}
 
 										const dateKey = date.toISOString().split("T")[0];
-										const hasAvailability = Boolean(groupedSlots[dateKey]);
+										const slotCount = groupedSlots[dateKey]?.length || 0;
+										const hasAvailability = slotCount > 0;
 										const isSelected = selectedDateKey === dateKey;
 
 										return (
@@ -279,20 +308,23 @@ const BookLessonModal = ({
 													setSelectedDateKey(dateKey);
 													setSelectedSlot(null);
 												}}
-												className={`h-9 w-full rounded-lg text-xs font-medium flex flex-col items-center justify-center transition-all ${
+												className={`h-12 w-full rounded-xl text-xs flex flex-col items-center justify-center relative transition-all ${
 													!hasAvailability
-														? "text-slate-300 dark:text-slate-700 cursor-not-allowed opacity-50"
+														? "text-slate-300 dark:text-slate-700 cursor-not-allowed opacity-40 bg-slate-50/50 dark:bg-slate-900/50"
 														: isSelected
-															? "bg-blue-600 text-white font-bold shadow-xs cursor-pointer"
-															: "bg-blue-50/70 text-blue-900 dark:bg-blue-950/40 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/60 font-semibold cursor-pointer"
+															? "bg-blue-600 text-white font-bold shadow-md cursor-pointer scale-[1.02]"
+															: "bg-blue-50/80 text-blue-900 dark:bg-blue-950/40 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/60 font-semibold cursor-pointer border border-blue-100/50 dark:border-blue-900/30"
 												}`}>
-												<span>{date.getDate()}</span>
+												<span className='text-sm'>{date.getDate()}</span>
 												{hasAvailability && (
 													<span
-														className={`h-1 w-1 rounded-full mt-0.5 ${
-															isSelected ? "bg-white" : "bg-blue-600 dark:bg-blue-400"
-														}`}
-													/>
+														className={`text-[9px] mt-0.5 px-1 rounded-full font-medium ${
+															isSelected
+																? "bg-white/20 text-white"
+																: "text-blue-600 dark:text-blue-400"
+														}`}>
+														{slotCount} {slotCount === 1 ? "slot" : "slots"}
+													</span>
 												)}
 											</button>
 										);
@@ -300,15 +332,15 @@ const BookLessonModal = ({
 								</div>
 							</div>
 
-							{/* Right Column: Available Time Slots */}
-							<div className='md:col-span-5 flex flex-col justify-between space-y-4'>
+							{/* Right Column: Time Slot & Subject Selection */}
+							<div className='lg:col-span-5 flex flex-col justify-between space-y-5'>
 								<div>
 									<span className='block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3'>
 										2. Select Time Slot
 									</span>
 
 									{selectedDateKey && groupedSlots[selectedDateKey] ? (
-										<div className='space-y-2 max-h-[220px] overflow-y-auto pr-1'>
+										<div className='space-y-2 max-h-[180px] overflow-y-auto pr-1'>
 											{groupedSlots[selectedDateKey].map((slot) => {
 												const isSelected = selectedSlot?.id === slot.id;
 												const start = new Date(slot.startTime);
@@ -332,9 +364,9 @@ const BookLessonModal = ({
 														className={`w-full flex items-center justify-between p-3 rounded-xl border text-xs transition-all cursor-pointer ${
 															isSelected
 																? "border-blue-600 bg-blue-600 text-white shadow-xs font-semibold"
-																: "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-slate-800 dark:text-slate-200"
+																: "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-slate-800 dark:text-slate-200 bg-slate-50/50 dark:bg-slate-950/50"
 														}`}>
-														<div className='flex items-center gap-2'>
+														<div className='flex items-center gap-2.5'>
 															<Clock
 																size={14}
 																className={isSelected ? "text-white" : "text-slate-400"}
@@ -349,45 +381,94 @@ const BookLessonModal = ({
 											})}
 										</div>
 									) : (
-										<p className='text-xs text-slate-400 py-4'>
+										<p className='text-xs text-slate-400 py-3'>
 											Select a highlighted date to view time slots.
 										</p>
 									)}
 								</div>
 
-								{/* Optional Notes Input */}
-								{selectedSlot && (
-									<div className='pt-2 border-t border-slate-100 dark:border-slate-800'>
-										<label className='block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5'>
-											Lesson Notes (Optional)
+								{/* Lesson Context Inputs */}
+								<div className='pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3'>
+									<span className='block text-xs font-semibold uppercase tracking-wider text-slate-400'>
+										3. Lesson Details
+									</span>
+
+									<div>
+										<label className='block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1'>
+											Subject
 										</label>
-										<textarea
-											rows={2}
-											value={notes}
-											onChange={(e) => setNotes(e.target.value)}
-											placeholder='Add topics or requests for the session...'
+										<div className='relative'>
+											{availableSubjects.length > 0 ? (
+												<select
+													value={subject}
+													onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+														setSubject(e.target.value)
+													}
+													className='w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 pr-8 text-xs text-slate-900 focus:border-blue-600 focus:bg-white focus:outline-hidden dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-blue-600 cursor-pointer'>
+													{availableSubjects.map((sub) => (
+														<option key={sub} value={sub}>
+															{sub}
+														</option>
+													))}
+												</select>
+											) : (
+												<div className='w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400'>
+													No subjects listed for this teacher
+												</div>
+											)}
+											<BookOpen
+												size={14}
+												className='absolute right-3 top-3 text-slate-400 pointer-events-none'
+											/>
+										</div>
+									</div>
+
+									<div>
+										<label className='block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1'>
+											Topic (Optional)
+										</label>
+										<input
+											type='text'
+											value={topic}
+											onChange={(e: ChangeEvent<HTMLInputElement>) => setTopic(e.target.value)}
+											placeholder='e.g., Integration by parts, Organic Chemistry'
 											className='w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs text-slate-900 focus:border-blue-600 focus:bg-white focus:outline-hidden dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-blue-600'
 										/>
 									</div>
-								)}
+
+									{selectedSlot && (
+										<div>
+											<label className='block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1'>
+												Additional Notes (Optional)
+											</label>
+											<textarea
+												rows={2}
+												value={notes}
+												onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setNotes(e.target.value)}
+												placeholder='Add requests or details for the session...'
+												className='w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs text-slate-900 focus:border-blue-600 focus:bg-white focus:outline-hidden dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-blue-600'
+											/>
+										</div>
+									)}
+								</div>
 							</div>
 						</div>
 					)}
 				</div>
 
 				{/* Footer */}
-				<div className='border-t border-slate-100 p-4 dark:border-slate-800 flex items-center justify-end gap-3'>
+				<div className='border-t border-slate-100 p-5 dark:border-slate-800 flex items-center justify-end gap-3 bg-slate-50/50 dark:bg-slate-900/50'>
 					<button
 						type='button'
 						onClick={onClose}
-						className='px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg dark:text-slate-300 dark:hover:bg-slate-800 cursor-pointer transition-colors'>
+						className='px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-200/60 rounded-xl dark:text-slate-300 dark:hover:bg-slate-800 cursor-pointer transition-colors'>
 						Cancel
 					</button>
 					<button
 						type='button'
-						disabled={!selectedSlot || isSubmitting}
+						disabled={!selectedSlot || isSubmitting || availableSubjects.length === 0}
 						onClick={handleConfirmBooking}
-						className='px-5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg shadow-xs transition-all cursor-pointer'>
+						className='px-6 py-2.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl shadow-xs transition-all cursor-pointer'>
 						{isSubmitting ? "Booking..." : "Confirm Booking"}
 					</button>
 				</div>
