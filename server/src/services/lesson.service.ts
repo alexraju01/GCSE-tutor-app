@@ -34,6 +34,22 @@ export interface CreateLessonParams {
   notes?: string;
 }
 
+// Builds a [gte, lt) range for the requested year, or year+month, in UTC.
+// A month with no year is treated as that month in the current year, since
+// "March" alone is ambiguous otherwise.
+const buildDateRangeFilter = (year?: number, month?: number) => {
+  if (year === undefined && month === undefined) return undefined;
+
+  const rangeYear = year ?? new Date().getUTCFullYear();
+  const startMonth = month !== undefined ? month - 1 : 0;
+  const endMonth = month !== undefined ? month - 1 : 11;
+
+  return {
+    gte: new Date(Date.UTC(rangeYear, startMonth, 1)),
+    lt: new Date(Date.UTC(rangeYear, endMonth + 1, 1)),
+  };
+};
+
 export const findLessonsByRole = async ({
   userId,
   role,
@@ -41,14 +57,20 @@ export const findLessonsByRole = async ({
   limit,
   status,
   subject,
+  year,
+  month,
+  sort,
 }: FindLessonsParams) => {
   const isStudent = role === Role.Student;
   const skip = (page - 1) * limit;
+  const dateRange = buildDateRangeFilter(year, month);
+  const orderBy = [{ startTime: sort }, { id: sort }];
 
   const where = {
     ...(isStudent ? { student: { userId } } : { teacher: { userId } }),
     ...(status && { status }),
     ...(subject && { subject }),
+    ...(dateRange && { startTime: dateRange }),
   };
 
   if (isStudent) {
@@ -58,7 +80,7 @@ export const findLessonsByRole = async ({
         where,
         skip,
         take: limit,
-        orderBy: [{ startTime: "asc" }, { id: "asc" }],
+        orderBy,
         select: {
           ...BASE_LESSON_SELECT,
           teacher: { select: { user: { select: USER_SELECT } } },
@@ -80,7 +102,7 @@ export const findLessonsByRole = async ({
       where,
       skip,
       take: limit,
-      orderBy: [{ startTime: "asc" }, { id: "asc" }],
+      orderBy,
       select: {
         ...BASE_LESSON_SELECT,
         student: { select: { user: { select: USER_SELECT } } },

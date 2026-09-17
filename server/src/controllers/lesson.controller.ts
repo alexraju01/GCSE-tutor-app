@@ -13,7 +13,8 @@ export const getAllLessons = async (req: Request, res: Response) => {
   }
 
   // Already validated + defaulted by the getLessonsQuerySchema middleware.
-  const { page, limit, status, subject } = req.query as unknown as GetLessonsQuery;
+  const { page, limit, status, subject, year, month, sort } =
+    req.query as unknown as GetLessonsQuery;
 
   const { lessons, totalResults } = await lessonService.findLessonsByRole({
     userId,
@@ -22,6 +23,9 @@ export const getAllLessons = async (req: Request, res: Response) => {
     limit,
     status,
     subject,
+    year,
+    month,
+    sort,
   });
 
   return res.status(200).json({

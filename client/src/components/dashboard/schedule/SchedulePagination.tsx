@@ -7,6 +7,7 @@ interface SchedulePaginationProps {
   totalPages: number;
   totalResults: number;
   activeFilter: string;
+  activeSort: SortDirection;
   selectedYear: number;
   selectedMonth?: number;
 }
@@ -16,6 +17,7 @@ const SchedulePagination = ({
   totalPages,
   totalResults,
   activeFilter,
+  activeSort,
   selectedYear,
   selectedMonth,
 }: SchedulePaginationProps) => {
@@ -25,6 +27,7 @@ const SchedulePagination = ({
       params.set("month", String(selectedMonth + 1));
     params.set("year", String(selectedYear));
     params.set("filter", activeFilter);
+    params.set("sort", activeSort);
     params.set("page", String(page));
     return `/dashboard/schedule?${params.toString()}` as Route;
   };
@@ -41,7 +44,7 @@ const SchedulePagination = ({
     }, []);
 
   return (
-    <div className="flex flex-col gap-4 border-t border-slate-200/80 pt-6 sm:flex-row sm:items-center sm:justify-between dark:border-slate-800/80">
+    <div className="flex flex-col gap-4 border-t border-slate-200 pt-6 sm:flex-row sm:items-center sm:justify-between dark:border-slate-800">
       <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
         Showing page{" "}
         <strong className="font-semibold text-slate-900 dark:text-slate-100">
@@ -87,7 +90,7 @@ const SchedulePagination = ({
                 href={getPaginationUrl(item as number)}
                 className={`flex h-8 min-w-8 items-center justify-center rounded-lg px-2 text-xs font-semibold transition-all ${
                   item === currentPage
-                    ? "bg-blue-600 text-white shadow-xs"
+                    ? "bg-linear-to-r from-blue-600 to-indigo-600 text-white shadow-sm"
                     : "border border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800"
                 }`}
               >

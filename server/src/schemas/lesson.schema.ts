@@ -31,6 +31,11 @@ export const getLessonsQuerySchema = z.object({
   limit: z.coerce.number().int().positive().max(100).default(5),
   status: createEnumTransformer(LessonStatus, "status"),
   subject: createEnumTransformer(Subject, "subject"),
+  year: z.coerce.number().int().min(2000).max(2100).optional(),
+  // 1-12. Only meaningful alongside year — filtering by month alone with no
+  // year would be ambiguous about which year's month is meant.
+  month: z.coerce.number().int().min(1).max(12).optional(),
+  sort: z.enum(["asc", "desc"]).default("asc"),
 });
 
 export type GetLessonsQuery = z.infer<typeof getLessonsQuerySchema>;
