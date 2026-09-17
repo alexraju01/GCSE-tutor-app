@@ -1,7 +1,6 @@
 import type { Prisma } from "@generated/client.js";
 
-// Never include `password` here — this is what admin tooling and self-service
-// endpoints return to a client.
+// no password field here, ever - this is what goes back to the client
 export const safeUserSelect = {
   id: true,
   name: true,
@@ -15,8 +14,8 @@ export const safeUserSelect = {
 
 export type SafeUserDTO = Prisma.UserGetPayload<{ select: typeof safeUserSelect }>;
 
-// The authenticated user's own profile view — includes their role-specific
-// relation (teacher or student) so the frontend can render either dashboard.
+// own-profile view, pulls in the teacher/student relation so the frontend
+// knows which dashboard to render
 export const userProfileSelect = {
   id: true,
   name: true,

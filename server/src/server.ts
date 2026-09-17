@@ -20,8 +20,8 @@ import { BLUE, RESET } from "./utils/colours.js";
 
 const app = express();
 
-// Behind a reverse proxy / load balancer (Vercel, ECS, nginx, etc.) in production
-// so req.ip and req.secure reflect the real client rather than the proxy.
+// we sit behind a proxy/load balancer in prod, need this so req.ip is the
+// actual client and not just the proxy
 app.set("trust proxy", 1);
 
 app.use(helmet());

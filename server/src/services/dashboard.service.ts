@@ -7,7 +7,7 @@ const USER_SELECT = {
   image: true,
 } as const;
 
-// A lesson is still "upcoming" whether or not the teacher has separately confirmed it.
+// treat Confirmed the same as Upcoming for now, nothing actually sets Confirmed yet
 const UPCOMING_LESSON_STATUSES = [LessonStatus.Upcoming, LessonStatus.Confirmed];
 
 const toHours = (totalMinutes: number | null): number =>

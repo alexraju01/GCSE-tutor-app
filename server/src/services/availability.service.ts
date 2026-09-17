@@ -1,5 +1,5 @@
 import { prisma } from "@db/prisma.js";
-import { LessonStatus } from "@generated/client.js";
+import { LessonStatus, Prisma } from "@generated/client.js";
 import { AppError } from "@utils/AppError.js";
 
 export const requireTeacherId = async (userId?: string): Promise<string> => {
@@ -17,13 +17,17 @@ export const requireTeacherId = async (userId?: string): Promise<string> => {
   return teacher.id;
 };
 
+// lets these run inside a transaction too, not just against the top-level client
+type Db = Prisma.TransactionClient;
+
 export const checkOverlap = async (
+  db: Db,
   teacherId: string,
   startTime: Date,
   endTime: Date,
   excludeAvailabilityId?: string,
 ): Promise<void> => {
-  const overlap = await prisma.availability.findFirst({
+  const overlap = await db.availability.findFirst({
     where: {
       teacherId,
       ...(excludeAvailabilityId && { id: { not: excludeAvailabilityId } }),
@@ -41,6 +45,23 @@ export const checkOverlap = async (
   }
 };
 
+// block reschedule/delete while a slot has a live booking on it - moving it
+// would desync the lesson's startTime, deleting it cascades and wipes the
+// lesson row entirely
+const assertNoActiveLesson = async (db: Db, availabilityId: string, action: string) => {
+  const activeLesson = await db.lesson.findFirst({
+    where: { availabilityId, status: { not: LessonStatus.Cancelled } },
+    select: { id: true },
+  });
+
+  if (activeLesson) {
+    throw new AppError(
+      `Cannot ${action} this slot — it has an active booking. Cancel the lesson first.`,
+      409,
+    );
+  }
+};
+
 export const createAvailability = async (
   teacherId: string,
   startTime: Date,
@@ -51,11 +72,15 @@ export const createAvailability = async (
   }
 
   const endTime = new Date(startTime.getTime() + durationInMinutes * 60 * 1000);
-  await checkOverlap(teacherId, startTime, endTime);
 
-  return prisma.availability.create({
-    data: { teacherId, startTime, endTime },
-  });
+  return prisma.$transaction(
+    async (tx) => {
+      await checkOverlap(tx, teacherId, startTime, endTime);
+      return tx.availability.create({ data: { teacherId, startTime, endTime } });
+    },
+    // serializable so two overlapping creates can't both sneak past the check
+    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+  );
 };
 
 interface UpdateAvailabilityParams {
@@ -75,35 +100,53 @@ export const updateAvailabilityForTeacher = async ({
     throw new AppError("Please provide at least one field to update.", 400);
   }
 
-  const existing = await prisma.availability.findFirst({
-    where: { id: availabilityId, teacherId },
-    select: { startTime: true, endTime: true },
-  });
+  return prisma.$transaction(
+    async (tx) => {
+      const existing = await tx.availability.findFirst({
+        where: { id: availabilityId, teacherId },
+        select: { startTime: true, endTime: true },
+      });
 
-  if (!existing) {
-    throw new AppError("Availability record not found or access denied.", 404);
-  }
+      if (!existing) {
+        throw new AppError("Availability record not found or access denied.", 404);
+      }
 
-  const startTime = startIsoString ? new Date(startIsoString) : existing.startTime;
-  if (startIsoString && startTime < new Date()) {
-    throw new AppError("Cannot schedule availability in the past.", 400);
-  }
+      await assertNoActiveLesson(tx, availabilityId, "reschedule");
 
-  const currentDuration = (existing.endTime.getTime() - existing.startTime.getTime()) / 60000;
-  const finalDuration = durationInMinutes !== undefined ? durationInMinutes : currentDuration;
-  const endTime = new Date(startTime.getTime() + finalDuration * 60000);
+      const startTime = startIsoString ? new Date(startIsoString) : existing.startTime;
+      if (startIsoString && startTime < new Date()) {
+        throw new AppError("Cannot schedule availability in the past.", 400);
+      }
 
-  await checkOverlap(teacherId, startTime, endTime, availabilityId);
+      const currentDuration = (existing.endTime.getTime() - existing.startTime.getTime()) / 60000;
+      const finalDuration = durationInMinutes !== undefined ? durationInMinutes : currentDuration;
+      const endTime = new Date(startTime.getTime() + finalDuration * 60000);
 
-  return prisma.availability.update({
-    where: { id: availabilityId },
-    data: { startTime, endTime },
-  });
+      await checkOverlap(tx, teacherId, startTime, endTime, availabilityId);
+
+      return tx.availability.update({
+        where: { id: availabilityId },
+        data: { startTime, endTime },
+      });
+    },
+    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+  );
 };
 
 export const deleteAvailabilityForTeacher = (teacherId: string, availabilityId: string) =>
-  prisma.availability.delete({
-    where: { id: availabilityId, teacherId },
+  prisma.$transaction(async (tx) => {
+    const existing = await tx.availability.findFirst({
+      where: { id: availabilityId, teacherId },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      throw new AppError("Availability record not found or access denied.", 404);
+    }
+
+    await assertNoActiveLesson(tx, availabilityId, "delete");
+
+    await tx.availability.delete({ where: { id: availabilityId } });
   });
 
 interface FindAvailabilitiesParams {

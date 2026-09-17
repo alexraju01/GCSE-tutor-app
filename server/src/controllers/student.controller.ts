@@ -25,7 +25,7 @@ export const getOneStudent = async (req: Request<{ id: string }>, res: Response)
 
 export const deleteStudent = async (req: Request, res: Response) => {
   await studentService.deleteByUserId(req.user.id);
-  // 204 No Content must not carry a response body.
+  // 204 needs an empty body
   res.status(204).send();
 };
 

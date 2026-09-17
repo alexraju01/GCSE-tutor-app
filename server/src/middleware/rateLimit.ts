@@ -1,6 +1,6 @@
 import { rateLimit } from "express-rate-limit";
 
-// Broad safety net for every route — generous enough to never bother real traffic.
+// loose global limit, just here to catch abuse - shouldn't ever bother real users
 export const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 300,
@@ -9,7 +9,7 @@ export const apiLimiter = rateLimit({
   message: { status: "fail", message: "Too many requests. Please try again later." },
 });
 
-// Tight limit for credential-guessing surfaces (login, signup, social-sync).
+// tighter limit on login/signup/social-sync so brute forcing passwords is slow
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 10,

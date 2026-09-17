@@ -33,24 +33,26 @@ export const getAllLessons = async (req: Request, res: Response) => {
 };
 
 export const cancelLesson = async (req: Request<{ lessonId: string }>, res: Response) => {
-  // Role is already enforced by authorize(Role.Student) on this route.
-  await lessonService.cancelLessonForStudent(req.params.lessonId, req.user.id);
+  const { id: userId, role } = req.user;
 
-  // 204 No Content must not carry a response body.
+  // Role is already enforced by authorize(Role.Student, Role.Teacher) on this route.
+  await lessonService.cancelLesson(req.params.lessonId, {
+    userId,
+    role: role as typeof Role.Student | typeof Role.Teacher,
+  });
+
+  // 204 needs an empty body
   res.status(204).send();
 };
 
 export const createLesson = async (req: Request, res: Response) => {
   // Role is already enforced by authorize(Role.Student) on this route.
-  const { teacherProfileId, availabilityId, startTime, endTime, subject, topic, notes } =
-    req.body as CreateLessonInput;
+  const { teacherProfileId, availabilityId, subject, topic, notes } = req.body as CreateLessonInput;
 
   const lesson = await lessonService.createLessonBooking({
     studentUserId: req.user.id,
     teacherId: teacherProfileId,
     availabilityId,
-    startTime: new Date(startTime),
-    endTime: new Date(endTime),
     subject,
     topic,
     notes,

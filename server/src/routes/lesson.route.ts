@@ -14,4 +14,4 @@ lessonRouter
   .get(validate(getLessonsQuerySchema, "query"), getAllLessons)
   .post(authorize(Role.Student), validate(createLessonSchema), createLesson);
 
-lessonRouter.route("/:lessonId").delete(authorize(Role.Student), cancelLesson);
+lessonRouter.route("/:lessonId").delete(authorize(Role.Student, Role.Teacher), cancelLesson);

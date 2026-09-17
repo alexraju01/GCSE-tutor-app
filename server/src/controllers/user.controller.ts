@@ -30,7 +30,7 @@ export const getUserProfile = async (req: Request, res: Response) => {
 
 export const deleteUser = async (req: Request<{ id: string }>, res: Response) => {
   await userService.deleteById(req.params.id);
-  // 204 No Content must not carry a response body.
+  // 204 needs an empty body
   res.status(204).send();
 };
 

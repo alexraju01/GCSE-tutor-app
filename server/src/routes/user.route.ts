@@ -13,7 +13,7 @@ import { Router } from "express";
 
 export const userRouter = Router();
 
-// 1. Public auth routes — rate-limited against credential stuffing / enumeration
+// 1. Public auth routes, rate limited so people can't brute force logins
 userRouter.route("/signup").post(authLimiter, validate(registrationSchema), signUp);
 userRouter.route("/login").post(authLimiter, login);
 userRouter.route("/logout").post(logout);

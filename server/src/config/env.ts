@@ -9,8 +9,7 @@ const envSchema = z.object({
   JWT_COOKIE_EXPIRES_IN: z.coerce.number().int().positive().default(90),
   DATABASE_URL: z.string(),
   CORS_ORIGIN: z.string().default("*"),
-  // Shared secret that only our own Next.js server should know — gates server-to-server
-  // routes (e.g. social-auth sync) that must never be callable directly by a browser.
+  // shared with the Next.js server, used to lock down social-sync
   INTERNAL_API_SECRET: z.string().min(32, "INTERNAL_API_SECRET must be at least 32 characters"),
 });
 

@@ -1,4 +1,4 @@
-import { LessonStatus, Role, Subject } from "@generated/client.js";
+import { LessonStatus, Prisma, Role, Subject } from "@generated/client.js";
 import { prisma } from "../db/prisma.js";
 import { AppError } from "../utils/AppError.js";
 import type { GetLessonsQuery } from "../schemas/lesson.schema.js";
@@ -29,8 +29,6 @@ export interface CreateLessonParams {
   studentUserId: string;
   teacherId: string;
   availabilityId: string;
-  startTime: Date;
-  endTime: Date;
   subject: Subject;
   topic?: string;
   notes?: string;
@@ -98,13 +96,25 @@ export const findLessonsByRole = async ({
   return { lessons, totalResults };
 };
 
-export const cancelLessonForStudent = async (lessonId: string, studentUserId: string) => {
+export const cancelLesson = async (
+  lessonId: string,
+  canceller: { userId: string; role: typeof Role.Student | typeof Role.Teacher },
+) => {
   const lesson = await prisma.lesson.findUnique({
     where: { id: lessonId },
-    select: { id: true, status: true, startTime: true, student: { select: { userId: true } } },
+    select: {
+      id: true,
+      status: true,
+      startTime: true,
+      student: { select: { userId: true } },
+      teacher: { select: { userId: true } },
+    },
   });
 
-  if (!lesson || lesson.student.userId !== studentUserId) {
+  const ownerUserId =
+    canceller.role === Role.Student ? lesson?.student.userId : lesson?.teacher.userId;
+
+  if (!lesson || ownerUserId !== canceller.userId) {
     throw new AppError("No lesson found with that ID.", 404);
   }
 
@@ -126,84 +136,91 @@ export const createLessonBooking = async ({
   studentUserId,
   teacherId,
   availabilityId,
-  startTime,
-  endTime,
   subject,
   topic,
   notes,
 }: CreateLessonParams) => {
-  return prisma.$transaction(async (tx) => {
-    // 1. Retrieve the student record via userId relation
-    const student = await tx.student.findUnique({
-      where: { userId: studentUserId },
-      select: { id: true },
-    });
+  return prisma.$transaction(
+    async (tx) => {
+      // 1. Retrieve the student record via userId relation
+      const student = await tx.student.findUnique({
+        where: { userId: studentUserId },
+        select: { id: true },
+      });
 
-    if (!student) {
-      throw new AppError("Student profile not found.", 404);
-    }
+      if (!student) {
+        throw new AppError("Student profile not found.", 404);
+      }
 
-    // 2. Verify availability slot matches the teacher
-    const availability = await tx.availability.findUnique({
-      where: { id: availabilityId },
-    });
+      // 2. Verify availability slot matches the teacher - its startTime/endTime
+      // are what we use for the lesson, never trust the client for that
+      const availability = await tx.availability.findUnique({
+        where: { id: availabilityId },
+      });
 
-    if (!availability) {
-      throw new AppError("Availability slot not found.", 404);
-    }
+      if (!availability) {
+        throw new AppError("Availability slot not found.", 404);
+      }
 
-    if (availability.teacherId !== teacherId) {
-      throw new AppError("Availability slot does not belong to the specified teacher.", 400);
-    }
+      if (availability.teacherId !== teacherId) {
+        throw new AppError("Availability slot does not belong to the specified teacher.", 400);
+      }
 
-    // 3. Check if slot has already been booked (a cancelled lesson frees the slot back up)
-    const existingBooking = await tx.lesson.findFirst({
-      where: { availabilityId, status: { not: LessonStatus.Cancelled } },
-      select: { id: true },
-    });
+      // 3. Check if slot has already been booked (a cancelled lesson frees the slot back up)
+      const existingBooking = await tx.lesson.findFirst({
+        where: { availabilityId, status: { not: LessonStatus.Cancelled } },
+        select: { id: true },
+      });
 
-    if (existingBooking) {
-      throw new AppError("This availability slot has already been booked.", 409);
-    }
+      if (existingBooking) {
+        throw new AppError("This availability slot has already been booked.", 409);
+      }
 
-    // 4. Verify teacher exists and teaches the requested subject
-    const teacherSubject = await tx.teaches.findFirst({
-      where: {
-        teacherId,
-        subject,
-      },
-      select: { id: true },
-    });
+      // 4. Verify teacher exists and teaches the requested subject
+      const teacherSubject = await tx.teaches.findFirst({
+        where: {
+          teacherId,
+          subject,
+        },
+        select: { id: true },
+      });
 
-    if (!teacherSubject) {
-      throw new AppError("Teacher does not teach the specified subject.", 400);
-    }
+      if (!teacherSubject) {
+        throw new AppError("Teacher does not teach the specified subject.", 400);
+      }
 
-    // 5. Calculate duration in minutes
-    const durationInMinutes = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60));
+      // 5. Duration comes from the availability slot itself
+      const durationInMinutes = Math.round(
+        (availability.endTime.getTime() - availability.startTime.getTime()) / (1000 * 60),
+      );
 
-    // 6. Create lesson record aligned with Prisma model
-    const lesson = await tx.lesson.create({
-      data: {
-        studentId: student.id,
-        teacherId,
-        availabilityId,
-        subject,
-        topic,
-        startTime,
-        duration: durationInMinutes,
-        notes,
-        status: LessonStatus.Upcoming,
-      },
-      select: {
-        ...BASE_LESSON_SELECT,
-        teacher: { select: { user: { select: USER_SELECT } } },
-      },
-    });
+      // 6. Create lesson record aligned with Prisma model
+      const lesson = await tx.lesson.create({
+        data: {
+          studentId: student.id,
+          teacherId,
+          availabilityId,
+          subject,
+          topic,
+          startTime: availability.startTime,
+          duration: durationInMinutes,
+          notes,
+          status: LessonStatus.Upcoming,
+        },
+        select: {
+          ...BASE_LESSON_SELECT,
+          teacher: { select: { user: { select: USER_SELECT } } },
+        },
+      });
 
-    return {
-      ...lesson,
-      teacher: lesson.teacher.user,
-    };
-  });
+      return {
+        ...lesson,
+        teacher: lesson.teacher.user,
+      };
+    },
+    // serializable so two people booking the same slot at once can't both slip
+    // past step 3 - postgres kills one with a P2034, we turn that into a 409
+    // in the error handler instead of letting it double-book
+    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+  );
 };

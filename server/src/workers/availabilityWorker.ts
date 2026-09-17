@@ -6,6 +6,10 @@ const purgeExpiredAvailabilities = async (): Promise<void> => {
     const result = await prisma.availability.deleteMany({
       where: {
         endTime: { lt: new Date() },
+        // lessons cascade on delete, so purging a booked slot wipes its Lesson
+        // row too - completed ones included, which is how earnings/history
+        // was quietly disappearing. only touch slots nobody ever booked
+        lessons: { none: {} },
       },
     });
 

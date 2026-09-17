@@ -118,6 +118,7 @@ model Availability {
 
   lessons   Lesson[]
 
+  @@index([teacherId, startTime])
   @@map("availabilities")
 }
 

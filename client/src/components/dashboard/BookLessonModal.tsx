@@ -180,8 +180,6 @@ const BookLessonModal = ({
 				body: JSON.stringify({
 					teacherProfileId: teacherId,
 					availabilityId: selectedSlot.id,
-					startTime: selectedSlot.startTime,
-					endTime: selectedSlot.endTime,
 					subject,
 					topic: topic || undefined,
 					notes: notes || undefined,

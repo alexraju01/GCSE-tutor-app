@@ -102,6 +102,12 @@ const handleRecordNotFoundErrorDB = (err: Prisma.PrismaClientKnownRequestError) 
   return new AppError(`No ${modelName?.toLowerCase()} with this id`, 404);
 };
 
+// fires when a serializable transaction (lesson booking, availability writes)
+// loses a race - postgres aborts one side instead of letting both through
+const handleWriteConflictErrorDB = () => {
+  return new AppError("That action conflicted with another request. Please try again.", 409);
+};
+
 export const globalErrorHandler = (
   err: ErrorMiddleware,
   req: Request,
@@ -123,6 +129,8 @@ export const globalErrorHandler = (
       error = handleUniqueConstraintViolationErrorDB(err);
     } else if (err.code === "P2025") {
       error = handleRecordNotFoundErrorDB(err);
+    } else if (err.code === "P2034") {
+      error = handleWriteConflictErrorDB();
     }
   }
 

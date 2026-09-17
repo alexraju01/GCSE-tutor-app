@@ -37,6 +37,6 @@ export const updateTeacher = async (req: Request, res: Response) => {
 
 export const deleteTeacher = async (req: Request, res: Response) => {
   await teacherService.deleteByUserId(req.user.id);
-  // 204 No Content must not carry a response body.
+  // 204 needs an empty body
   res.status(204).send();
 };

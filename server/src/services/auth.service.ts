@@ -7,9 +7,9 @@ import { env } from "../config/env.js";
 import type { CredentialsInput, SocialSyncInput } from "../schemas/auth.schema.js";
 import type { Level } from "@generated/enums.js";
 
-// A pre-computed hash with no matching plaintext. Comparing against this when a
-// user isn't found keeps login's response time indistinguishable from a real
-// user with a wrong password, so timing can't be used to enumerate accounts.
+// bogus hash, no real password behind it. compare against this when the user
+// doesn't exist so a bad email doesn't come back faster than a bad password -
+// stops someone timing login attempts to figure out which emails are registered
 const DUMMY_PASSWORD_HASH = "$2b$12$CwTycUXWue0Thq9StjUM0uJ8G8s.dl1a9E4x2P1kD5xR6h6Y5j0lC";
 
 interface TeacherFieldsPayload {
@@ -49,7 +49,7 @@ export const registerUser = async (credentialsData: CredentialsInput): Promise<U
   const { name, email, password, role } = credentialsData;
   const normalizedEmail = email.toLowerCase().trim();
 
-  // Only the Teacher variant of the discriminated union carries these fields.
+  // student variant of the union won't have these, that's fine
   const { bio, qualifications, hourlyRate, teaches } = credentialsData as TeacherFieldsPayload;
 
   const hashedPassword = await bcrypt.hash(password, 12);
@@ -70,9 +70,7 @@ export const verifyLoginCredentials = async (email: string, password: string): P
   const normalizedEmail = email.toLowerCase().trim();
   const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
 
-  // Always run bcrypt.compare, even when no user/password exists, so a
-  // missing account doesn't respond measurably faster than a wrong password
-  // (see DUMMY_PASSWORD_HASH above).
+  // always compare even if there's no user, see DUMMY_PASSWORD_HASH above
   const isPasswordCorrect = await bcrypt.compare(password, user?.password ?? DUMMY_PASSWORD_HASH);
 
   if (!user || !user.password || !isPasswordCorrect) {
@@ -82,11 +80,8 @@ export const verifyLoginCredentials = async (email: string, password: string): P
   return user;
 };
 
-/**
- * Server-to-server only — the caller (see requireInternalService middleware)
- * must have already verified the OAuth handshake with the provider. This
- * trusts that the email it's given has been verified by that provider.
- */
+// server-to-server only - caller already did the oauth handshake, this just
+// trusts the email it's given
 export const syncSocialUser = (input: SocialSyncInput): Promise<User> => {
   const { email, name, image, provider, providerId, role } = input;
   const normalizedEmail = email.toLowerCase().trim();

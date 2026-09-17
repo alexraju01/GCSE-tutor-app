@@ -51,20 +51,15 @@ export const logout: RequestHandler = (req, res) => {
   });
 };
 
-/**
- * Server-to-server only (see requireInternalService middleware on this route).
- * Called by our Next.js backend after it has already verified the OAuth
- * handshake with Google/GitHub.
- */
+// server-to-server only, see requireInternalService on this route - next.js
+// calls this after it's already done the oauth handshake with google/github
 export const socialSync = async (req: Request, res: Response) => {
   const user = await syncSocialUser(req.body as SocialSyncInput);
 
   createSendToken(user, 200, res);
 };
 
-// Builds the HTTP response for a successful auth action (cookie + JSON body).
-// Stays here rather than in the service layer since it touches Express's
-// Response directly — that's presentation, not business logic.
+// kept out of the service layer since it touches res directly (cookie + json body)
 const createSendToken = (user: User, statusCode: number, res: Response) => {
   const token = signAuthToken(String(user.id));
   const isProduction = env.NODE_ENV === "production";
