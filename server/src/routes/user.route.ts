@@ -22,10 +22,7 @@ userRouter.route("/logout").post(logout);
 userRouter.route("/profile").get(protect, getUserProfile);
 userRouter.patch("/me", protect, validate(updateUserSchema), updateMe);
 
-// 3. Admin-only user management — these operate on arbitrary users by ID and
-// previously had no auth guard at all, exposing password hashes and allowing
-// anyone to delete any account. Restrict to Admins, like every other
-// cross-user resource route in this API (see student.route.ts).
+// 3. Admin-only user management
 userRouter.use(protect, authorize(Role.Admin));
 userRouter.route("/").get(getAllUsers);
 userRouter.route("/:id").get(getOneUser).delete(deleteUser);
