@@ -1,11 +1,14 @@
-interface StudentSession {
+interface UpcomingLessonBase {
   id: string;
   subject: string;
   topic: string;
-  student: string;
-  studentImage?: string;
   time: string;
   status: "Upcoming" | "Confirmed" | "Completed" | "Cancelled" | "Pending";
+}
+
+interface StudentSession extends UpcomingLessonBase {
+  student: string;
+  studentImage?: string;
 }
 
 interface Teaches {
@@ -17,16 +20,6 @@ interface Teaches {
     | "English Literature"
     | "Computer Science";
   level: "A LEVEL" | "GCSE";
-}
-
-interface BookingRequest {
-  id: string;
-  student: string;
-  studentImage?: string;
-  subject: string;
-  date: string;
-  timeSlot: string;
-  duration: string;
 }
 
 interface TeacherDashboardData {
@@ -49,14 +42,9 @@ interface StudentDashboardData {
   subjects?: Subject[];
 }
 
-interface StudentUpcomingLesson {
-  id: string;
-  subject: string;
-  topic: string;
-  teacher: SessionParticipant;
+interface StudentUpcomingLesson extends UpcomingLessonBase {
+  teacher: string;
   teacherImage?: string;
-  time: string;
-  status: StatusType;
 }
 interface Subject {
   id: string | number;

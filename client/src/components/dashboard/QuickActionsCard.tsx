@@ -1,6 +1,8 @@
 "use client";
 
 import { Calendar, Plus, Video, BookOpen, Clock } from "lucide-react";
+import type { Route } from "next";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -36,7 +38,7 @@ const QuickActionsCard = ({
 
   return (
     <>
-      <div className="flex flex-col gap-6 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div className="flex flex-col gap-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         {/* Availability Section */}
         <div>
           <div className="flex items-center justify-between mb-3">
@@ -57,7 +59,7 @@ const QuickActionsCard = ({
           <button
             type="button"
             onClick={() => setIsCalendarModalOpen(true)}
-            className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-blue-700 active:scale-98 cursor-pointer"
+            className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-blue-700 active:scale-[0.98] cursor-pointer"
           >
             <Calendar size={15} />
             Manage Calendar
@@ -76,7 +78,7 @@ const QuickActionsCard = ({
             <button
               type="button"
               onClick={() => setIsCalendarModalOpen(true)}
-              className="flex items-center justify-between rounded-xl border border-slate-200/60 bg-slate-50/50 p-3 text-left text-xs font-medium text-slate-700 transition-all hover:bg-slate-100 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-800/40 dark:text-slate-300 dark:hover:bg-slate-800 cursor-pointer"
+              className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/50 p-3 text-left text-xs font-medium text-slate-700 transition-all hover:bg-slate-100 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-800/40 dark:text-slate-300 dark:hover:bg-slate-800 cursor-pointer"
             >
               <div className="flex items-center gap-2.5">
                 <div className="rounded-lg bg-blue-100/80 p-1.5 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400">
@@ -86,9 +88,9 @@ const QuickActionsCard = ({
               </div>
             </button>
 
-            <a
-              href="/whiteboard"
-              className="flex items-center justify-between rounded-xl border border-slate-200/60 bg-slate-50/50 p-3 text-left text-xs font-medium text-slate-700 transition-all hover:bg-slate-100 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-800/40 dark:text-slate-300 dark:hover:bg-slate-800"
+            <Link
+              href={"/whiteboard" as Route}
+              className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/50 p-3 text-left text-xs font-medium text-slate-700 transition-all hover:bg-slate-100 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-800/40 dark:text-slate-300 dark:hover:bg-slate-800"
             >
               <div className="flex items-center gap-2.5">
                 <div className="rounded-lg bg-indigo-100/80 p-1.5 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400">
@@ -96,11 +98,11 @@ const QuickActionsCard = ({
                 </div>
                 <span>Launch Collaborative Canvas</span>
               </div>
-            </a>
+            </Link>
 
-            <a
-              href="/profile/subjects"
-              className="flex items-center justify-between rounded-xl border border-slate-200/60 bg-slate-50/50 p-3 text-left text-xs font-medium text-slate-700 transition-all hover:bg-slate-100 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-800/40 dark:text-slate-300 dark:hover:bg-slate-800"
+            <Link
+              href={"/profile/subjects" as Route}
+              className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/50 p-3 text-left text-xs font-medium text-slate-700 transition-all hover:bg-slate-100 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-800/40 dark:text-slate-300 dark:hover:bg-slate-800"
             >
               <div className="flex items-center gap-2.5">
                 <div className="rounded-lg bg-emerald-100/80 p-1.5 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400">
@@ -108,7 +110,7 @@ const QuickActionsCard = ({
                 </div>
                 <span>Update GCSE Subjects</span>
               </div>
-            </a>
+            </Link>
           </div>
         </div>
       </div>

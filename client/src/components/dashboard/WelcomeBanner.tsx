@@ -12,7 +12,6 @@ export interface WelcomeBannerProps {
   userName: string;
   role: "Teacher" | "Student";
   upcomingCount?: number;
-  pendingCount?: number;
   subjects?: Subject[];
 }
 
@@ -29,16 +28,11 @@ const WelcomeBanner = ({
   userName,
   role,
   upcomingCount = 0,
-  pendingCount = 0,
   subjects = [],
 }: WelcomeBannerProps) => {
   const isTeacher = role === "Teacher";
   const RoleIcon = isTeacher ? Sparkles : GraduationCap;
   const roleLabel = isTeacher ? "Teacher Workspace" : "Student Workspace";
-
-  const pendingText = isTeacher
-    ? `and ${pendingCount} new lesson ${pendingCount === 1 ? "request" : "requests"}`
-    : `and ${pendingCount} ${pendingCount === 1 ? "assignment" : "assignments"} awaiting completion.`;
 
   return (
     <section
@@ -77,7 +71,7 @@ const WelcomeBanner = ({
 
           <p className="text-sm text-slate-600 dark:text-slate-400">
             You have {upcomingCount} scheduled{" "}
-            {upcomingCount === 1 ? "lesson" : "lessons"} upcoming {pendingText}
+            {upcomingCount === 1 ? "lesson" : "lessons"} coming up.
           </p>
         </div>
       </div>

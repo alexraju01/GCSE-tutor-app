@@ -1,22 +1,20 @@
-import Link from "next/link";
-import Image from "next/image";
 import { redirect } from "next/navigation";
-import type { Route } from "next";
 import {
   BookOpen,
-  Clock,
-  Video,
-  UserCheck,
-  CheckCircle,
-  Plus,
   Calendar,
-  ArrowRight,
+  CheckCircle,
+  Clock,
+  Plus,
+  UserCheck,
 } from "lucide-react";
 
 import { auth } from "@auth";
 import { api } from "@utils/api";
 import QuickToolsList from "@components/QuickToolsList";
+import StatsGrid, { type StatItem } from "@components/dashboard/StatsGrid";
+import UpcomingSessions from "@components/dashboard/UpcomingSessions";
 import { WelcomeBanner } from "@components";
+import Link from "next/link";
 
 const StudentDashboardPage = async () => {
   const session = await auth();
@@ -31,8 +29,45 @@ const StudentDashboardPage = async () => {
 
   const { user } = session;
 
-  const upcomingCount = studentDashboard?.upcomingLessons?.length || 0;
-  const assignmentsDue = 1;
+  const upcomingLessons = studentDashboard?.upcomingLessons ?? [];
+
+  const stats: StatItem[] = [
+    {
+      label: "Active Tutors",
+      value: String(studentDashboard?.activeTeachers ?? 0),
+      caption: "Current active tutors",
+      icon: (
+        <UserCheck size={16} className="text-blue-600 dark:text-blue-400" />
+      ),
+    },
+    {
+      label: "Learning Hours",
+      value: `${studentDashboard?.totalHoursLearned ?? 0} hrs`,
+      caption: "Total logged study time",
+      icon: (
+        <Clock size={16} className="text-emerald-600 dark:text-emerald-400" />
+      ),
+    },
+    {
+      label: "Completed Lessons",
+      value: String(studentDashboard?.completedLessons ?? 0),
+      caption: "Successfully attended",
+      icon: (
+        <CheckCircle
+          size={16}
+          className="text-indigo-600 dark:text-indigo-400"
+        />
+      ),
+    },
+    {
+      label: "Subjects",
+      value: String(studentDashboard?.subjects?.length ?? 0),
+      caption: "Currently enrolled in",
+      icon: (
+        <BookOpen size={16} className="text-amber-600 dark:text-amber-400" />
+      ),
+    },
+  ];
 
   return (
     <div className="mx-auto max-w-[100rem] space-y-8 pb-10">
@@ -40,174 +75,21 @@ const StudentDashboardPage = async () => {
       <WelcomeBanner
         role="Student"
         userName={user.name || "Student"}
-        upcomingCount={upcomingCount}
-        pendingCount={assignmentsDue}
+        upcomingCount={upcomingLessons.length}
         subjects={studentDashboard?.subjects}
       />
 
       {/* METRICS GRID */}
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Active Tutors */}
-        <div className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-xs transition-all hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-              Active Tutors
-            </span>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400">
-              <UserCheck size={16} />
-            </div>
-          </div>
-          <p className="mt-3 text-3xl font-bold text-slate-900 dark:text-white">
-            {studentDashboard?.activeTeachers ?? 0}
-          </p>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            Current active tutors
-          </p>
-        </div>
-
-        {/* Learning Hours */}
-        <div className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-xs transition-all hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-              Learning Hours
-            </span>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400">
-              <Clock size={16} />
-            </div>
-          </div>
-          <p className="mt-3 text-3xl font-bold text-slate-900 dark:text-white">
-            {studentDashboard?.totalHoursLearned ?? 0} hrs
-          </p>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            Total logged study time
-          </p>
-        </div>
-
-        {/* Completed Lessons */}
-        <div className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-xs transition-all hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-              Completed Lessons
-            </span>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-400">
-              <CheckCircle size={16} />
-            </div>
-          </div>
-          <p className="mt-3 text-3xl font-bold text-slate-900 dark:text-white">
-            {studentDashboard?.completedLessons ?? 0}
-          </p>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            Successfully attended
-          </p>
-        </div>
-
-        {/* Assignments Due */}
-        <div className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-xs transition-all hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-              Assignments Due
-            </span>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-950/50 dark:text-amber-400">
-              <BookOpen size={16} />
-            </div>
-          </div>
-          <p className="mt-3 text-3xl font-bold text-slate-900 dark:text-white">
-            {assignmentsDue}
-          </p>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            Pending completion
-          </p>
-        </div>
-      </section>
+      <StatsGrid stats={stats} />
 
       {/* TWO-COLUMN CONTENT AREA */}
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        {/* SCHEDULE COLUMN (2/3) */}
-        <div className="space-y-4 lg:col-span-2">
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold text-slate-900 dark:text-white">
-              Today&apos;s Learning Schedule
-            </h2>
-            <Link
-              href="/dashboard/schedule"
-              className="group inline-flex items-center gap-1 text-xs font-medium text-blue-600 transition-colors hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-            >
-              <span>Full Calendar</span>
-              <ArrowRight
-                size={14}
-                className="transition-transform group-hover:translate-x-0.5"
-              />
-            </Link>
-          </div>
-
-          <div className="space-y-3">
-            {studentDashboard?.upcomingLessons &&
-            studentDashboard.upcomingLessons.length > 0 ? (
-              studentDashboard.upcomingLessons.map((lesson) => (
-                <div
-                  key={lesson.id}
-                  className="flex flex-col gap-4 rounded-xl border border-slate-200/80 bg-white p-4 transition-all hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div className="flex items-start gap-3.5">
-                    <Image
-                      src={lesson.teacherImage || "/default-avatar.png"}
-                      alt={lesson.teacher}
-                      width={40}
-                      height={40}
-                      className="h-10 w-10 shrink-0 rounded-full object-cover"
-                    />
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="rounded bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-600 dark:bg-blue-950/60 dark:text-blue-400">
-                          {lesson.subject}
-                        </span>
-                        <span className="text-xs text-slate-500 dark:text-slate-400">
-                          Tutor:{" "}
-                          <strong className="font-semibold text-slate-700 dark:text-slate-300">
-                            {lesson.teacher}
-                          </strong>
-                        </span>
-                      </div>
-                      <h3 className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">
-                        {lesson.topic}
-                      </h3>
-                      <p className="mt-1 flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
-                        <Clock size={13} />
-                        {lesson.time}
-                      </p>
-                    </div>
-                  </div>
-
-                  <Link
-                    href={`/classroom/${lesson.id}` as Route}
-                    className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-xs font-medium text-white transition-colors hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500"
-                  >
-                    <Video size={14} />
-                    <span>Launch Classroom</span>
-                  </Link>
-                </div>
-              ))
-            ) : (
-              <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50/50 p-8 text-center dark:border-slate-800 dark:bg-slate-900/40">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400">
-                  <Calendar size={18} />
-                </div>
-                <h3 className="mt-3 text-sm font-semibold text-slate-900 dark:text-white">
-                  No upcoming lessons scheduled today
-                </h3>
-                <p className="mt-1 max-w-xs text-xs text-slate-500 dark:text-slate-400">
-                  Book a session with one of your tutors or explore available
-                  teachers.
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
+        <UpcomingSessions isTeacher={false} sessions={upcomingLessons} />
 
         {/* SIDEBAR WIDGETS COLUMN (1/3) */}
         <div className="space-y-6">
           {/* BOOK NEW LESSON WIDGET */}
-          <div className="rounded-xl border border-slate-200/80 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white">
                 <Calendar
@@ -222,7 +104,7 @@ const StudentDashboardPage = async () => {
             </p>
             <Link
               href="/teachers"
-              className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500"
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-blue-700 active:scale-[0.98]"
             >
               <Plus size={14} />
               <span>Find & Book Tutor</span>
@@ -230,7 +112,7 @@ const StudentDashboardPage = async () => {
           </div>
 
           {/* QUICK TOOLS */}
-          <div className="rounded-xl border border-slate-200/80 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
               Quick Tools
             </p>
