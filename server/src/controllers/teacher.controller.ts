@@ -2,7 +2,7 @@
 import { AppError } from "@utils/AppError.js";
 import { formatPagination, getPaginationOptions } from "@utils/pagination.js";
 import { teacherService } from "../services/teacher.service.js";
-import type { Request, Response, NextFunction } from "express";
+import type { Request, Response } from "express";
 
 export const getAllTeachers = async (
   req: Request<unknown, unknown, unknown, { page?: string; limit?: string }>,
@@ -24,9 +24,9 @@ export const getOneTeacher = async (req: Request<{ id: string }>, res: Response)
   res.status(200).json({ status: "success", data: teacher });
 };
 
-export const getMyTeacherProfile = async (req: Request, res: Response, next: NextFunction) => {
+export const getMyTeacherProfile = async (req: Request, res: Response) => {
   const teacher = await teacherService.findByUserId(req.user.id);
-  if (!teacher) return next(new AppError("Teacher profile not found for this user account.", 404));
+  if (!teacher) throw new AppError("Teacher profile not found for this user account.", 404);
   res.status(200).json({ status: "success", data: teacher });
 };
 

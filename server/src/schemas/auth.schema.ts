@@ -103,3 +103,5 @@ export const socialSyncSchema = z.object({
 export type SocialSyncInput = z.infer<typeof socialSyncSchema>;
 
 export type UserInput = z.infer<typeof registrationSchema>;
+
+export type CredentialsInput = Extract<UserInput, { provider: "credentials" }>;
