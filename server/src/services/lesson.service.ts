@@ -98,6 +98,30 @@ export const findLessonsByRole = async ({
   return { lessons, totalResults };
 };
 
+export const cancelLessonForStudent = async (lessonId: string, studentUserId: string) => {
+  const lesson = await prisma.lesson.findUnique({
+    where: { id: lessonId },
+    select: { id: true, status: true, startTime: true, student: { select: { userId: true } } },
+  });
+
+  if (!lesson || lesson.student.userId !== studentUserId) {
+    throw new AppError("No lesson found with that ID.", 404);
+  }
+
+  if (lesson.status === LessonStatus.Cancelled || lesson.status === LessonStatus.Completed) {
+    throw new AppError(`This lesson is already ${lesson.status.toLowerCase()}.`, 400);
+  }
+
+  if (lesson.startTime <= new Date()) {
+    throw new AppError("This lesson has already started and can no longer be cancelled.", 400);
+  }
+
+  await prisma.lesson.update({
+    where: { id: lessonId },
+    data: { status: LessonStatus.Cancelled },
+  });
+};
+
 export const createLessonBooking = async ({
   studentUserId,
   teacherId,
@@ -108,7 +132,7 @@ export const createLessonBooking = async ({
   topic,
   notes,
 }: CreateLessonParams) => {
-  return await prisma.$transaction(async (tx) => {
+  return prisma.$transaction(async (tx) => {
     // 1. Retrieve the student record via userId relation
     const student = await tx.student.findUnique({
       where: { userId: studentUserId },
@@ -132,9 +156,9 @@ export const createLessonBooking = async ({
       throw new AppError("Availability slot does not belong to the specified teacher.", 400);
     }
 
-    // 3. Check if slot has already been booked (checking Lesson relation count)
+    // 3. Check if slot has already been booked (a cancelled lesson frees the slot back up)
     const existingBooking = await tx.lesson.findFirst({
-      where: { availabilityId },
+      where: { availabilityId, status: { not: LessonStatus.Cancelled } },
       select: { id: true },
     });
 

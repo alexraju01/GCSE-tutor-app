@@ -1,8 +1,8 @@
-import { getAllLessons, createLesson } from "@controllers/lesson.controller.js";
+import { getAllLessons, createLesson, cancelLesson } from "@controllers/lesson.controller.js";
 import { Role } from "@generated/enums.js";
 import { authorize, protect, validate } from "@middleware";
 import { Router } from "express";
-import { getLessonsQuerySchema } from "../schemas/lesson.schema.js";
+import { getLessonsQuerySchema, createLessonSchema } from "../schemas/lesson.schema.js";
 
 export const lessonRouter = Router();
 
@@ -12,6 +12,6 @@ lessonRouter.use(protect);
 lessonRouter
   .route("/")
   .get(validate(getLessonsQuerySchema, "query"), getAllLessons)
-  .post(authorize(Role.Student), createLesson);
+  .post(authorize(Role.Student), validate(createLessonSchema), createLesson);
 
-lessonRouter.route("/:lessonId").delete(authorize(Role.Student));
+lessonRouter.route("/:lessonId").delete(authorize(Role.Student), cancelLesson);

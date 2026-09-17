@@ -7,9 +7,12 @@ import type { UpdateStudentInput } from "../schemas/student.schema.js";
 import type { User } from "@generated/client.js";
 
 export const studentService = {
-  findAll: async () => {
-    const students = await prisma.student.findMany({ include: studentInclude });
-    return students.map(flattenStudent);
+  findAll: async (skip: number, limit: number) => {
+    const [students, totalResults] = await Promise.all([
+      prisma.student.findMany({ include: studentInclude, skip, take: limit }),
+      prisma.student.count(),
+    ]);
+    return { students: students.map(flattenStudent), totalResults };
   },
 
   findByIdForViewer: async (studentId: string, viewer: Pick<User, "id" | "role">) => {

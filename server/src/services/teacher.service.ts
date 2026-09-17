@@ -4,9 +4,12 @@ import { teacherSelect, flattenTeacher } from "./teacher.select.js";
 import type { UpdateTeacherInput } from "../schemas/teacher.schema.js";
 
 export const teacherService = {
-  findAll: async () => {
-    const teachers = await prisma.teacher.findMany({ select: teacherSelect });
-    return teachers.map(flattenTeacher);
+  findAll: async (skip: number, limit: number) => {
+    const [teachers, totalResults] = await Promise.all([
+      prisma.teacher.findMany({ select: teacherSelect, skip, take: limit }),
+      prisma.teacher.count(),
+    ]);
+    return { teachers: teachers.map(flattenTeacher), totalResults };
   },
 
   findById: async (id: string) => {

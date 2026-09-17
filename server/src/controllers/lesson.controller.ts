@@ -1,6 +1,7 @@
 import { LessonStatus, Subject } from "@generated/client.js";
 import * as lessonService from "../services/lesson.service.js";
 import { AppError } from "../utils/AppError.js";
+import type { CreateLessonInput } from "../schemas/lesson.schema.js";
 import type { Request, Response } from "express";
 
 export const getAllLessons = async (req: Request, res: Response) => {
@@ -39,6 +40,19 @@ export const getAllLessons = async (req: Request, res: Response) => {
   });
 };
 
+export const cancelLesson = async (req: Request<{ lessonId: string }>, res: Response) => {
+  const { id: studentUserId, role } = req.user;
+
+  if (role !== "Student") {
+    throw new AppError("Only students can cancel a lesson booking.", 403);
+  }
+
+  await lessonService.cancelLessonForStudent(req.params.lessonId, studentUserId);
+
+  // 204 No Content must not carry a response body.
+  res.status(204).send();
+};
+
 export const createLesson = async (req: Request, res: Response) => {
   const { id: studentUserId, role } = req.user;
 
@@ -46,11 +60,8 @@ export const createLesson = async (req: Request, res: Response) => {
     throw new AppError("Only students can book a lesson.", 403);
   }
 
-  const { teacherProfileId, availabilityId, startTime, endTime, subject, topic, notes } = req.body;
-
-  if (!teacherProfileId || !availabilityId || !startTime || !endTime || !subject) {
-    throw new AppError("Missing required fields for lesson creation.", 400);
-  }
+  const { teacherProfileId, availabilityId, startTime, endTime, subject, topic, notes } =
+    req.body as CreateLessonInput;
 
   const lesson = await lessonService.createLessonBooking({
     studentUserId,

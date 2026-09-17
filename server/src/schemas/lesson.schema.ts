@@ -34,3 +34,22 @@ export const getLessonsQuerySchema = z.object({
 });
 
 export type GetLessonsQuery = z.infer<typeof getLessonsQuerySchema>;
+
+export const createLessonSchema = z
+  .object({
+    teacherProfileId: z.uuid({ message: "Invalid teacherProfileId format" }),
+    availabilityId: z.uuid({ message: "Invalid availabilityId format" }),
+    startTime: z.iso.datetime({ message: "startTime must be a valid ISO 8601 date-time" }),
+    endTime: z.iso.datetime({ message: "endTime must be a valid ISO 8601 date-time" }),
+    subject: z.enum(Subject, {
+      message: `Invalid subject. Available options: ${Object.values(Subject).join(", ")}`,
+    }),
+    topic: z.string().trim().max(255).optional(),
+    notes: z.string().trim().max(255).optional(),
+  })
+  .refine((data) => new Date(data.endTime) > new Date(data.startTime), {
+    error: "endTime must be after startTime",
+    path: ["endTime"],
+  });
+
+export type CreateLessonInput = z.infer<typeof createLessonSchema>;

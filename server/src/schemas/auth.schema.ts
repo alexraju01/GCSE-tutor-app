@@ -94,6 +94,10 @@ export const socialSyncSchema = z.object({
   ...baseAuthFields,
   ...socialFields,
   role: z.enum([Role.Student, Role.Teacher]),
+  image: z.url({ message: "Image must be a valid URL" }).optional(),
+  providerId: z
+    .string({ error: "providerId is required" })
+    .min(1, { message: "providerId is required" }),
 });
 
 export type SocialSyncInput = z.infer<typeof socialSyncSchema>;

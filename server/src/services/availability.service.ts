@@ -1,4 +1,5 @@
 import { prisma } from "@db/prisma.js";
+import { LessonStatus } from "@generated/client.js";
 import { AppError } from "@utils/AppError.js";
 
 export const requireTeacherId = async (userId?: string): Promise<string> => {
@@ -56,7 +57,8 @@ export const findTeacherAvailabilities = async ({
   const whereCondition = {
     teacherId,
     startTime: { gte: new Date() },
-    ...(onlyUnbooked && { lessons: { none: {} } }),
+    // A cancelled lesson shouldn't keep its slot permanently locked as "booked".
+    ...(onlyUnbooked && { lessons: { none: { status: { not: LessonStatus.Cancelled } } } }),
   };
 
   const [availabilities, totalResults] = await prisma.$transaction([
