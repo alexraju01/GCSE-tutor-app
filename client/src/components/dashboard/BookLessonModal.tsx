@@ -49,6 +49,7 @@ const BookLessonModal = ({
   );
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [bookingSuccess, setBookingSuccess] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<RawAvailability | null>(
     null,
@@ -149,6 +150,8 @@ const BookLessonModal = ({
     return groups;
   }, [slots]);
 
+  const todayKey = new Date().toISOString().split("T")[0];
+
   const calendarDays = useMemo(() => {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
@@ -197,6 +200,34 @@ const BookLessonModal = ({
 
   const canGoPrevMonth = monthBounds ? currentMonth > monthBounds.min : false;
   const canGoNextMonth = monthBounds ? currentMonth < monthBounds.max : false;
+
+  const selectedSlotDurationMinutes = selectedSlot
+    ? Math.round(
+        (new Date(selectedSlot.endTime).getTime() -
+          new Date(selectedSlot.startTime).getTime()) /
+          60000,
+      )
+    : 0;
+  const estimatedCost = (hourlyRate * selectedSlotDurationMinutes) / 60;
+
+  const getConfirmHint = (): string | null => {
+    if (!selectedSlot) return "Select a date and time to continue.";
+    if (!subject) return "Choose a subject to continue.";
+    return null;
+  };
+
+  const getDayCellClasses = (
+    hasAvailability: boolean,
+    isSelected: boolean,
+  ): string => {
+    if (!hasAvailability) {
+      return "text-slate-300 dark:text-slate-700 cursor-not-allowed opacity-40 bg-slate-50/50 dark:bg-slate-900/50";
+    }
+    if (isSelected) {
+      return "bg-linear-to-br from-blue-600 to-indigo-600 text-white font-bold shadow-md cursor-pointer scale-[1.02]";
+    }
+    return "bg-blue-50/80 text-blue-900 dark:bg-blue-950/40 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/60 font-semibold cursor-pointer border border-blue-100/50 dark:border-blue-900/30";
+  };
 
   const handlePrevMonth = () => {
     if (!canGoPrevMonth) return;
@@ -250,10 +281,17 @@ const BookLessonModal = ({
       }
 
       setSlots((prev) => prev.filter((s) => s.id !== selectedSlot.id));
-      setSelectedSlot(null);
-      setTopic("");
-      setNotes("");
-      onClose();
+      setBookingSuccess(true);
+
+      // Give the confirmation a moment to register before closing, instead
+      // of the modal just vanishing with no feedback that it worked.
+      setTimeout(() => {
+        setBookingSuccess(false);
+        setSelectedSlot(null);
+        setTopic("");
+        setNotes("");
+        onClose();
+      }, 1800);
     } catch (err: unknown) {
       const error = err as Error;
       console.error("Booking error:", error);
@@ -297,15 +335,34 @@ const BookLessonModal = ({
             </div>
           )}
 
-          {isLoading ? (
+          {bookingSuccess && (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400">
+                <Check size={32} />
+              </div>
+              <h3 className="mt-4 text-lg font-bold text-slate-900 dark:text-slate-100">
+                Booking confirmed!
+              </h3>
+              <p className="mt-1 max-w-xs text-sm text-slate-500 dark:text-slate-400">
+                Your {subject} lesson is booked. You&apos;ll find it on your
+                schedule.
+              </p>
+            </div>
+          )}
+
+          {!bookingSuccess && isLoading && (
             <div className="py-20 text-center text-sm text-slate-500 dark:text-slate-400">
               Loading availability calendar...
             </div>
-          ) : slots.length === 0 ? (
+          )}
+
+          {!bookingSuccess && !isLoading && slots.length === 0 && (
             <div className="py-20 text-center text-sm text-slate-500 dark:text-slate-400">
               No available slots found for this teacher.
             </div>
-          ) : (
+          )}
+
+          {!bookingSuccess && !isLoading && slots.length > 0 && (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
               {/* Left Column: Calendar Grid */}
               <div className="lg:col-span-7 border-b lg:border-b-0 lg:border-r border-slate-100 dark:border-slate-800 pb-6 lg:pb-0 lg:pr-6">
@@ -370,6 +427,7 @@ const BookLessonModal = ({
                     const slotCount = groupedSlots[dateKey]?.length || 0;
                     const hasAvailability = slotCount > 0;
                     const isSelected = selectedDateKey === dateKey;
+                    const isToday = dateKey === todayKey;
 
                     return (
                       <button
@@ -381,12 +439,10 @@ const BookLessonModal = ({
                           setSelectedSlot(null);
                         }}
                         className={`h-12 w-full rounded-xl text-xs flex flex-col items-center justify-center relative transition-all ${
-                          !hasAvailability
-                            ? "text-slate-300 dark:text-slate-700 cursor-not-allowed opacity-40 bg-slate-50/50 dark:bg-slate-900/50"
-                            : isSelected
-                              ? "bg-blue-600 text-white font-bold shadow-md cursor-pointer scale-[1.02]"
-                              : "bg-blue-50/80 text-blue-900 dark:bg-blue-950/40 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/60 font-semibold cursor-pointer border border-blue-100/50 dark:border-blue-900/30"
-                        }`}
+                          isToday
+                            ? "ring-2 ring-offset-1 ring-blue-400 dark:ring-offset-slate-900"
+                            : ""
+                        } ${getDayCellClasses(hasAvailability, isSelected)}`}
                       >
                         <span className="text-sm">{date.getDate()}</span>
                         {hasAvailability && (
@@ -407,7 +463,7 @@ const BookLessonModal = ({
               </div>
 
               {/* Right Column: Time Slot & Subject Selection */}
-              <div className="lg:col-span-5 flex flex-col justify-between space-y-5">
+              <div className="lg:col-span-5 flex flex-col space-y-5">
                 <div>
                   <span className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
                     2. Select Time Slot
@@ -446,7 +502,7 @@ const BookLessonModal = ({
                               onClick={() => setSelectedSlot(slot)}
                               className={`w-full flex items-center justify-between p-3 rounded-xl border text-xs transition-all cursor-pointer ${
                                 isSelected
-                                  ? "border-blue-600 bg-blue-600 text-white shadow-xs font-semibold"
+                                  ? "border-transparent bg-linear-to-r from-blue-600 to-indigo-600 text-white shadow-sm font-semibold"
                                   : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-slate-800 dark:text-slate-200 bg-slate-50/50 dark:bg-slate-950/50"
                               }`}
                             >
@@ -533,21 +589,82 @@ const BookLessonModal = ({
                     />
                   </div>
 
-                  {selectedSlot && (
-                    <div>
-                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                        Additional Notes (Optional)
-                      </label>
-                      <textarea
-                        rows={2}
-                        value={notes}
-                        onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
-                          setNotes(e.target.value)
-                        }
-                        placeholder="Add requests or details for the session..."
-                        className="w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs text-slate-900 focus:border-blue-600 focus:bg-white focus:outline-hidden dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-blue-600"
-                      />
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      Additional Notes (Optional)
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={notes}
+                      onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
+                        setNotes(e.target.value)
+                      }
+                      placeholder="Add requests or details for the session..."
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs text-slate-900 focus:border-blue-600 focus:bg-white focus:outline-hidden dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-blue-600"
+                    />
+                  </div>
+                </div>
+
+                {/* Booking Summary */}
+                <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3.5 dark:border-slate-800 dark:bg-slate-800/30">
+                  <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                    Booking Summary
+                  </span>
+                  {selectedSlot && subject ? (
+                    <div className="space-y-1.5 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-500 dark:text-slate-400">
+                          Subject
+                        </span>
+                        <span className="font-semibold text-slate-800 dark:text-slate-200">
+                          {subject}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-500 dark:text-slate-400">
+                          Date
+                        </span>
+                        <span className="font-semibold text-slate-800 dark:text-slate-200">
+                          {new Date(selectedSlot.startTime).toLocaleDateString(
+                            "en-GB",
+                            {
+                              weekday: "short",
+                              day: "numeric",
+                              month: "short",
+                            },
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-500 dark:text-slate-400">
+                          Time
+                        </span>
+                        <span className="font-semibold text-slate-800 dark:text-slate-200">
+                          {new Date(selectedSlot.startTime).toLocaleTimeString(
+                            "en-GB",
+                            { hour: "2-digit", minute: "2-digit" },
+                          )}{" "}
+                          -{" "}
+                          {new Date(selectedSlot.endTime).toLocaleTimeString(
+                            "en-GB",
+                            { hour: "2-digit", minute: "2-digit" },
+                          )}
+                        </span>
+                      </div>
+                      <div className="mt-2 flex items-center justify-between border-t border-slate-200 pt-2 dark:border-slate-700">
+                        <span className="font-semibold text-slate-700 dark:text-slate-300">
+                          Estimated cost
+                        </span>
+                        <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                          £{estimatedCost.toFixed(2)}
+                        </span>
+                      </div>
                     </div>
+                  ) : (
+                    <p className="text-xs text-slate-400">
+                      Pick a date, time, and subject to see your booking
+                      summary.
+                    </p>
                   )}
                 </div>
               </div>
@@ -556,25 +673,32 @@ const BookLessonModal = ({
         </div>
 
         {/* Footer */}
-        <div className="border-t border-slate-100 p-5 dark:border-slate-800 flex items-center justify-end gap-3 bg-slate-50/50 dark:bg-slate-900/50">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-200/60 rounded-xl dark:text-slate-300 dark:hover:bg-slate-800 cursor-pointer transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            disabled={
-              !selectedSlot || isSubmitting || availableSubjects.length === 0
-            }
-            onClick={handleConfirmBooking}
-            className="px-6 py-2.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl shadow-xs transition-all cursor-pointer"
-          >
-            {isSubmitting ? "Booking..." : "Confirm Booking"}
-          </button>
-        </div>
+        {!bookingSuccess && (
+          <div className="border-t border-slate-100 p-5 dark:border-slate-800 flex items-center justify-between gap-3 bg-slate-50/50 dark:bg-slate-900/50">
+            <p className="text-xs text-slate-400">{getConfirmHint()}</p>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-200/60 rounded-xl dark:text-slate-300 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={
+                  !selectedSlot ||
+                  isSubmitting ||
+                  availableSubjects.length === 0
+                }
+                onClick={handleConfirmBooking}
+                className="px-6 py-2.5 text-xs font-semibold text-white bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-blue-600 disabled:hover:to-indigo-600 rounded-xl shadow-sm transition-all cursor-pointer"
+              >
+                {isSubmitting ? "Booking..." : "Confirm Booking"}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
