@@ -5,7 +5,7 @@ interface StudentSession {
   student: string;
   studentImage?: string;
   time: string;
-  status: "Upcoming" | "Completed" | "Cancelled" | "Pending";
+  status: "Upcoming" | "Confirmed" | "Completed" | "Cancelled" | "Pending";
 }
 
 interface Teaches {
