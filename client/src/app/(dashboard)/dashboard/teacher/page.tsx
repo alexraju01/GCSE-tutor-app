@@ -24,7 +24,6 @@ const TeacherDashboardPage = async () => {
 
 	const upcomingBookings = dashboardData?.upcomingLessons ?? [];
 	const teacherSubjects = dashboardData?.teaches ?? [];
-
 	return (
 		<div className='mx-auto max-w-6xl space-y-8'>
 			<WelcomeBanner

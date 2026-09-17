@@ -20,7 +20,6 @@ const TeacherCard = ({ teacher, session }: TeacherCardProps) => {
 	const groupedTeaches = teacher.teaches
 		? Object.groupBy(teacher.teaches, (item: TeachesSubject) => item.level || "UNKNOWN")
 		: {};
-	console.log("teacher Subjects:", teacher.teaches);
 	return (
 		<>
 			<div className='bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-md hover:border-blue-200 transition-all flex flex-col justify-between group relative overflow-hidden'>

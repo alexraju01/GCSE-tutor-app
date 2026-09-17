@@ -53,7 +53,6 @@ const ScheduleItemCard = ({ lesson, isTeacher }: ScheduleItemCardProps) => {
 		.join("")
 		.substring(0, 2)
 		.toUpperCase();
-	console.log("Lesson", lesson);
 	return (
 		<div className='flex flex-col justify-between gap-4 rounded-xl border border-slate-200/80 bg-white p-5 shadow-xs transition-all hover:border-slate-300 dark:border-slate-800/80 dark:bg-slate-900/50 dark:hover:border-slate-700 md:flex-row md:items-center'>
 			{/* Time & Status Column */}

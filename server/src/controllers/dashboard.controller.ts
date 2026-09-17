@@ -56,7 +56,7 @@ export const getTeacherDashboard = async (req: Request, res: Response, next: Nex
         lessons: {
           some: {
             teacherId: teacher.id,
-            status: { in: [LessonStatus.Confirmed, LessonStatus.Completed] },
+            status: { in: [LessonStatus.Completed] },
           },
         },
       },
@@ -75,7 +75,7 @@ export const getTeacherDashboard = async (req: Request, res: Response, next: Nex
     prisma.lesson.findMany({
       where: {
         teacherId: teacher.id,
-        status: LessonStatus.Confirmed,
+        status: { in: [LessonStatus.Upcoming] },
         startTime: { gte: new Date() },
       },
       orderBy: { startTime: "asc" },
@@ -139,7 +139,7 @@ export const getTeacherDashboard = async (req: Request, res: Response, next: Nex
     student: lesson.student?.user?.name ?? "Unknown Student",
     studentImage: lesson.student?.user?.image ?? null,
     time: formatSessionTime(lesson.startTime, lesson.duration),
-    status: "Upcoming",
+    status: lesson.status,
   }));
 
   const pendingRequests = pendingRequestsRaw.map((booking) => ({
@@ -214,7 +214,7 @@ export const getStudentDashboard = async (req: Request, res: Response, next: Nex
           lessons: {
             some: {
               studentId: student.id,
-              status: { in: [LessonStatus.Confirmed, LessonStatus.Completed] },
+              status: { in: [LessonStatus.Completed] },
             },
           },
         },
@@ -233,7 +233,7 @@ export const getStudentDashboard = async (req: Request, res: Response, next: Nex
       prisma.lesson.findMany({
         where: {
           studentId: student.id,
-          status: LessonStatus.Confirmed,
+          status: { in: [LessonStatus.Upcoming] },
           startTime: { gte: new Date() },
         },
         orderBy: { startTime: "asc" },
@@ -244,6 +244,7 @@ export const getStudentDashboard = async (req: Request, res: Response, next: Nex
           topic: true,
           startTime: true,
           duration: true,
+          status: true,
           teacher: {
             select: {
               id: true,
@@ -269,7 +270,7 @@ export const getStudentDashboard = async (req: Request, res: Response, next: Nex
     teacher: lesson.teacher?.user?.name ?? "Unknown Teacher",
     teacherImage: lesson.teacher?.user?.image ?? null,
     time: formatSessionTime(lesson.startTime, lesson.duration),
-    status: "Upcoming",
+    status: lesson.status,
   }));
 
   const subjects = student.subjects.map((item) => ({
