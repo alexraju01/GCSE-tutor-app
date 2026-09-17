@@ -59,7 +59,7 @@ const QuickActionsCard = ({
           <button
             type="button"
             onClick={() => setIsCalendarModalOpen(true)}
-            className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-blue-700 active:scale-[0.98] cursor-pointer"
+            className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition-all hover:from-blue-700 hover:to-indigo-700 active:scale-[0.98] cursor-pointer"
           >
             <Calendar size={15} />
             Manage Calendar

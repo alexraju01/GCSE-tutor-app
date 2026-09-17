@@ -2,7 +2,10 @@
 import { Clock, PoundSterling, Star, Users } from "lucide-react";
 import { auth } from "@auth";
 import QuickActionsCard from "@components/dashboard/QuickActionsCard";
-import StatsGrid, { type StatItem } from "@components/dashboard/StatsGrid";
+import StatsGrid, {
+  STAT_ACCENTS,
+  type StatItem,
+} from "@components/dashboard/StatsGrid";
 import UpcomingSessions from "@components/dashboard/UpcomingSessions";
 import WelcomeBanner from "@components/dashboard/WelcomeBanner";
 import { api } from "@utils/api";
@@ -38,7 +41,7 @@ const TeacherDashboardPage = async () => {
       value: String(dashboardData?.activeStudents ?? 0),
       caption: "Current active students",
       icon: <Users size={16} className="text-blue-600 dark:text-blue-400" />,
-      iconBg: "bg-blue-50 dark:bg-blue-950/50",
+      ...STAT_ACCENTS.blue,
     },
     {
       label: "Hours Taught",
@@ -47,7 +50,7 @@ const TeacherDashboardPage = async () => {
       icon: (
         <Clock size={16} className="text-emerald-600 dark:text-emerald-400" />
       ),
-      iconBg: "bg-emerald-50 dark:bg-emerald-950/50",
+      ...STAT_ACCENTS.emerald,
     },
     {
       label: "Total Earnings",
@@ -59,14 +62,14 @@ const TeacherDashboardPage = async () => {
           className="text-indigo-600 dark:text-indigo-400"
         />
       ),
-      iconBg: "bg-indigo-50 dark:bg-indigo-950/50",
+      ...STAT_ACCENTS.indigo,
     },
     {
       label: "Completed Lessons",
       value: String(dashboardData?.completedLessons ?? 0),
       caption: "Successfully delivered",
       icon: <Star size={16} className="text-amber-600 dark:text-amber-400" />,
-      iconBg: "bg-amber-50 dark:bg-amber-950/50",
+      ...STAT_ACCENTS.amber,
     },
   ];
 

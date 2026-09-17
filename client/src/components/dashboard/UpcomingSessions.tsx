@@ -22,7 +22,8 @@ const UpcomingSessions = ({
   return (
     <div className="space-y-4 lg:col-span-2">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+        <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-slate-100">
+          <span className="h-5 w-1 rounded-full bg-linear-to-b from-blue-500 to-indigo-500" />
           {title}
         </h2>
         <Link
@@ -84,7 +85,7 @@ const UpcomingSessions = ({
                   <div className="space-y-1.5">
                     <div className="flex flex-wrap items-center gap-2">
                       {isNext && (
-                        <span className="inline-flex items-center rounded-md bg-blue-600 px-2 py-0.5 text-[10px] font-semibold text-white">
+                        <span className="inline-flex items-center rounded-md bg-linear-to-r from-blue-600 to-indigo-600 px-2 py-0.5 text-[10px] font-semibold text-white">
                           Up Next
                         </span>
                       )}
@@ -112,7 +113,7 @@ const UpcomingSessions = ({
 
                 <Link
                   href={`/dashboard/lessons/${sessionItem.id}` as Route}
-                  className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition-all hover:bg-blue-500 active:scale-[0.98]"
+                  className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-linear-to-r from-blue-600 to-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition-all hover:from-blue-700 hover:to-indigo-700 active:scale-[0.98]"
                 >
                   <Video size={14} /> Launch Classroom
                 </Link>

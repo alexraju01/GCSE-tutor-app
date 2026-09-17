@@ -97,7 +97,7 @@ const ScheduleItemCard = ({ lesson, isTeacher }: ScheduleItemCardProps) => {
         {isJoinable && meetingUrl ? (
           <Link
             href={meetingUrl}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition-all hover:bg-blue-500 active:scale-[0.98]"
+            className="inline-flex items-center gap-2 rounded-lg bg-linear-to-r from-blue-600 to-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition-all hover:from-blue-700 hover:to-indigo-700 active:scale-[0.98]"
           >
             <Video size={14} /> Enter Classroom
           </Link>
