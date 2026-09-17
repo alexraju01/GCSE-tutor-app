@@ -1,4 +1,4 @@
-import { LessonStatus, Subject } from "@generated/client.js";
+import { LessonStatus, Role, Subject } from "@generated/client.js";
 import * as lessonService from "../services/lesson.service.js";
 import { AppError } from "../utils/AppError.js";
 import type { CreateLessonInput } from "../schemas/lesson.schema.js";
@@ -7,7 +7,7 @@ import type { Request, Response } from "express";
 export const getAllLessons = async (req: Request, res: Response) => {
   const { id: userId, role } = req.user;
 
-  if (role !== "Student" && role !== "Teacher") {
+  if (role !== Role.Student && role !== Role.Teacher) {
     throw new AppError("Invalid user role for retrieving lessons.", 400);
   }
 

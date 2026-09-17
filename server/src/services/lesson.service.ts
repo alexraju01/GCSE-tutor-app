@@ -1,4 +1,4 @@
-import { LessonStatus, Subject } from "@generated/client.js";
+import { LessonStatus, Role, Subject } from "@generated/client.js";
 import { prisma } from "../db/prisma.js";
 import { AppError } from "../utils/AppError.js";
 import type { GetLessonsQuery } from "../schemas/lesson.schema.js";
@@ -22,7 +22,7 @@ const BASE_LESSON_SELECT = {
 
 export interface FindLessonsParams extends GetLessonsQuery {
   userId: string;
-  role: "Student" | "Teacher";
+  role: typeof Role.Student | typeof Role.Teacher;
 }
 
 export interface CreateLessonParams {
@@ -44,7 +44,7 @@ export const findLessonsByRole = async ({
   status,
   subject,
 }: FindLessonsParams) => {
-  const isStudent = role === "Student";
+  const isStudent = role === Role.Student;
   const skip = (page - 1) * limit;
 
   const where = {
