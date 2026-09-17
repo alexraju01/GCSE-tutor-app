@@ -41,30 +41,20 @@ export const getAllLessons = async (req: Request, res: Response) => {
 };
 
 export const cancelLesson = async (req: Request<{ lessonId: string }>, res: Response) => {
-  const { id: studentUserId, role } = req.user;
-
-  if (role !== "Student") {
-    throw new AppError("Only students can cancel a lesson booking.", 403);
-  }
-
-  await lessonService.cancelLessonForStudent(req.params.lessonId, studentUserId);
+  // Role is already enforced by authorize(Role.Student) on this route.
+  await lessonService.cancelLessonForStudent(req.params.lessonId, req.user.id);
 
   // 204 No Content must not carry a response body.
   res.status(204).send();
 };
 
 export const createLesson = async (req: Request, res: Response) => {
-  const { id: studentUserId, role } = req.user;
-
-  if (role !== "Student") {
-    throw new AppError("Only students can book a lesson.", 403);
-  }
-
+  // Role is already enforced by authorize(Role.Student) on this route.
   const { teacherProfileId, availabilityId, startTime, endTime, subject, topic, notes } =
     req.body as CreateLessonInput;
 
   const lesson = await lessonService.createLessonBooking({
-    studentUserId,
+    studentUserId: req.user.id,
     teacherId: teacherProfileId,
     availabilityId,
     startTime: new Date(startTime),
