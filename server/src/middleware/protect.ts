@@ -1,4 +1,5 @@
-import jwt, { type Secret } from "jsonwebtoken";
+import jwt from "jsonwebtoken";
+import { env } from "../config/env.js";
 import { prisma } from "../db/prisma.js";
 import { AppError } from "../utils/AppError.js";
 import { changedPasswordAfter } from "../utils/changedPasswordAfter.js";
@@ -7,12 +8,6 @@ import type { Request, Response, NextFunction } from "express";
 interface CustomJwtPayload extends jwt.JwtPayload {
   id: string;
   iat: number;
-}
-
-const JWT_SECRET = process.env.JWT_SECRET as Secret;
-if (!JWT_SECRET) {
-  // Fail fast at boot, not on the first incoming request
-  throw new Error("JWT_SECRET is not defined in environment variables.");
 }
 
 export const protect = async (req: Request, res: Response, next: NextFunction) => {
@@ -34,7 +29,7 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
   // 3) Verify token safely
   let decoded: CustomJwtPayload;
   try {
-    decoded = jwt.verify(token, JWT_SECRET) as CustomJwtPayload;
+    decoded = jwt.verify(token, env.JWT_SECRET) as CustomJwtPayload;
   } catch {
     return next(new AppError("Invalid or expired token. Please log in again.", 401));
   }

@@ -56,6 +56,9 @@ export const api = {
 			return fetchData<SocialLoginResponse<SocialUserData>>("/auth/social-sync", {
 				method: "POST",
 				body: payload,
+				// Server-only secret proving this call originates from our trusted
+				// Next.js backend (see auth.ts signIn callback), not a browser.
+				headers: { "x-internal-secret": process.env.BACKEND_INTERNAL_SECRET ?? "" },
 			});
 		},
 	},
