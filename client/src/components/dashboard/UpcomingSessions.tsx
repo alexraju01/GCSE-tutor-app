@@ -49,7 +49,8 @@ const UpcomingSessions = ({
             </p>
           </div>
         ) : (
-          sessions.map((sessionItem) => {
+          sessions.map((sessionItem, index) => {
+            const isNext = index === 0;
             const participantName = isTeacher
               ? (sessionItem as StudentSession).student
               : (sessionItem as StudentUpcomingLesson).teacher;
@@ -60,7 +61,11 @@ const UpcomingSessions = ({
             return (
               <div
                 key={sessionItem.id}
-                className="flex flex-col justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700 sm:flex-row sm:items-center"
+                className={`flex flex-col justify-between gap-4 rounded-2xl border bg-white p-5 shadow-sm transition-all sm:flex-row sm:items-center ${
+                  isNext
+                    ? "border-blue-200 bg-blue-50/40 hover:border-blue-300 dark:border-blue-500/30 dark:bg-blue-500/5 dark:hover:border-blue-500/50"
+                    : "border-slate-200 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700"
+                }`}
               >
                 <div className="flex items-start gap-3.5">
                   <div className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-100 text-slate-400 dark:border-slate-800 dark:bg-slate-800 dark:text-slate-500">
@@ -78,6 +83,11 @@ const UpcomingSessions = ({
 
                   <div className="space-y-1.5">
                     <div className="flex flex-wrap items-center gap-2">
+                      {isNext && (
+                        <span className="inline-flex items-center rounded-md bg-blue-600 px-2 py-0.5 text-[10px] font-semibold text-white">
+                          Up Next
+                        </span>
+                      )}
                       <span className="rounded-md bg-blue-500/10 px-2 py-0.5 text-xs font-semibold text-blue-600 dark:text-blue-400">
                         {sessionItem.subject}
                       </span>

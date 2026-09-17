@@ -5,6 +5,7 @@ export interface StatItem {
   value: string;
   caption: string;
   icon: ReactNode;
+  iconBg?: string;
 }
 
 interface StatsGridProps {
@@ -23,7 +24,9 @@ const StatsGrid = ({ stats }: StatsGridProps) => {
             <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
               {stat.label}
             </span>
-            <div className="rounded-lg bg-slate-50 p-2 dark:bg-slate-800/60">
+            <div
+              className={`rounded-lg p-2 ${stat.iconBg ?? "bg-slate-50 dark:bg-slate-800/60"}`}
+            >
               {stat.icon}
             </div>
           </div>

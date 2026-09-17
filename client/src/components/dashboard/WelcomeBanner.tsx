@@ -1,6 +1,8 @@
 // WelcomeBanner.tsx
 import { formatString } from "@utils/stringFormat";
-import { GraduationCap, Sparkles } from "lucide-react";
+import { ArrowRight, GraduationCap, Sparkles } from "lucide-react";
+import type { Route } from "next";
+import Link from "next/link";
 
 export interface Subject {
   id: string | number;
@@ -13,7 +15,16 @@ export interface WelcomeBannerProps {
   role: "Teacher" | "Student";
   upcomingCount?: number;
   subjects?: Subject[];
+  ctaLabel?: string;
+  ctaHref?: Route;
 }
+
+const getGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
+};
 
 const BASE_STYLES = {
   containerClasses:
@@ -29,10 +40,13 @@ const WelcomeBanner = ({
   role,
   upcomingCount = 0,
   subjects = [],
+  ctaLabel,
+  ctaHref,
 }: WelcomeBannerProps) => {
   const isTeacher = role === "Teacher";
   const RoleIcon = isTeacher ? Sparkles : GraduationCap;
   const roleLabel = isTeacher ? "Teacher Workspace" : "Student Workspace";
+  const displayName = userName || (isTeacher ? "Teacher" : "Student");
 
   return (
     <section
@@ -66,7 +80,7 @@ const WelcomeBanner = ({
           </div>
 
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 sm:text-3xl">
-            Welcome back, {userName || (isTeacher ? "Teacher" : "Student")}!
+            {getGreeting()}, {displayName}!
           </h1>
 
           <p className="text-sm text-slate-600 dark:text-slate-400">
@@ -74,6 +88,20 @@ const WelcomeBanner = ({
             {upcomingCount === 1 ? "lesson" : "lessons"} coming up.
           </p>
         </div>
+
+        {/* Primary Action */}
+        {ctaLabel && ctaHref && (
+          <Link
+            href={ctaHref}
+            className="group relative z-10 inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-blue-700 active:scale-[0.98]"
+          >
+            {ctaLabel}
+            <ArrowRight
+              size={16}
+              className="transition-transform group-hover:translate-x-0.5"
+            />
+          </Link>
+        )}
       </div>
     </section>
   );
