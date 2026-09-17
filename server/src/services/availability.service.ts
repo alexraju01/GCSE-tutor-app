@@ -1,6 +1,7 @@
 import { prisma } from "@db/prisma.js";
 import { LessonStatus, Prisma } from "@generated/client.js";
 import { AppError } from "@utils/AppError.js";
+import { formatSessionTime } from "@utils/date.js";
 
 export const requireTeacherId = async (userId?: string): Promise<string> => {
   if (!userId) throw new AppError("Unauthorized.", 401);
@@ -62,21 +63,69 @@ const assertNoActiveLesson = async (db: Db, availabilityId: string, action: stri
   }
 };
 
-export const createAvailability = async (
-  teacherId: string,
-  startTime: Date,
-  durationInMinutes: number,
-) => {
-  if (startTime < new Date()) {
-    throw new AppError("Cannot create availability in the past. Please select a future time.", 400);
-  }
+export interface AvailabilitySlot {
+  startTime: Date;
+  durationInMinutes: number;
+}
 
-  const endTime = new Date(startTime.getTime() + durationInMinutes * 60 * 1000);
+// Creates one or many slots atomically — either the whole batch is created,
+// or none of it is, so a rejected slot can't leave a partial week behind.
+export const createAvailabilities = async (teacherId: string, slots: AvailabilitySlot[]) => {
+  const now = new Date();
+  const isBatch = slots.length > 1;
+
+  const ranges = slots.map(({ startTime, durationInMinutes }, index) => {
+    const label = formatSessionTime(startTime, durationInMinutes);
+
+    if (startTime < now) {
+      const prefix = isBatch ? `Slot ${index + 1} of ${slots.length} (${label}): ` : "";
+      throw new AppError(
+        `${prefix}Cannot create availability in the past. Please select a future time.`,
+        400,
+      );
+    }
+
+    return {
+      startTime,
+      endTime: new Date(startTime.getTime() + durationInMinutes * 60 * 1000),
+      label,
+    };
+  });
+
+  // Reject overlaps within the batch itself before touching the database.
+  // This loop only ever runs with 2+ slots, so both sides always get an index.
+  for (let i = 0; i < ranges.length; i++) {
+    for (let j = i + 1; j < ranges.length; j++) {
+      if (ranges[i].startTime < ranges[j].endTime && ranges[j].startTime < ranges[i].endTime) {
+        throw new AppError(
+          `Slot ${i + 1} (${ranges[i].label}) overlaps with slot ${j + 1} (${ranges[j].label}).`,
+          400,
+        );
+      }
+    }
+  }
 
   return prisma.$transaction(
     async (tx) => {
-      await checkOverlap(tx, teacherId, startTime, endTime);
-      return tx.availability.create({ data: { teacherId, startTime, endTime } });
+      const created = [];
+      for (let i = 0; i < ranges.length; i++) {
+        const { startTime, endTime, label } = ranges[i];
+
+        try {
+          await checkOverlap(tx, teacherId, startTime, endTime);
+        } catch (err) {
+          if (err instanceof AppError && isBatch) {
+            throw new AppError(
+              `Slot ${i + 1} of ${ranges.length} (${label}): ${err.message}`,
+              err.statusCode,
+            );
+          }
+          throw err;
+        }
+
+        created.push(await tx.availability.create({ data: { teacherId, startTime, endTime } }));
+      }
+      return created;
     },
     // serializable so two overlapping creates can't both sneak past the check
     { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },

@@ -2,10 +2,14 @@ import { formatPagination, getPaginationOptions } from "@utils/pagination.js";
 import {
   findTeacherAvailabilities,
   requireTeacherId,
-  createAvailability,
+  createAvailabilities as createAvailabilitySlots,
   updateAvailabilityForTeacher,
   deleteAvailabilityForTeacher,
 } from "../services/availability.service.js";
+import type {
+  AvailabilitySlotInput,
+  createAvailabilityInput,
+} from "../schemas/availability.schema.js";
 import type { Request, Response } from "express";
 
 /**
@@ -60,17 +64,21 @@ export const getOwnAvailabilities = async (
 
 export const createAvailabilities = async (req: Request, res: Response) => {
   const teacherId = await requireTeacherId(req.user?.id);
-  const { startTime: startIsoString, durationInMinutes } = req.body;
+  const input = req.body as createAvailabilityInput;
+  const isBatch = Array.isArray(input);
+  const items: AvailabilitySlotInput[] = isBatch ? input : [input];
 
-  const newAvailability = await createAvailability(
+  const created = await createAvailabilitySlots(
     teacherId,
-    new Date(startIsoString),
-    durationInMinutes,
+    items.map(({ startTime, durationInMinutes }) => ({
+      startTime: new Date(startTime),
+      durationInMinutes,
+    })),
   );
 
   return res.status(201).json({
     status: "success",
-    data: newAvailability,
+    data: isBatch ? created : created[0],
   });
 };
 

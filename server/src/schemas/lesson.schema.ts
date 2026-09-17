@@ -43,7 +43,7 @@ export type GetLessonsQuery = z.infer<typeof getLessonsQuerySchema>;
 // no startTime/endTime here on purpose - we pull those off the Availability
 // row by availabilityId instead. otherwise a student could book any time or
 // duration they want as long as the id belonged to the right teacher
-export const createLessonSchema = z.object({
+export const lessonBookingItemSchema = z.object({
   teacherProfileId: z.uuid({ message: "Invalid teacherProfileId format" }),
   availabilityId: z.uuid({ message: "Invalid availabilityId format" }),
   subject: z.enum(Subject, {
@@ -53,4 +53,19 @@ export const createLessonSchema = z.object({
   notes: z.string().trim().max(255).optional(),
 });
 
+// Accepts either a single booking or a batch (e.g. booking the same weekly
+// slot across several weeks at once). The response mirrors whichever shape
+// was sent.
+export const createLessonSchema = z.union([
+  lessonBookingItemSchema,
+  z
+    .array(lessonBookingItemSchema)
+    .min(1, { message: "Provide at least one lesson to book." })
+    .max(20, { message: "You can book at most 20 lessons in a single request." })
+    .refine((items) => new Set(items.map((item) => item.availabilityId)).size === items.length, {
+      error: "Cannot book the same availability slot twice in one request.",
+    }),
+]);
+
+export type LessonBookingItem = z.infer<typeof lessonBookingItemSchema>;
 export type CreateLessonInput = z.infer<typeof createLessonSchema>;

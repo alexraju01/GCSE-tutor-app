@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const createAvailabilitySchema = z
+export const availabilitySlotSchema = z
   .object({
     startTime: z.iso.datetime({
       error: (issue) =>
@@ -23,7 +23,18 @@ export const createAvailabilitySchema = z
   })
   .strict();
 
-export const updateAvailabilitySchema = createAvailabilitySchema.partial().strict();
+// Accepts either a single slot or a batch (e.g. setting up a whole week of
+// availability in one go). The response mirrors whichever shape was sent.
+export const createAvailabilitySchema = z.union([
+  availabilitySlotSchema,
+  z
+    .array(availabilitySlotSchema)
+    .min(1, { message: "Provide at least one availability slot." })
+    .max(50, { message: "You can create at most 50 slots in a single request." }),
+]);
 
+export const updateAvailabilitySchema = availabilitySlotSchema.partial().strict();
+
+export type AvailabilitySlotInput = z.infer<typeof availabilitySlotSchema>;
 export type createAvailabilityInput = z.infer<typeof createAvailabilitySchema>;
 export type updateAvailabilityInput = z.infer<typeof updateAvailabilitySchema>;
