@@ -8,6 +8,24 @@ export interface AvailabilityPayloadItem {
   durationInMinutes: number;
 }
 
+export interface TeacherAvailabilitySlot {
+  id: string;
+  teacherId: string;
+  startTime: string;
+  endTime: string;
+}
+
+export interface LessonBookingPayloadItem {
+  teacherProfileId: string;
+  availabilityId: string;
+  subject: string;
+  topic?: string;
+  notes?: string;
+}
+
+const authHeaders = (token?: string) =>
+  token ? { Authorization: `Bearer ${token}` } : undefined;
+
 export interface GetLessonsParams {
   page?: number;
   limit?: number;
@@ -73,7 +91,25 @@ export const api = {
 
   teacher: {
     getAll: () => fetchData<APIResponse<Teacher[]>>("/teachers"),
-    getOne: (id: string) => fetchData<APIResponse<Teacher>>(`/teachers/${id}`),
+    getOne: (id: string, token?: string) =>
+      fetchData<APIResponse<Teacher>>(`/teachers/${id}`, {
+        headers: authHeaders(token),
+      }),
+    getAvailabilities: (
+      id: string,
+      params?: { limit?: number; page?: number },
+      token?: string,
+    ) => {
+      const query = new URLSearchParams();
+      if (params?.limit !== undefined) query.set("limit", String(params.limit));
+      if (params?.page !== undefined) query.set("page", String(params.page));
+      const qs = query.toString();
+
+      return fetchData<APIResponse<TeacherAvailabilitySlot[]>>(
+        `/teachers/${id}/availabilities${qs ? `?${qs}` : ""}`,
+        { headers: authHeaders(token) },
+      );
+    },
     getMyProfile: (token: string) =>
       fetchData<APIResponse<Teacher>>("/teachers/me", {
         headers: {
@@ -140,6 +176,13 @@ export const api = {
   },
 
   lesson: {
+    create: (items: LessonBookingPayloadItem[], token: string) =>
+      fetchData<APIResponse<Lesson[]>>("/lessons", {
+        method: "POST",
+        body: items,
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+
     getAll: (token: string, params?: GetLessonsParams) => {
       const page = params?.page ?? 1;
       const query = new URLSearchParams({ page: String(page) });

@@ -12,13 +12,9 @@ import {
   BookOpen,
 } from "lucide-react";
 import type { SessionData } from "@/types/auth";
+import { api, type TeacherAvailabilitySlot } from "@utils/api";
 
-interface RawAvailability {
-  id: string;
-  teacherId: string;
-  startTime: string;
-  endTime: string;
-}
+type RawAvailability = TeacherAvailabilitySlot;
 
 interface TeacherProfile {
   id: string;
@@ -99,35 +95,32 @@ const BookLessonModal = ({
       setIsLoading(true);
       setErrorMessage(null);
       try {
-        const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
         // Fetch slots and teacher profile concurrently if subjects weren't provided as a prop
         // limit=100 (the server's max) so a teacher with lots of open slots
         // doesn't silently get cut off after the default page size of 10.
-        const slotsPromise = fetch(
-          `http://localhost:8000/api/v1/teachers/${teacherId}/availabilities?limit=100`,
-          { headers },
+        const slotsPromise = api.teacher.getAvailabilities(
+          teacherId,
+          { limit: 100 },
+          token,
         );
 
+        // A failed profile lookup shouldn't block booking; fall back to no subjects.
         const teacherPromise = !teacherSubjects
-          ? fetch(`http://localhost:8000/api/v1/teachers/${teacherId}`, {
-              headers,
-            })
+          ? api.teacher.getOne(teacherId, token).catch(() => null)
           : Promise.resolve(null);
 
-        const [slotsRes, teacherRes] = await Promise.all([
+        const [slotsResult, teacherResult] = await Promise.all([
           slotsPromise,
           teacherPromise,
         ]);
 
-        const slotsResult = await slotsRes.json();
         const loadedSlots: RawAvailability[] = slotsResult.data || [];
         setSlots(loadedSlots);
 
         let fetchedSubjects: string[] = teacherSubjects || [];
-        if (teacherRes && teacherRes.ok) {
-          const teacherData = await teacherRes.json();
-          const profile: TeacherProfile = teacherData.data || teacherData;
+        if (teacherResult) {
+          const profile = (teacherResult.data ||
+            teacherResult) as TeacherProfile;
           fetchedSubjects = profile.subjects || [];
         }
 
@@ -333,27 +326,16 @@ const BookLessonModal = ({
     setErrorMessage(null);
 
     try {
-      const res = await fetch("http://localhost:8000/api/v1/lessons", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(
-          selectedSlots.map((slot) => ({
-            teacherProfileId: teacherId,
-            availabilityId: slot.id,
-            subject,
-            topic: topic || undefined,
-            notes: notes || undefined,
-          })),
-        ),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || "Failed to create lesson booking");
-      }
+      await api.lesson.create(
+        selectedSlots.map((slot) => ({
+          teacherProfileId: teacherId,
+          availabilityId: slot.id,
+          subject,
+          topic: topic || undefined,
+          notes: notes || undefined,
+        })),
+        token,
+      );
 
       const bookedIds = new Set(selectedSlots.map((s) => s.id));
       setBookedCount(selectedSlots.length);
