@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, useMemo, ChangeEvent } from "react";
+import { useEffect, useState, useMemo, useRef, ChangeEvent } from "react";
 import {
+  ChevronDown,
   Clock,
   X,
   Check,
@@ -34,6 +35,8 @@ interface BookLessonModalProps {
   teacherSubjects?: string[];
 }
 
+const MAX_BATCH_SIZE = 20;
+
 const BookLessonModal = ({
   isOpen,
   onClose,
@@ -51,9 +54,8 @@ const BookLessonModal = ({
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [bookingSuccess, setBookingSuccess] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [selectedSlot, setSelectedSlot] = useState<RawAvailability | null>(
-    null,
-  );
+  const [selectedSlots, setSelectedSlots] = useState<RawAvailability[]>([]);
+  const [bookedCount, setBookedCount] = useState<number>(0);
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
 
@@ -62,7 +64,33 @@ const BookLessonModal = ({
   const [topic, setTopic] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
 
+  const [isSubjectOpen, setIsSubjectOpen] = useState<boolean>(false);
+  const subjectMenuRef = useRef<HTMLDivElement>(null);
+
   const token = session?.backendToken;
+
+  useEffect(() => {
+    if (!isSubjectOpen) return;
+
+    const handlePointerDown = (e: MouseEvent) => {
+      if (!subjectMenuRef.current?.contains(e.target as Node)) {
+        setIsSubjectOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        setIsSubjectOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isSubjectOpen]);
 
   useEffect(() => {
     if (!isOpen || !teacherId) return;
@@ -201,19 +229,64 @@ const BookLessonModal = ({
   const canGoPrevMonth = monthBounds ? currentMonth > monthBounds.min : false;
   const canGoNextMonth = monthBounds ? currentMonth < monthBounds.max : false;
 
-  const selectedSlotDurationMinutes = selectedSlot
-    ? Math.round(
-        (new Date(selectedSlot.endTime).getTime() -
-          new Date(selectedSlot.startTime).getTime()) /
+  const sortedSelectedSlots = useMemo(
+    () =>
+      [...selectedSlots].sort(
+        (a, b) =>
+          new Date(a.startTime).getTime() - new Date(b.startTime).getTime(),
+      ),
+    [selectedSlots],
+  );
+
+  const selectedIds = useMemo(
+    () => new Set(selectedSlots.map((s) => s.id)),
+    [selectedSlots],
+  );
+
+  const selectedCountByDate = useMemo(() => {
+    const counts: Record<string, number> = {};
+    selectedSlots.forEach((slot) => {
+      const key = new Date(slot.startTime).toISOString().split("T")[0];
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    return counts;
+  }, [selectedSlots]);
+
+  const totalMinutes = selectedSlots.reduce(
+    (sum, slot) =>
+      sum +
+      Math.round(
+        (new Date(slot.endTime).getTime() -
+          new Date(slot.startTime).getTime()) /
           60000,
-      )
-    : 0;
-  const estimatedCost = (hourlyRate * selectedSlotDurationMinutes) / 60;
+      ),
+    0,
+  );
+  const estimatedCost = (hourlyRate * totalMinutes) / 60;
+
+  const toggleSlot = (slot: RawAvailability) => {
+    setErrorMessage(null);
+    setSelectedSlots((prev) => {
+      if (prev.some((s) => s.id === slot.id)) {
+        return prev.filter((s) => s.id !== slot.id);
+      }
+      if (prev.length >= MAX_BATCH_SIZE) {
+        setErrorMessage(
+          `You can book at most ${MAX_BATCH_SIZE} lessons at once.`,
+        );
+        return prev;
+      }
+      return [...prev, slot];
+    });
+  };
 
   const getConfirmHint = (): string | null => {
-    if (!selectedSlot) return "Select a date and time to continue.";
+    if (selectedSlots.length === 0)
+      return "Select one or more time slots to continue.";
     if (!subject) return "Choose a subject to continue.";
-    return null;
+    return `${selectedSlots.length} ${
+      selectedSlots.length === 1 ? "lesson" : "lessons"
+    } selected.`;
   };
 
   const getDayCellClasses = (
@@ -244,7 +317,7 @@ const BookLessonModal = ({
   };
 
   const handleConfirmBooking = async () => {
-    if (!selectedSlot) return;
+    if (selectedSlots.length === 0) return;
 
     if (!token) {
       setErrorMessage("You must be logged in to book a lesson.");
@@ -266,13 +339,15 @@ const BookLessonModal = ({
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          teacherProfileId: teacherId,
-          availabilityId: selectedSlot.id,
-          subject,
-          topic: topic || undefined,
-          notes: notes || undefined,
-        }),
+        body: JSON.stringify(
+          selectedSlots.map((slot) => ({
+            teacherProfileId: teacherId,
+            availabilityId: slot.id,
+            subject,
+            topic: topic || undefined,
+            notes: notes || undefined,
+          })),
+        ),
       });
 
       if (!res.ok) {
@@ -280,14 +355,16 @@ const BookLessonModal = ({
         throw new Error(errorData.message || "Failed to create lesson booking");
       }
 
-      setSlots((prev) => prev.filter((s) => s.id !== selectedSlot.id));
+      const bookedIds = new Set(selectedSlots.map((s) => s.id));
+      setBookedCount(selectedSlots.length);
+      setSlots((prev) => prev.filter((s) => !bookedIds.has(s.id)));
       setBookingSuccess(true);
 
       // Give the confirmation a moment to register before closing, instead
       // of the modal just vanishing with no feedback that it worked.
       setTimeout(() => {
         setBookingSuccess(false);
-        setSelectedSlot(null);
+        setSelectedSlots([]);
         setTopic("");
         setNotes("");
         onClose();
@@ -341,10 +418,13 @@ const BookLessonModal = ({
                 <Check size={32} />
               </div>
               <h3 className="mt-4 text-lg font-bold text-slate-900 dark:text-slate-100">
-                Booking confirmed!
+                {bookedCount === 1 ? "Booking confirmed!" : "Bookings confirmed!"}
               </h3>
               <p className="mt-1 max-w-xs text-sm text-slate-500 dark:text-slate-400">
-                Your {subject} lesson is booked. You&apos;ll find it on your
+                {bookedCount === 1
+                  ? `Your ${subject} lesson is booked.`
+                  : `${bookedCount} ${subject} lessons are booked.`}{" "}
+                You&apos;ll find {bookedCount === 1 ? "it" : "them"} on your
                 schedule.
               </p>
             </div>
@@ -428,16 +508,14 @@ const BookLessonModal = ({
                     const hasAvailability = slotCount > 0;
                     const isSelected = selectedDateKey === dateKey;
                     const isToday = dateKey === todayKey;
+                    const pickedCount = selectedCountByDate[dateKey] || 0;
 
                     return (
                       <button
                         key={idx}
                         type="button"
                         disabled={!hasAvailability}
-                        onClick={() => {
-                          setSelectedDateKey(dateKey);
-                          setSelectedSlot(null);
-                        }}
+                        onClick={() => setSelectedDateKey(dateKey)}
                         className={`h-12 w-full rounded-xl text-xs flex flex-col items-center justify-center relative transition-all ${
                           isToday
                             ? "ring-2 ring-offset-1 ring-blue-400 dark:ring-offset-slate-900"
@@ -456,6 +534,11 @@ const BookLessonModal = ({
                             {slotCount} {slotCount === 1 ? "slot" : "slots"}
                           </span>
                         )}
+                        {pickedCount > 0 && (
+                          <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-emerald-500 px-1 text-[9px] font-bold text-white shadow-sm">
+                            {pickedCount}
+                          </span>
+                        )}
                       </button>
                     );
                   })}
@@ -466,7 +549,7 @@ const BookLessonModal = ({
               <div className="lg:col-span-5 flex flex-col space-y-5">
                 <div>
                   <span className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
-                    2. Select Time Slot
+                    2. Select Time Slots (pick as many as you like)
                   </span>
 
                   {/* Fixed height regardless of slot count or selection state, so
@@ -475,7 +558,7 @@ const BookLessonModal = ({
                     {selectedDateKey && groupedSlots[selectedDateKey] ? (
                       <div className="space-y-2">
                         {groupedSlots[selectedDateKey].map((slot) => {
-                          const isSelected = selectedSlot?.id === slot.id;
+                          const isSelected = selectedIds.has(slot.id);
                           const start = new Date(slot.startTime);
                           const end = new Date(slot.endTime);
 
@@ -499,7 +582,7 @@ const BookLessonModal = ({
                             <button
                               key={slot.id}
                               type="button"
-                              onClick={() => setSelectedSlot(slot)}
+                              onClick={() => toggleSlot(slot)}
                               className={`w-full flex items-center justify-between p-3 rounded-xl border text-xs transition-all cursor-pointer ${
                                 isSelected
                                   ? "border-transparent bg-linear-to-r from-blue-600 to-indigo-600 text-white shadow-sm font-semibold"
@@ -547,29 +630,69 @@ const BookLessonModal = ({
                     <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                       Subject
                     </label>
-                    <div className="relative">
+                    <div className="relative" ref={subjectMenuRef}>
                       {availableSubjects.length > 0 ? (
-                        <select
-                          value={subject}
-                          onChange={(e: ChangeEvent<HTMLSelectElement>) =>
-                            setSubject(e.target.value)
-                          }
-                          className="w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 pr-8 text-xs text-slate-900 focus:border-blue-600 focus:bg-white focus:outline-hidden dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-blue-600 cursor-pointer"
-                        >
-                          {availableSubjects.map((sub) => (
-                            <option key={sub} value={sub}>
-                              {sub}
-                            </option>
-                          ))}
-                        </select>
+                        <>
+                          <button
+                            type="button"
+                            aria-haspopup="listbox"
+                            aria-expanded={isSubjectOpen}
+                            onClick={() => setIsSubjectOpen((open) => !open)}
+                            className={`flex w-full cursor-pointer items-center justify-between rounded-xl border bg-slate-50 p-2.5 pl-9 pr-3 text-left text-xs text-slate-900 transition-colors focus:outline-hidden dark:bg-slate-950 dark:text-slate-100 ${
+                              isSubjectOpen
+                                ? "border-blue-600 bg-white dark:border-blue-600"
+                                : "border-slate-200 hover:border-slate-300 dark:border-slate-800 dark:hover:border-slate-700"
+                            }`}
+                          >
+                            <span className="truncate">{subject}</span>
+                            <ChevronDown
+                              size={14}
+                              className={`shrink-0 text-slate-400 transition-transform ${
+                                isSubjectOpen ? "rotate-180" : ""
+                              }`}
+                            />
+                          </button>
+
+                          {isSubjectOpen && (
+                            <ul
+                              role="listbox"
+                              className="absolute left-0 right-0 top-full z-20 mt-1.5 max-h-56 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg dark:border-slate-700 dark:bg-slate-900"
+                            >
+                              {availableSubjects.map((sub) => {
+                                const isActive = sub === subject;
+                                return (
+                                  <li key={sub} role="option" aria-selected={isActive}>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setSubject(sub);
+                                        setIsSubjectOpen(false);
+                                      }}
+                                      className={`flex w-full cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-left text-xs transition-colors ${
+                                        isActive
+                                          ? "bg-blue-50 font-semibold text-blue-700 dark:bg-blue-950/50 dark:text-blue-300"
+                                          : "text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                                      }`}
+                                    >
+                                      <span className="truncate">{sub}</span>
+                                      {isActive && (
+                                        <Check size={14} className="shrink-0" />
+                                      )}
+                                    </button>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          )}
+                        </>
                       ) : (
-                        <div className="w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400">
+                        <div className="w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 pl-9 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400">
                           No subjects listed for this teacher
                         </div>
                       )}
                       <BookOpen
                         size={14}
-                        className="absolute right-3 top-3 text-slate-400 pointer-events-none"
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
                       />
                     </div>
                   </div>
@@ -610,7 +733,7 @@ const BookLessonModal = ({
                   <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2">
                     Booking Summary
                   </span>
-                  {selectedSlot && subject ? (
+                  {selectedSlots.length > 0 && subject ? (
                     <div className="space-y-1.5 text-xs">
                       <div className="flex items-center justify-between">
                         <span className="text-slate-500 dark:text-slate-400">
@@ -622,35 +745,49 @@ const BookLessonModal = ({
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-slate-500 dark:text-slate-400">
-                          Date
+                          Lessons
                         </span>
                         <span className="font-semibold text-slate-800 dark:text-slate-200">
-                          {new Date(selectedSlot.startTime).toLocaleDateString(
-                            "en-GB",
-                            {
-                              weekday: "short",
-                              day: "numeric",
-                              month: "short",
-                            },
-                          )}
+                          {selectedSlots.length}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-slate-500 dark:text-slate-400">
-                          Time
-                        </span>
-                        <span className="font-semibold text-slate-800 dark:text-slate-200">
-                          {new Date(selectedSlot.startTime).toLocaleTimeString(
-                            "en-GB",
-                            { hour: "2-digit", minute: "2-digit" },
-                          )}{" "}
-                          -{" "}
-                          {new Date(selectedSlot.endTime).toLocaleTimeString(
-                            "en-GB",
-                            { hour: "2-digit", minute: "2-digit" },
-                          )}
-                        </span>
-                      </div>
+                      <ul className="max-h-28 space-y-1 overflow-y-auto pr-1">
+                        {sortedSelectedSlots.map((slot) => (
+                          <li
+                            key={slot.id}
+                            className="flex items-center justify-between gap-2 rounded-lg bg-white/70 px-2 py-1 dark:bg-slate-900/60"
+                          >
+                            <span className="font-semibold text-slate-800 dark:text-slate-200">
+                              {new Date(slot.startTime).toLocaleDateString(
+                                "en-GB",
+                                {
+                                  weekday: "short",
+                                  day: "numeric",
+                                  month: "short",
+                                },
+                              )}
+                              ,{" "}
+                              {new Date(slot.startTime).toLocaleTimeString(
+                                "en-GB",
+                                { hour: "2-digit", minute: "2-digit" },
+                              )}
+                              {" - "}
+                              {new Date(slot.endTime).toLocaleTimeString(
+                                "en-GB",
+                                { hour: "2-digit", minute: "2-digit" },
+                              )}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => toggleSlot(slot)}
+                              aria-label="Remove lesson"
+                              className="shrink-0 cursor-pointer text-slate-400 hover:text-red-500"
+                            >
+                              <X size={12} />
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
                       <div className="mt-2 flex items-center justify-between border-t border-slate-200 pt-2 dark:border-slate-700">
                         <span className="font-semibold text-slate-700 dark:text-slate-300">
                           Estimated cost
@@ -687,14 +824,18 @@ const BookLessonModal = ({
               <button
                 type="button"
                 disabled={
-                  !selectedSlot ||
+                  selectedSlots.length === 0 ||
                   isSubmitting ||
                   availableSubjects.length === 0
                 }
                 onClick={handleConfirmBooking}
                 className="px-6 py-2.5 text-xs font-semibold text-white bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-blue-600 disabled:hover:to-indigo-600 rounded-xl shadow-sm transition-all cursor-pointer"
               >
-                {isSubmitting ? "Booking..." : "Confirm Booking"}
+                {isSubmitting
+                  ? "Booking..."
+                  : selectedSlots.length > 1
+                    ? `Confirm ${selectedSlots.length} Bookings`
+                    : "Confirm Booking"}
               </button>
             </div>
           </div>
