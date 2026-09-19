@@ -71,6 +71,20 @@ const AuthForm = <T extends FieldValues>({
   };
 
   const isSignIn = formType === "SIGN-IN";
+
+  const getAutoComplete = (fieldName: string): string => {
+    if (fieldName === "email") return "email";
+    if (fieldName === "name") return "name";
+    if (fieldName === "password") return isSignIn ? "current-password" : "new-password";
+    if (fieldName === "confirmPassword") return "new-password";
+    return "on";
+  };
+
+  const humanizeFieldName = (fieldName: string): string =>
+    fieldName
+      .replace(/([A-Z])/g, " $1")
+      .replace(/^./, (char) => char.toUpperCase());
+
   const buttonText = isSignIn ? "Login In" : "Sign Up";
   const loadingText = isSignIn ? "Signing In..." : "Signing Up...";
   const displayButtonContent = form.formState.isSubmitting
@@ -107,7 +121,7 @@ const AuthForm = <T extends FieldValues>({
                   const fieldLabel =
                     fieldName === "email"
                       ? "Email Address"
-                      : fieldName.charAt(0).toUpperCase() + fieldName.slice(1);
+                      : humanizeFieldName(fieldName);
 
                   return (
                     <Field data-invalid={fieldState.invalid}>
@@ -121,9 +135,11 @@ const AuthForm = <T extends FieldValues>({
                         className="w-full rounded-md border border-gray-300 px-4 py-6 transition outline-none focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-blue-500 data-[invalid=true]:border-red-500"
                         aria-invalid={fieldState.invalid}
                         placeholder={
-                          fieldName.charAt(0).toUpperCase() + fieldName.slice(1)
+                          fieldName === "email"
+                            ? "Email Address"
+                            : humanizeFieldName(fieldName)
                         }
-                        autoComplete="off"
+                        autoComplete={getAutoComplete(fieldName)}
                       />
                       {fieldState.invalid && (
                         <div className="mt-1 text-sm font-medium text-red-500">

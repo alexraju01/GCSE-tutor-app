@@ -19,9 +19,18 @@ const baseAuthFields = {
 
 const credentialsFields = {
   provider: z.literal("credentials"),
+  // Mirrors the client's SignUpSchema — the client check is UX only, this is
+  // what actually enforces the policy against a direct API call.
   password: z
     .string({ error: "Password is required" })
-    .min(8, { message: "Password must be at least 8 characters long" }),
+    .min(8, { message: "Password must be at least 8 characters long" })
+    .max(150, { message: "Password cannot exceed 150 characters" })
+    .regex(/[A-Z]/, { message: "Password must contain at least one uppercase letter" })
+    .regex(/[a-z]/, { message: "Password must contain at least one lowercase letter" })
+    .regex(/[0-9]/, { message: "Password must contain at least one number" })
+    .regex(/[^a-zA-Z0-9]/, {
+      message: "Password must contain at least one special character",
+    }),
   confirmPassword: z.string({ error: "Confirm password is required" }),
 };
 

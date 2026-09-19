@@ -23,27 +23,26 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const { email, password } = validated.data;
 
-        try {
-          // Call backend login endpoint
-          const res = await api.auth.signIn({ email, password });
-          if (!res?.data?.user) return null;
-          const {
-            data: { user },
-            token,
-          } = res;
-          // Return user object with minimal required fields
-          return {
-            id: String(user.id),
-            name: user.name,
-            email: user.email,
-            image: user.image ?? null,
-            role: user.role,
-            backendJwt: token,
-          };
-        } catch (err) {
-          console.error("Credentials authorize error:", err);
-          return null;
-        }
+        // Let a failed login throw instead of swallowing it into `null` —
+        // NextAuth wraps it as CallbackRouteError and preserves this exact
+        // error at `.cause.err`, so the real API message (e.g. "Incorrect
+        // email or password") reaches the caller instead of NextAuth's own
+        // generic "CredentialsSignin" text.
+        const res = await api.auth.signIn({ email, password });
+        if (!res?.data?.user) return null;
+        const {
+          data: { user },
+          token,
+        } = res;
+        // Return user object with minimal required fields
+        return {
+          id: String(user.id),
+          name: user.name,
+          email: user.email,
+          image: user.image ?? null,
+          role: user.role,
+          backendJwt: token,
+        };
       },
     }),
   ],
