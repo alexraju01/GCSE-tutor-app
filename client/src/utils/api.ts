@@ -191,6 +191,12 @@ export const api = {
         headers: { Authorization: `Bearer ${token}` },
       }),
 
+    cancel: (lessonId: string, token: string) =>
+      fetchData<void>(`/lessons/${encodeURIComponent(lessonId)}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+
     getAll: (token: string, params?: GetLessonsParams) => {
       const page = params?.page ?? 1;
       const query = new URLSearchParams({ page: String(page) });

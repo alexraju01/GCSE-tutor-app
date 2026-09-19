@@ -1,6 +1,7 @@
 import { prisma } from "@db/prisma.js";
 import { LessonStatus } from "@generated/client.js";
 import { formatSessionTime } from "@utils/date.js";
+import { effectivelyCompletedCondition } from "./lesson.service.js";
 
 const USER_SELECT = {
   name: true,
@@ -23,18 +24,22 @@ export const getTeacherDashboardData = async (teacherUserId: string) => {
     },
   });
 
+  const now = new Date();
+
   const [completedLessonsCount, activeStudentsCount, durationAggregate, upcomingLessonsRaw] =
     await Promise.all([
       prisma.lesson.count({
-        where: { teacherId: teacher.id, status: LessonStatus.Completed },
+        where: { teacherId: teacher.id, ...effectivelyCompletedCondition(now) },
       }),
 
       prisma.student.count({
-        where: { lessons: { some: { teacherId: teacher.id, status: LessonStatus.Completed } } },
+        where: {
+          lessons: { some: { teacherId: teacher.id, ...effectivelyCompletedCondition(now) } },
+        },
       }),
 
       prisma.lesson.aggregate({
-        where: { teacherId: teacher.id, status: LessonStatus.Completed },
+        where: { teacherId: teacher.id, ...effectivelyCompletedCondition(now) },
         _sum: { duration: true },
       }),
 
@@ -88,18 +93,22 @@ export const getStudentDashboardData = async (studentUserId: string) => {
     },
   });
 
+  const now = new Date();
+
   const [completedLessonsCount, activeTeachersCount, durationAggregate, upcomingLessonsRaw] =
     await Promise.all([
       prisma.lesson.count({
-        where: { studentId: student.id, status: LessonStatus.Completed },
+        where: { studentId: student.id, ...effectivelyCompletedCondition(now) },
       }),
 
       prisma.teacher.count({
-        where: { lessons: { some: { studentId: student.id, status: LessonStatus.Completed } } },
+        where: {
+          lessons: { some: { studentId: student.id, ...effectivelyCompletedCondition(now) } },
+        },
       }),
 
       prisma.lesson.aggregate({
-        where: { studentId: student.id, status: LessonStatus.Completed },
+        where: { studentId: student.id, ...effectivelyCompletedCondition(now) },
         _sum: { duration: true },
       }),
 

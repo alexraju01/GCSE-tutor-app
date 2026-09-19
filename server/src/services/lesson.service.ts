@@ -50,6 +50,43 @@ const buildDateRangeFilter = (year?: number, month?: number) => {
   };
 };
 
+// Nothing ever flips a lesson from Upcoming/Confirmed to Completed once its
+// start time passes — there's no worker for it — so the stored status goes
+// stale. Derive the real status here instead of trusting it as-is.
+const getEffectiveStatus = (status: LessonStatus, startTime: Date, now: Date): LessonStatus => {
+  const isPending = status === LessonStatus.Upcoming || status === LessonStatus.Confirmed;
+  return isPending && startTime <= now ? LessonStatus.Completed : status;
+};
+
+// A lesson counts as completed once it's actually Completed OR its start
+// time has simply passed (see getEffectiveStatus) — reused anywhere a query
+// filters on `status: Completed` directly, so those don't stay stuck at
+// zero for lessons no one ever flips.
+export const effectivelyCompletedCondition = (now: Date = new Date()) => ({
+  OR: [
+    { status: LessonStatus.Completed },
+    { status: { in: [LessonStatus.Upcoming, LessonStatus.Confirmed] }, startTime: { lte: now } },
+  ],
+});
+
+// Keeps filtering consistent with getEffectiveStatus above — otherwise a
+// lesson could display as Completed but never show up under a "Completed"
+// filter (or a started-but-technically-Upcoming one could still show up
+// under "Upcoming").
+const buildStatusCondition = (status: LessonStatus | undefined, now: Date) => {
+  if (!status) return undefined;
+
+  if (status === LessonStatus.Completed) {
+    return effectivelyCompletedCondition(now);
+  }
+
+  if (status === LessonStatus.Upcoming || status === LessonStatus.Confirmed) {
+    return { status, startTime: { gt: now } };
+  }
+
+  return { status };
+};
+
 export const findLessonsByRole = async ({
   userId,
   role,
@@ -65,12 +102,16 @@ export const findLessonsByRole = async ({
   const skip = (page - 1) * limit;
   const dateRange = buildDateRangeFilter(year, month);
   const orderBy = [{ startTime: sort }, { id: sort }];
+  const now = new Date();
+  const statusCondition = buildStatusCondition(status, now);
 
   const where = {
     ...(isStudent ? { student: { userId } } : { teacher: { userId } }),
-    ...(status && { status }),
     ...(subject && { subject }),
     ...(dateRange && { startTime: dateRange }),
+    // A separate AND entry so this never collides with dateRange's own
+    // startTime key above — both need to hold at once when both are set.
+    ...(statusCondition && { AND: [statusCondition] }),
   };
 
   if (isStudent) {
@@ -91,6 +132,7 @@ export const findLessonsByRole = async ({
     const lessons = rawLessons.map(({ teacher, ...lesson }) => ({
       ...lesson,
       teacher: teacher.user,
+      status: getEffectiveStatus(lesson.status, lesson.startTime, now),
     }));
 
     return { lessons, totalResults };
@@ -113,6 +155,7 @@ export const findLessonsByRole = async ({
   const lessons = rawLessons.map(({ student, ...lesson }) => ({
     ...lesson,
     student: student.user,
+    status: getEffectiveStatus(lesson.status, lesson.startTime, now),
   }));
 
   return { lessons, totalResults };
