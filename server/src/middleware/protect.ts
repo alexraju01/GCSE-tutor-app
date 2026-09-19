@@ -29,7 +29,7 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
   // 3) Verify token safely
   let decoded: CustomJwtPayload;
   try {
-    decoded = jwt.verify(token, env.JWT_SECRET) as CustomJwtPayload;
+    decoded = jwt.verify(token, env.JWT_SECRET, { algorithms: ["HS256"] }) as CustomJwtPayload;
   } catch {
     return next(new AppError("Invalid or expired token. Please log in again.", 401));
   }

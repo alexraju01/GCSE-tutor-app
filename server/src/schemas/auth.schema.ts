@@ -90,6 +90,17 @@ export const registrationSchema = z
   })
   .pipe(baseDiscriminatedUnion);
 
+// No complexity rules at login, just bounds against a huge payload.
+export const loginSchema = z.object({
+  email: emailSchema,
+  password: z
+    .string({ error: "Password is required" })
+    .min(1, { message: "Password is required" })
+    .max(255, { message: "Password cannot exceed 255 characters" }),
+});
+
+export type LoginInput = z.infer<typeof loginSchema>;
+
 export const socialSyncSchema = z.object({
   ...baseAuthFields,
   ...socialFields,

@@ -16,11 +16,14 @@ export const teachesItemSchema = z.object({
 export const teacherFieldsShape = {
   bio: z
     .string({ error: "Bio is required" })
-    .min(20, { message: "Bio must be at least 20 characters" }),
-  qualifications: z.string({
-    error: (issue) =>
-      issue.input === undefined ? "Qualification is required" : "Qualifications must be a string",
-  }),
+    .min(20, { message: "Bio must be at least 20 characters" })
+    .max(2000, { message: "Bio cannot exceed 2000 characters" }),
+  qualifications: z
+    .string({
+      error: (issue) =>
+        issue.input === undefined ? "Qualification is required" : "Qualifications must be a string",
+    })
+    .max(500, { message: "Qualifications cannot exceed 500 characters" }),
   hourlyRate: z
     .number({
       error: (issue) =>

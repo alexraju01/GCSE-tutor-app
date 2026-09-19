@@ -7,7 +7,12 @@ import {
   syncSocialUser,
   signAuthToken,
 } from "../services/auth.service.js";
-import type { UserInput, CredentialsInput, SocialSyncInput } from "../schemas/auth.schema.js";
+import type {
+  UserInput,
+  CredentialsInput,
+  SocialSyncInput,
+  LoginInput,
+} from "../schemas/auth.schema.js";
 import type { Response, Request, RequestHandler, CookieOptions } from "express";
 
 export const signUp = async (req: Request, res: Response) => {
@@ -23,11 +28,7 @@ export const signUp = async (req: Request, res: Response) => {
 };
 
 export const login = async (req: Request, res: Response) => {
-  const { email, password } = req.body;
-
-  if (!email || !password) {
-    throw new AppError("Please provide email and password!", 400);
-  }
+  const { email, password } = req.body as LoginInput;
 
   const user = await verifyLoginCredentials(email, password);
 

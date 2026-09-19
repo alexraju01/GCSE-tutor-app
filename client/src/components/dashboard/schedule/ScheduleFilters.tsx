@@ -1,5 +1,6 @@
 import type { Route } from "next";
 import Link from "next/link";
+import { nowInUk } from "@utils/ukTime";
 import {
   Calendar as CalendarIcon,
   ChevronLeft,
@@ -32,7 +33,8 @@ const ScheduleFilters = ({
   formattedDateHeader,
 }: ScheduleFiltersProps) => {
   const isMonthlyView = selectedMonth !== undefined;
-  const now = new Date();
+  // "This month"/"today" always mean UK time, not the viewer's device clock.
+  const now = nowInUk();
   const isCurrentMonth =
     isMonthlyView &&
     selectedYear === now.getFullYear() &&

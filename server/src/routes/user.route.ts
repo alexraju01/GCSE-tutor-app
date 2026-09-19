@@ -8,14 +8,14 @@ import {
 } from "@controllers/user.controller.js";
 import { Role } from "@generated/enums.js";
 import { validate, protect, authorize, authLimiter } from "@middleware";
-import { registrationSchema, updateUserSchema } from "@schemas";
+import { loginSchema, registrationSchema, updateUserSchema } from "@schemas";
 import { Router } from "express";
 
 export const userRouter = Router();
 
 // 1. Public auth routes, rate limited so people can't brute force logins
 userRouter.route("/signup").post(authLimiter, validate(registrationSchema), signUp);
-userRouter.route("/login").post(authLimiter, login);
+userRouter.route("/login").post(authLimiter, validate(loginSchema), login);
 userRouter.route("/logout").post(logout);
 
 // 2. Specific authenticated user routes (BEFORE dynamic parameter routes)

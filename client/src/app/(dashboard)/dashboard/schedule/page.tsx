@@ -8,6 +8,7 @@ import SchedulePagination from "@components/dashboard/schedule/SchedulePaginatio
 import type { TimeSlot } from "@utils/actions/availability";
 import { api } from "@utils/api";
 import { formatHeaderDate } from "@utils/date";
+import { nowInUk } from "@utils/ukTime";
 
 interface SchedulePageProps {
   searchParams: Promise<{
@@ -63,7 +64,8 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
       ? params.sort
       : DEFAULT_SORT_BY_FILTER[activeFilter];
   const currentPage = params.page ? parseInt(params.page, 10) : 1;
-  const currentDate = new Date();
+  // Server's own clock isn't necessarily UK time.
+  const currentDate = nowInUk();
   const selectedYear = params.year
     ? parseInt(params.year, 10)
     : currentDate.getFullYear();

@@ -1,6 +1,8 @@
 // TeacherDashboardPage.tsx
 import { Clock, PoundSterling, Star, Users } from "lucide-react";
+import { redirect } from "next/navigation";
 import { auth } from "@auth";
+import { UserRole } from "@/types/role";
 import QuickActionsCard from "@components/dashboard/QuickActionsCard";
 import StatsGrid, {
   STAT_ACCENTS,
@@ -12,8 +14,18 @@ import { api } from "@utils/api";
 
 const TeacherDashboardPage = async () => {
   const session = await auth();
-  const teacherName = session?.user?.name || "Teacher";
-  const backendToken = session?.backendToken || "";
+
+  if (!session?.user) {
+    redirect("/sign-up");
+  }
+
+  // Mirrors the guard on the student dashboard.
+  if (session.user.role !== UserRole.Teacher) {
+    redirect("/dashboard/student");
+  }
+
+  const teacherName = session.user.name || "Teacher";
+  const backendToken = session.backendToken || "";
 
   // Fetch dashboard summary and availability concurrently
   const [dashboardResponse, availabilityResponse] = await Promise.all([

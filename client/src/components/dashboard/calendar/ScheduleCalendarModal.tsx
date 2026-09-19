@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, Clock, Plus, X } from "lucide-react";
 
 import SetAvailabilityModal from "./SetAvailabilityModal";
 import { TimeSlot } from "@utils/actions/availability";
+import { nowInUk, ukWallClockToIsoString } from "@utils/ukTime";
 
 interface ScheduleCalendarModalProps {
   isOpen: boolean;
@@ -26,6 +27,7 @@ const getMonday = (date: Date): Date => {
   return d;
 };
 
+// `dayDate` is nowInUk()-seeded, so its local digits are already UK time.
 const formatDateKey = (date: Date): string => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -42,7 +44,7 @@ const ScheduleCalendarModal = ({
 }: ScheduleCalendarModalProps) => {
   const [isAvailabilityModalOpen, setIsAvailabilityModalOpen] = useState(false);
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(() =>
-    getMonday(new Date()),
+    getMonday(nowInUk()),
   );
 
   const [prevInitialSlots, setPrevInitialSlots] =
@@ -66,7 +68,6 @@ const ScheduleCalendarModal = ({
     return Array.from({ length: 7 }, (_, index) => {
       const dayDate = new Date(currentWeekStart);
       dayDate.setDate(currentWeekStart.getDate() + index);
-      const today = new Date();
       const isoDate = formatDateKey(dayDate);
 
       return {
@@ -74,7 +75,7 @@ const ScheduleCalendarModal = ({
         fullDayName: dayDate.toLocaleDateString("en-US", { weekday: "long" }),
         dayNumber: dayDate.getDate(),
         isoDate,
-        isToday: isoDate === formatDateKey(today),
+        isToday: isoDate === formatDateKey(nowInUk()),
         rawDate: dayDate,
       };
     });
@@ -106,7 +107,7 @@ const ScheduleCalendarModal = ({
   };
 
   const handleToday = () => {
-    setCurrentWeekStart(getMonday(new Date()));
+    setCurrentWeekStart(getMonday(nowInUk()));
   };
 
   const handleCellClick = (
@@ -294,10 +295,18 @@ const ScheduleCalendarModal = ({
                 </div>
 
                 {weekDays.map((day) => {
-                  const slotDateTime = new Date(day.rawDate);
-                  slotDateTime.setHours(hour, 0, 0, 0);
+                  // rawDate's digits are UK time; convert to a real instant to compare against "now".
+                  const slotInstant = new Date(
+                    ukWallClockToIsoString(
+                      day.rawDate.getFullYear(),
+                      day.rawDate.getMonth() + 1,
+                      day.rawDate.getDate(),
+                      hour,
+                      0,
+                    ),
+                  );
 
-                  const isPast = slotDateTime < now;
+                  const isPast = slotInstant < now;
                   const activeAvailability = getActiveAvailability(day, hour);
                   const isAvailable = Boolean(activeAvailability);
 

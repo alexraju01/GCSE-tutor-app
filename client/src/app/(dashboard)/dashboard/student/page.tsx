@@ -10,6 +10,7 @@ import {
 
 import { auth } from "@auth";
 import { api } from "@utils/api";
+import { UserRole } from "@/types/role";
 import QuickToolsList from "@components/QuickToolsList";
 import StatsGrid, {
   STAT_ACCENTS,
@@ -24,6 +25,11 @@ const StudentDashboardPage = async () => {
 
   if (!session?.user) {
     redirect("/sign-up");
+  }
+
+  // Layout only checks a session exists, not the role vs. this route.
+  if (session.user.role !== UserRole.Student) {
+    redirect("/dashboard/teacher");
   }
 
   const { data: studentDashboard } = await api.dashboard.studentDashboard(

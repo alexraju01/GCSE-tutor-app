@@ -14,6 +14,12 @@ import {
 } from "lucide-react";
 import type { SessionData } from "@/types/auth";
 import { api, type TeacherAvailabilitySlot } from "@utils/api";
+import {
+  toUkDateKey,
+  getUkDateParts,
+  formatUkDate,
+  formatUkTime,
+} from "@utils/ukTime";
 
 type RawAvailability = TeacherAvailabilitySlot;
 
@@ -33,6 +39,16 @@ interface BookLessonModalProps {
 }
 
 const MAX_BATCH_SIZE = 20;
+
+// Real slot timestamps use @utils/ukTime for UK-zoned keys/display. Calendar
+// grid cells are placeholder Dates with no real instant behind them, so this
+// just reads their digits straight back rather than re-projecting via Intl.
+const dateOnlyKey = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 
 const BookLessonModal = ({
   isOpen,
@@ -94,10 +110,19 @@ const BookLessonModal = ({
   useEffect(() => {
     if (!isOpen || !teacherId) return;
 
+    // Avoids a superseded request overwriting state from a newer one.
+    let ignore = false;
+
     const fetchTeacherDetailsAndSlots = async () => {
       setIsLoading(true);
       setLoadError(false);
       setErrorMessage(null);
+      // Reset ephemeral state so it doesn't leak into the next open.
+      setSelectedSlots([]);
+      setTopic("");
+      setNotes("");
+      setBookingSuccess(false);
+      setBookedCount(0);
       try {
         // Fetch slots and teacher profile concurrently if subjects weren't provided as a prop
         // limit=100 (the server's max) so a teacher with lots of open slots
@@ -108,7 +133,7 @@ const BookLessonModal = ({
           token,
         );
 
-        // A failed profile lookup shouldn't block booking; fall back to no subjects.
+        // A failed profile lookup shouldn't block booking.
         const teacherPromise = !teacherSubjects
           ? api.teacher.getOne(teacherId, token).catch(() => null)
           : Promise.resolve(null);
@@ -117,6 +142,8 @@ const BookLessonModal = ({
           slotsPromise,
           teacherPromise,
         ]);
+
+        if (ignore) return;
 
         const loadedSlots: RawAvailability[] = slotsResult.data || [];
         setSlots(loadedSlots);
@@ -135,13 +162,12 @@ const BookLessonModal = ({
 
         if (loadedSlots.length > 0) {
           const firstSlotDate = new Date(loadedSlots[0].startTime);
-          const firstDateKey = firstSlotDate.toISOString().split("T")[0];
-          setSelectedDateKey(firstDateKey);
-          setCurrentMonth(
-            new Date(firstSlotDate.getFullYear(), firstSlotDate.getMonth(), 1),
-          );
+          setSelectedDateKey(toUkDateKey(firstSlotDate));
+          const { year, month } = getUkDateParts(firstSlotDate);
+          setCurrentMonth(new Date(year, month - 1, 1));
         }
       } catch (err) {
+        if (ignore) return;
         console.error(
           "Failed to load availability slots or teacher info:",
           err,
@@ -149,18 +175,22 @@ const BookLessonModal = ({
         setSlots([]);
         setLoadError(true);
       } finally {
-        setIsLoading(false);
+        if (!ignore) setIsLoading(false);
       }
     };
 
     void fetchTeacherDetailsAndSlots();
+
+    return () => {
+      ignore = true;
+    };
   }, [isOpen, teacherId, token, teacherSubjects, reloadKey]);
 
   const groupedSlots = useMemo(() => {
     const groups: Record<string, RawAvailability[]> = {};
 
     slots.forEach((slot) => {
-      const dateKey = new Date(slot.startTime).toISOString().split("T")[0];
+      const dateKey = toUkDateKey(new Date(slot.startTime));
       if (!groups[dateKey]) {
         groups[dateKey] = [];
       }
@@ -177,7 +207,7 @@ const BookLessonModal = ({
     return groups;
   }, [slots]);
 
-  const todayKey = new Date().toISOString().split("T")[0];
+  const todayKey = toUkDateKey(new Date());
 
   const calendarDays = useMemo(() => {
     const year = currentMonth.getFullYear();
@@ -216,12 +246,12 @@ const BookLessonModal = ({
     if (slots.length === 0) return null;
 
     const times = slots.map((slot) => new Date(slot.startTime).getTime());
-    const earliest = new Date(Math.min(...times));
-    const latest = new Date(Math.max(...times));
+    const earliestParts = getUkDateParts(new Date(Math.min(...times)));
+    const latestParts = getUkDateParts(new Date(Math.max(...times)));
 
     return {
-      min: new Date(earliest.getFullYear(), earliest.getMonth(), 1),
-      max: new Date(latest.getFullYear(), latest.getMonth(), 1),
+      min: new Date(earliestParts.year, earliestParts.month - 1, 1),
+      max: new Date(latestParts.year, latestParts.month - 1, 1),
     };
   }, [slots]);
 
@@ -245,21 +275,21 @@ const BookLessonModal = ({
   const selectedCountByDate = useMemo(() => {
     const counts: Record<string, number> = {};
     selectedSlots.forEach((slot) => {
-      const key = new Date(slot.startTime).toISOString().split("T")[0];
+      const key = toUkDateKey(new Date(slot.startTime));
       counts[key] = (counts[key] || 0) + 1;
     });
     return counts;
   }, [selectedSlots]);
 
-  const totalMinutes = selectedSlots.reduce(
-    (sum, slot) =>
-      sum +
-      Math.round(
+  const totalMinutes = Math.round(
+    selectedSlots.reduce(
+      (sum, slot) =>
+        sum +
         (new Date(slot.endTime).getTime() -
           new Date(slot.startTime).getTime()) /
           60000,
-      ),
-    0,
+      0,
+    ),
   );
   const estimatedCost = (hourlyRate * totalMinutes) / 60;
 
@@ -286,6 +316,12 @@ const BookLessonModal = ({
     return `${selectedSlots.length} ${
       selectedSlots.length === 1 ? "lesson" : "lessons"
     } selected.`;
+  };
+
+  const getConfirmButtonLabel = (): string => {
+    if (isSubmitting) return "Booking...";
+    if (selectedSlots.length > 1) return `Confirm ${selectedSlots.length} Bookings`;
+    return "Confirm Booking";
   };
 
   const getDayCellClasses = (
@@ -370,11 +406,19 @@ const BookLessonModal = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs">
-      <div className="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="book-lesson-modal-title"
+        className="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900"
+      >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 p-6 dark:border-slate-800">
           <div>
-            <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+            <h2
+              id="book-lesson-modal-title"
+              className="text-xl font-bold text-slate-900 dark:text-slate-100"
+            >
               Book Lesson with {teacherName || "Teacher"}
             </h2>
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
@@ -385,7 +429,9 @@ const BookLessonModal = ({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200 cursor-pointer transition-colors"
+            disabled={isSubmitting}
+            aria-label="Close"
+            className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200 cursor-pointer transition-colors disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent dark:disabled:hover:bg-transparent"
           >
             <X size={20} />
           </button>
@@ -535,7 +581,7 @@ const BookLessonModal = ({
                       );
                     }
 
-                    const dateKey = date.toISOString().split("T")[0];
+                    const dateKey = dateOnlyKey(date);
                     const slotCount = groupedSlots[dateKey]?.length || 0;
                     const hasAvailability = slotCount > 0;
                     const isSelected = selectedDateKey === dateKey;
@@ -594,21 +640,8 @@ const BookLessonModal = ({
                           const start = new Date(slot.startTime);
                           const end = new Date(slot.endTime);
 
-                          const startTimeFormatted = start.toLocaleTimeString(
-                            "en-GB",
-                            {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            },
-                          );
-
-                          const endTimeFormatted = end.toLocaleTimeString(
-                            "en-GB",
-                            {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            },
-                          );
+                          const startTimeFormatted = formatUkTime(start);
+                          const endTimeFormatted = formatUkTime(end);
 
                           return (
                             <button
@@ -739,6 +772,7 @@ const BookLessonModal = ({
                       onChange={(e: ChangeEvent<HTMLInputElement>) =>
                         setTopic(e.target.value)
                       }
+                      maxLength={255}
                       placeholder="e.g., Integration by parts, Organic Chemistry"
                       className="w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs text-slate-900 focus:border-blue-600 focus:bg-white focus:outline-hidden dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-blue-600"
                     />
@@ -754,6 +788,7 @@ const BookLessonModal = ({
                       onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
                         setNotes(e.target.value)
                       }
+                      maxLength={255}
                       placeholder="Add requests or details for the session..."
                       className="w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs text-slate-900 focus:border-blue-600 focus:bg-white focus:outline-hidden dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-blue-600"
                     />
@@ -790,24 +825,14 @@ const BookLessonModal = ({
                             className="flex items-center justify-between gap-2 rounded-lg bg-white/70 px-2 py-1 dark:bg-slate-900/60"
                           >
                             <span className="font-semibold text-slate-800 dark:text-slate-200">
-                              {new Date(slot.startTime).toLocaleDateString(
-                                "en-GB",
-                                {
-                                  weekday: "short",
-                                  day: "numeric",
-                                  month: "short",
-                                },
-                              )}
-                              ,{" "}
-                              {new Date(slot.startTime).toLocaleTimeString(
-                                "en-GB",
-                                { hour: "2-digit", minute: "2-digit" },
-                              )}
+                              {formatUkDate(new Date(slot.startTime), {
+                                weekday: "short",
+                                day: "numeric",
+                                month: "short",
+                              })}
+                              , {formatUkTime(new Date(slot.startTime))}
                               {" - "}
-                              {new Date(slot.endTime).toLocaleTimeString(
-                                "en-GB",
-                                { hour: "2-digit", minute: "2-digit" },
-                              )}
+                              {formatUkTime(new Date(slot.endTime))}
                             </span>
                             <button
                               type="button"
@@ -861,7 +886,8 @@ const BookLessonModal = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-200/60 rounded-xl dark:text-slate-300 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+                disabled={isSubmitting}
+                className="px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-200/60 rounded-xl dark:text-slate-300 dark:hover:bg-slate-800 cursor-pointer transition-colors disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent dark:disabled:hover:bg-transparent"
               >
                 Cancel
               </button>
@@ -870,16 +896,13 @@ const BookLessonModal = ({
                 disabled={
                   selectedSlots.length === 0 ||
                   isSubmitting ||
-                  availableSubjects.length === 0
+                  availableSubjects.length === 0 ||
+                  !subject
                 }
                 onClick={handleConfirmBooking}
                 className="px-6 py-2.5 text-xs font-semibold text-white bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-blue-600 disabled:hover:to-indigo-600 rounded-xl shadow-sm transition-all cursor-pointer"
               >
-                {isSubmitting
-                  ? "Booking..."
-                  : selectedSlots.length > 1
-                    ? `Confirm ${selectedSlots.length} Bookings`
-                    : "Confirm Booking"}
+                {getConfirmButtonLabel()}
               </button>
             </div>
           </div>

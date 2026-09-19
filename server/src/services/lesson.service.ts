@@ -122,35 +122,37 @@ export const cancelLesson = async (
   lessonId: string,
   canceller: { userId: string; role: typeof Role.Student | typeof Role.Teacher },
 ) => {
-  const lesson = await prisma.lesson.findUnique({
-    where: { id: lessonId },
-    select: {
-      id: true,
-      status: true,
-      startTime: true,
-      student: { select: { userId: true } },
-      teacher: { select: { userId: true } },
-    },
-  });
+  await prisma.$transaction(async (tx) => {
+    const lesson = await tx.lesson.findUnique({
+      where: { id: lessonId },
+      select: {
+        id: true,
+        status: true,
+        startTime: true,
+        student: { select: { userId: true } },
+        teacher: { select: { userId: true } },
+      },
+    });
 
-  const ownerUserId =
-    canceller.role === Role.Student ? lesson?.student.userId : lesson?.teacher.userId;
+    const ownerUserId =
+      canceller.role === Role.Student ? lesson?.student.userId : lesson?.teacher.userId;
 
-  if (!lesson || ownerUserId !== canceller.userId) {
-    throw new AppError("No lesson found with that ID.", 404);
-  }
+    if (!lesson || ownerUserId !== canceller.userId) {
+      throw new AppError("No lesson found with that ID.", 404);
+    }
 
-  if (lesson.status === LessonStatus.Cancelled || lesson.status === LessonStatus.Completed) {
-    throw new AppError(`This lesson is already ${lesson.status.toLowerCase()}.`, 400);
-  }
+    if (lesson.status === LessonStatus.Cancelled || lesson.status === LessonStatus.Completed) {
+      throw new AppError(`This lesson is already ${lesson.status.toLowerCase()}.`, 400);
+    }
 
-  if (lesson.startTime <= new Date()) {
-    throw new AppError("This lesson has already started and can no longer be cancelled.", 400);
-  }
+    if (lesson.startTime <= new Date()) {
+      throw new AppError("This lesson has already started and can no longer be cancelled.", 400);
+    }
 
-  await prisma.lesson.update({
-    where: { id: lessonId },
-    data: { status: LessonStatus.Cancelled },
+    await tx.lesson.update({
+      where: { id: lessonId },
+      data: { status: LessonStatus.Cancelled },
+    });
   });
 };
 

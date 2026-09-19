@@ -5,6 +5,7 @@ import { Clock, Plus, Trash2, X } from "lucide-react";
 
 import { api } from "@utils/api";
 import { TimeSlot } from "@utils/actions/availability";
+import { ukWallClockToIsoString } from "@utils/ukTime";
 
 export interface AvailabilityPayloadItem {
   startTime: string;
@@ -203,9 +204,14 @@ const SetAvailabilityModal = ({
           const [hours, minutes] = slot.startTime.split(":").map(Number);
           const [year, month, day] = slot.date.split("-").map(Number);
 
-          const isoStartTime = new Date(
-            Date.UTC(year, month - 1, day, hours, minutes),
-          ).toISOString();
+          // Pickers are always UK wall-clock time, not the device's timezone.
+          const isoStartTime = ukWallClockToIsoString(
+            year,
+            month,
+            day,
+            hours,
+            minutes,
+          );
 
           return {
             startTime: isoStartTime,

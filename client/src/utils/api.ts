@@ -92,7 +92,7 @@ export const api = {
   teacher: {
     getAll: () => fetchData<APIResponse<Teacher[]>>("/teachers"),
     getOne: (id: string, token?: string) =>
-      fetchData<APIResponse<Teacher>>(`/teachers/${id}`, {
+      fetchData<APIResponse<Teacher>>(`/teachers/${encodeURIComponent(id)}`, {
         headers: authHeaders(token),
       }),
     getAvailabilities: (
@@ -106,7 +106,7 @@ export const api = {
       const qs = query.toString();
 
       return fetchData<APIResponse<TeacherAvailabilitySlot[]>>(
-        `/teachers/${id}/availabilities${qs ? `?${qs}` : ""}`,
+        `/teachers/${encodeURIComponent(id)}/availabilities${qs ? `?${qs}` : ""}`,
         { headers: authHeaders(token) },
       );
     },
@@ -117,7 +117,7 @@ export const api = {
         },
       }),
     updateOne: (id: string, data: Partial<Teacher>) =>
-      fetchData<APIResponse<Teacher>>(`/teachers/${id}`, {
+      fetchData<APIResponse<Teacher>>(`/teachers/${encodeURIComponent(id)}`, {
         method: "PATCH",
         body: data,
       }),
@@ -142,36 +142,24 @@ export const api = {
   availability: {
     getByTeacherId: (teacherId: string, token?: string) =>
       fetchData<APIResponse<AvailabilityPayloadItem[]>>(
-        `/availability/${teacherId}`,
+        `/availability/${encodeURIComponent(teacherId)}`,
         {
           method: "GET",
-          headers: token
-            ? {
-                Authorization: `Bearer ${token}`,
-              }
-            : undefined,
+          headers: authHeaders(token),
         },
       ),
 
     getMyTeacherAvailabilities: (token?: string) =>
       fetchData<APIResponse<AvailabilityPayloadItem[]>>(`/availability/me`, {
         method: "GET",
-        headers: token
-          ? {
-              Authorization: `Bearer ${token}`,
-            }
-          : undefined,
+        headers: authHeaders(token),
       }),
 
     create: (data: AvailabilityPayloadItem, token?: string) =>
       fetchData<APIResponse>("/availability", {
         method: "POST",
         body: data,
-        headers: token
-          ? {
-              Authorization: `Bearer ${token}`,
-            }
-          : undefined,
+        headers: authHeaders(token),
       }),
   },
 
