@@ -35,6 +35,19 @@ export const createAvailabilitySchema = z.union([
 
 export const updateAvailabilitySchema = availabilitySlotSchema.partial().strict();
 
+// Batch-remove a teacher's own slots — mirrors createAvailabilitySchema's
+// batch shape and cap.
+export const deleteAvailabilitySchema = z.object({
+  ids: z
+    .array(z.uuid({ message: "Invalid availability id format" }))
+    .min(1, { message: "Provide at least one availability id to delete." })
+    .max(50, { message: "You can delete at most 50 slots in a single request." })
+    .refine((ids) => new Set(ids).size === ids.length, {
+      error: "Cannot delete the same availability slot twice in one request.",
+    }),
+});
+
 export type AvailabilitySlotInput = z.infer<typeof availabilitySlotSchema>;
 export type createAvailabilityInput = z.infer<typeof createAvailabilitySchema>;
 export type updateAvailabilityInput = z.infer<typeof updateAvailabilitySchema>;
+export type DeleteAvailabilityInput = z.infer<typeof deleteAvailabilitySchema>;

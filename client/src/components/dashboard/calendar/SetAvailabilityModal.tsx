@@ -227,14 +227,20 @@ const SetAvailabilityModal = ({
           (response, index) => {
             const rawSlot = slots[index];
 
+            if (!response.data) {
+              throw new Error("Server did not return the created slot.");
+            }
+
             return {
-              ...response,
-              id: `${rawSlot.date}-${rawSlot.startTime}`,
+              // The server-assigned id — needed to delete this slot later.
+              // A composite date+time string was used here before, which
+              // isn't a real availability id.
+              id: response.data.id,
               date: rawSlot.date,
               dayOfWeek: rawSlot.dayOfWeek,
               startTime: rawSlot.startTime,
               endTime: rawSlot.endTime,
-            } as TimeSlot;
+            };
           },
         );
 

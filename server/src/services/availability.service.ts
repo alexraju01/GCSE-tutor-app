@@ -182,21 +182,42 @@ export const updateAvailabilityForTeacher = async ({
   );
 };
 
-export const deleteAvailabilityForTeacher = (teacherId: string, availabilityId: string) =>
-  prisma.$transaction(async (tx) => {
-    const existing = await tx.availability.findFirst({
-      where: { id: availabilityId, teacherId },
-      select: { id: true },
-    });
+// Deletes one or many slots atomically — either every slot in the batch is
+// removed, or none of it is, so a slot with an active booking can't leave a
+// partially-cleared selection behind (mirrors createAvailabilities).
+export const deleteAvailabilitiesForTeacher = (teacherId: string, availabilityIds: string[]) => {
+  const isBatch = availabilityIds.length > 1;
 
-    if (!existing) {
-      throw new AppError("Availability record not found or access denied.", 404);
+  return prisma.$transaction(async (tx) => {
+    for (let i = 0; i < availabilityIds.length; i++) {
+      const availabilityId = availabilityIds[i];
+      const prefix = isBatch ? `Slot ${i + 1} of ${availabilityIds.length}: ` : "";
+
+      const existing = await tx.availability.findFirst({
+        where: { id: availabilityId, teacherId },
+        select: { startTime: true, endTime: true },
+      });
+
+      if (!existing) {
+        throw new AppError(`${prefix}Availability record not found or access denied.`, 404);
+      }
+
+      try {
+        await assertNoActiveLesson(tx, availabilityId, "delete");
+      } catch (err) {
+        if (err instanceof AppError && isBatch) {
+          const durationInMinutes =
+            (existing.endTime.getTime() - existing.startTime.getTime()) / 60000;
+          const label = formatSessionTime(existing.startTime, durationInMinutes);
+          throw new AppError(`${prefix}(${label}) ${err.message}`, err.statusCode);
+        }
+        throw err;
+      }
+
+      await tx.availability.delete({ where: { id: availabilityId } });
     }
-
-    await assertNoActiveLesson(tx, availabilityId, "delete");
-
-    await tx.availability.delete({ where: { id: availabilityId } });
   });
+};
 
 interface FindAvailabilitiesParams {
   teacherId: string;

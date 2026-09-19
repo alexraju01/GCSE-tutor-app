@@ -43,5 +43,11 @@ export const fetchData = async <T>(endpoint: string, options: FetchOptions = {})
 		throw new Error(errorMessage);
 	}
 
+	// 204 (and any other empty-bodied success) has nothing to parse —
+	// response.json() throws on an empty body instead of returning it.
+	if (response.status === 204) {
+		return undefined as T;
+	}
+
 	return response.json() as Promise<T>;
 };

@@ -156,9 +156,22 @@ export const api = {
       }),
 
     create: (data: AvailabilityPayloadItem, token?: string) =>
-      fetchData<APIResponse>("/availability", {
+      fetchData<APIResponse<TeacherAvailabilitySlot>>("/availability", {
         method: "POST",
         body: data,
+        headers: authHeaders(token),
+      }),
+
+    remove: (id: string, token?: string) =>
+      fetchData<void>(`/availability/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+        headers: authHeaders(token),
+      }),
+
+    removeMany: (ids: string[], token?: string) =>
+      fetchData<void>("/availability", {
+        method: "DELETE",
+        body: { ids },
         headers: authHeaders(token),
       }),
   },

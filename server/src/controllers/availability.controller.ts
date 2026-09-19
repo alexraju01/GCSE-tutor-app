@@ -4,11 +4,12 @@ import {
   requireTeacherId,
   createAvailabilities as createAvailabilitySlots,
   updateAvailabilityForTeacher,
-  deleteAvailabilityForTeacher,
+  deleteAvailabilitiesForTeacher,
 } from "../services/availability.service.js";
 import type {
   AvailabilitySlotInput,
   createAvailabilityInput,
+  DeleteAvailabilityInput,
 } from "../schemas/availability.schema.js";
 import type { Request, Response } from "express";
 
@@ -101,7 +102,15 @@ export const updateAvailability = async (req: Request<{ id: string }>, res: Resp
 
 export const deleteAvailability = async (req: Request<{ id: string }>, res: Response) => {
   const teacherId = await requireTeacherId(req.user?.id);
-  await deleteAvailabilityForTeacher(teacherId, req.params.id);
+  await deleteAvailabilitiesForTeacher(teacherId, [req.params.id]);
+
+  return res.status(204).send();
+};
+
+export const deleteAvailabilities = async (req: Request, res: Response) => {
+  const teacherId = await requireTeacherId(req.user?.id);
+  const { ids } = req.body as DeleteAvailabilityInput;
+  await deleteAvailabilitiesForTeacher(teacherId, ids);
 
   return res.status(204).send();
 };
