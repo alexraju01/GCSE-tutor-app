@@ -30,13 +30,18 @@ const partsToRecord = (parts: Intl.DateTimeFormatPart[]): Record<string, string>
 // "YYYY-MM-DD" for the UK calendar day a real instant falls on.
 export const toUkDateKey = (date: Date): string => ukDateKeyFormatter.format(date);
 
-// Year/month/day (month is 1-12) the UK calendar reads for a real instant.
-export const getUkDateParts = (date: Date): { year: number; month: number; day: number } => {
+// Year/month/day/hour/minute (month is 1-12) the UK wall clock reads for a
+// real instant.
+export const getUkDateParts = (
+  date: Date,
+): { year: number; month: number; day: number; hour: number; minute: number } => {
   const parts = partsToRecord(ukPartsFormatter.formatToParts(date));
   return {
     year: Number(parts.year),
     month: Number(parts.month),
     day: Number(parts.day),
+    hour: Number(parts.hour) % 24, // Intl can format midnight as "24"
+    minute: Number(parts.minute),
   };
 };
 

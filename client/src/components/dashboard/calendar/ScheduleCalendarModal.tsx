@@ -15,7 +15,12 @@ import {
 import SetAvailabilityModal from "./SetAvailabilityModal";
 import { TimeSlot } from "@utils/actions/availability";
 import { api } from "@utils/api";
-import { nowInUk, ukWallClockToIsoString } from "@utils/ukTime";
+import {
+  getUkDateParts,
+  nowInUk,
+  toUkDateKey,
+  ukWallClockToIsoString,
+} from "@utils/ukTime";
 
 interface ScheduleCalendarModalProps {
   isOpen: boolean;
@@ -219,14 +224,18 @@ const ScheduleCalendarModal = ({
       let endHour = -1;
 
       if (slot.startTime.includes("T")) {
-        const [datePart, timePart] = slot.startTime.split("T");
-        const [endTimePart] = slot.endTime
-          ? slot.endTime.split("T").slice(1)
-          : ["00:00"];
+        // Real server timestamps are UTC — read them back as UK wall-clock
+        // hours instead of string-slicing the raw (UTC) ISO text, which
+        // silently shifted every slot by the UK's offset from UTC.
+        const start = new Date(slot.startTime);
+        const startParts = getUkDateParts(start);
+        const endParts = slot.endTime
+          ? getUkDateParts(new Date(slot.endTime))
+          : startParts;
 
-        slotIsoDate = datePart;
-        startHour = parseInt(timePart.split(":")[0], 10);
-        endHour = parseInt(endTimePart.split(":")[0], 10);
+        slotIsoDate = toUkDateKey(start);
+        startHour = startParts.hour;
+        endHour = endParts.hour;
       } else {
         slotIsoDate = slot.date || "";
         startHour = parseInt(slot.startTime.split(":")[0], 10);
