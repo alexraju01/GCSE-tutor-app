@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo, useRef, ChangeEvent } from "react";
 import {
+  CalendarX,
   ChevronDown,
   Clock,
   X,
@@ -47,6 +48,8 @@ const BookLessonModal = ({
     teacherSubjects || [],
   );
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [loadError, setLoadError] = useState<boolean>(false);
+  const [reloadKey, setReloadKey] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [bookingSuccess, setBookingSuccess] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -93,6 +96,7 @@ const BookLessonModal = ({
 
     const fetchTeacherDetailsAndSlots = async () => {
       setIsLoading(true);
+      setLoadError(false);
       setErrorMessage(null);
       try {
         // Fetch slots and teacher profile concurrently if subjects weren't provided as a prop
@@ -142,13 +146,15 @@ const BookLessonModal = ({
           "Failed to load availability slots or teacher info:",
           err,
         );
+        setSlots([]);
+        setLoadError(true);
       } finally {
         setIsLoading(false);
       }
     };
 
     void fetchTeacherDetailsAndSlots();
-  }, [isOpen, teacherId, token, teacherSubjects]);
+  }, [isOpen, teacherId, token, teacherSubjects, reloadKey]);
 
   const groupedSlots = useMemo(() => {
     const groups: Record<string, RawAvailability[]> = {};
@@ -418,11 +424,55 @@ const BookLessonModal = ({
             </div>
           )}
 
-          {!bookingSuccess && !isLoading && slots.length === 0 && (
-            <div className="py-20 text-center text-sm text-slate-500 dark:text-slate-400">
-              No available slots found for this teacher.
+          {!bookingSuccess && !isLoading && loadError && (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-red-500 dark:bg-red-950/40 dark:text-red-400">
+                <AlertCircle size={26} />
+              </div>
+              <h3 className="mt-4 text-base font-bold text-slate-900 dark:text-slate-100">
+                Couldn&apos;t load availability
+              </h3>
+              <p className="mt-1 max-w-xs text-sm text-slate-500 dark:text-slate-400">
+                Something went wrong while fetching{" "}
+                {teacherName ? `${teacherName}'s` : "this teacher's"} time
+                slots. Please try again.
+              </p>
+              <button
+                type="button"
+                onClick={() => setReloadKey((key) => key + 1)}
+                className="mt-5 cursor-pointer rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 px-5 py-2.5 text-xs font-semibold text-white shadow-sm transition-all hover:from-blue-700 hover:to-indigo-700"
+              >
+                Try again
+              </button>
             </div>
           )}
+
+          {!bookingSuccess &&
+            !isLoading &&
+            !loadError &&
+            slots.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500">
+                  <CalendarX size={26} />
+                </div>
+                <h3 className="mt-4 text-base font-bold text-slate-900 dark:text-slate-100">
+                  {teacherName || "This teacher"} is fully booked for now
+                </h3>
+                <p className="mt-2 max-w-sm text-sm leading-relaxed text-slate-500 dark:text-slate-400">
+                  There are no open lesson times at the moment. Teachers add
+                  new slots regularly, so it&apos;s worth checking back soon.
+                </p>
+                <div className="mt-5 w-full max-w-sm rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 text-left dark:border-slate-800 dark:bg-slate-800/30">
+                  <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                    In the meantime
+                  </span>
+                  <ul className="mt-1.5 space-y-1 text-xs text-slate-600 dark:text-slate-300">
+                    <li>• Browse other teachers who teach the same subject.</li>
+                    <li>• Come back later — new times appear as they&apos;re added.</li>
+                  </ul>
+                </div>
+              </div>
+            )}
 
           {!bookingSuccess && !isLoading && slots.length > 0 && (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -792,7 +842,19 @@ const BookLessonModal = ({
         </div>
 
         {/* Footer */}
-        {!bookingSuccess && (
+        {!bookingSuccess && !isLoading && slots.length === 0 && (
+          <div className="flex items-center justify-end border-t border-slate-100 bg-slate-50/50 p-5 dark:border-slate-800 dark:bg-slate-900/50">
+            <button
+              type="button"
+              onClick={onClose}
+              className="cursor-pointer rounded-xl px-5 py-2.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-200/60 dark:text-slate-300 dark:hover:bg-slate-800"
+            >
+              Close
+            </button>
+          </div>
+        )}
+
+        {!bookingSuccess && (isLoading || slots.length > 0) && (
           <div className="border-t border-slate-100 p-5 dark:border-slate-800 flex items-center justify-between gap-3 bg-slate-50/50 dark:bg-slate-900/50">
             <p className="text-xs text-slate-400">{getConfirmHint()}</p>
             <div className="flex items-center gap-3">
