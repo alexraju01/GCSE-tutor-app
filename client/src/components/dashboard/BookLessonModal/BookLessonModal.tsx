@@ -2,6 +2,7 @@
 
 import { AlertCircle, X } from "lucide-react";
 import type { SessionData } from "@/types/auth";
+import type { Teacher } from "@/types/teacher";
 import BookingCalendar from "./BookingCalendar";
 import BookingSummary from "./BookingSummary";
 import LessonDetailsForm from "./LessonDetailsForm";
@@ -12,21 +13,15 @@ import { useBookLessonModal } from "./useBookLessonModal";
 interface BookLessonModalProps {
   isOpen: boolean;
   onClose: () => void;
-  teacherId: string;
-  teacherName: string | null;
-  hourlyRate: number;
+  teacher: Teacher;
   session: SessionData | null;
-  teacherSubjects?: string[];
 }
 
 const BookLessonModal = ({
   isOpen,
   onClose,
-  teacherId,
-  teacherName,
-  hourlyRate,
+  teacher,
   session,
-  teacherSubjects,
 }: BookLessonModalProps) => {
   const {
     slots,
@@ -64,7 +59,7 @@ const BookLessonModal = ({
     handleConfirmBooking,
     resetAfterSuccess,
     retry,
-  } = useBookLessonModal({ isOpen, teacherId, hourlyRate, session, teacherSubjects });
+  } = useBookLessonModal({ isOpen, teacher, session });
 
   const handleConfirm = async () => {
     const success = await handleConfirmBooking();
@@ -95,11 +90,11 @@ const BookLessonModal = ({
               id="book-lesson-modal-title"
               className="text-xl font-bold text-slate-900 dark:text-slate-100"
             >
-              Book Lesson with {teacherName || "Teacher"}
+              Book Lesson with {teacher.name || "Teacher"}
             </h2>
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
               Select an available date, time slot, and lesson subject (£
-              {hourlyRate}/hr).
+              {teacher.hourlyRate}/hr).
             </p>
           </div>
           <button
@@ -129,11 +124,11 @@ const BookLessonModal = ({
           {!bookingSuccess && isLoading && <LoadingState />}
 
           {!bookingSuccess && !isLoading && loadError && (
-            <ErrorState teacherName={teacherName} onRetry={retry} />
+            <ErrorState teacherName={teacher.name} onRetry={retry} />
           )}
 
           {!bookingSuccess && !isLoading && !loadError && slots.length === 0 && (
-            <EmptyState teacherName={teacherName} />
+            <EmptyState teacherName={teacher.name} />
           )}
 
           {!bookingSuccess && !isLoading && slots.length > 0 && (

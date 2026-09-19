@@ -1,37 +1,37 @@
 import { useEffect, useMemo, useState } from "react";
 import type { SessionData } from "@/types/auth";
+import type { Teacher } from "@/types/teacher";
 import { api, type TeacherAvailabilitySlot } from "@utils/api";
 import { toUkDateKey, getUkDateParts } from "@utils/ukTime";
 
 export type RawAvailability = TeacherAvailabilitySlot;
 
-interface TeacherProfile {
-  id: string;
-  subjects?: string[];
-}
-
 export const MAX_BATCH_SIZE = 20;
 
 interface UseBookLessonModalParams {
   isOpen: boolean;
-  teacherId: string;
-  hourlyRate: number;
+  teacher: Teacher;
   session: SessionData | null;
-  teacherSubjects?: string[];
 }
+
+// A teacher can teach the same subject at multiple levels (e.g. Maths at
+// both GCSE and A-Level) — dedupe so the subject picker doesn't list it twice.
+const getUniqueSubjects = (teacher: Teacher): string[] =>
+  Array.from(new Set(teacher.teaches?.map((t) => t.subject) ?? []));
 
 // Owns every piece of state, fetching, and derived data for the booking
 // modal, so the component tree underneath is pure presentation.
 export const useBookLessonModal = ({
   isOpen,
-  teacherId,
-  hourlyRate,
+  teacher,
   session,
-  teacherSubjects,
 }: UseBookLessonModalParams) => {
+  const teacherId = teacher.id;
+  const hourlyRate = teacher.hourlyRate;
+
   const [slots, setSlots] = useState<RawAvailability[]>([]);
-  const [availableSubjects, setAvailableSubjects] = useState<string[]>(
-    teacherSubjects || [],
+  const [availableSubjects, setAvailableSubjects] = useState<string[]>(() =>
+    getUniqueSubjects(teacher),
   );
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [loadError, setLoadError] = useState<boolean>(false);
@@ -56,7 +56,7 @@ export const useBookLessonModal = ({
     // Avoids a superseded request overwriting state from a newer one.
     let ignore = false;
 
-    const fetchTeacherDetailsAndSlots = async () => {
+    const fetchSlots = async () => {
       setIsLoading(true);
       setLoadError(false);
       setErrorMessage(null);
@@ -69,34 +69,18 @@ export const useBookLessonModal = ({
       try {
         // limit=100 (the server's max) so a teacher with lots of open slots
         // doesn't silently get cut off after the default page size of 10.
-        const slotsPromise = api.teacher.getAvailabilities(
+        const slotsResult = await api.teacher.getAvailabilities(
           teacherId,
           { limit: 100 },
           token,
         );
-
-        // A failed profile lookup shouldn't block booking.
-        const teacherPromise = !teacherSubjects
-          ? api.teacher.getOne(teacherId, token).catch(() => null)
-          : Promise.resolve(null);
-
-        const [slotsResult, teacherResult] = await Promise.all([
-          slotsPromise,
-          teacherPromise,
-        ]);
 
         if (ignore) return;
 
         const loadedSlots: RawAvailability[] = slotsResult.data || [];
         setSlots(loadedSlots);
 
-        let fetchedSubjects: string[] = teacherSubjects || [];
-        if (teacherResult) {
-          const profile = (teacherResult.data ||
-            teacherResult) as TeacherProfile;
-          fetchedSubjects = profile.subjects || [];
-        }
-
+        const fetchedSubjects = getUniqueSubjects(teacher);
         setAvailableSubjects(fetchedSubjects);
         if (fetchedSubjects.length > 0) {
           setSubject(fetchedSubjects[0]);
@@ -110,10 +94,7 @@ export const useBookLessonModal = ({
         }
       } catch (err) {
         if (ignore) return;
-        console.error(
-          "Failed to load availability slots or teacher info:",
-          err,
-        );
+        console.error("Failed to load availability slots:", err);
         setSlots([]);
         setLoadError(true);
       } finally {
@@ -121,12 +102,12 @@ export const useBookLessonModal = ({
       }
     };
 
-    void fetchTeacherDetailsAndSlots();
+    void fetchSlots();
 
     return () => {
       ignore = true;
     };
-  }, [isOpen, teacherId, token, teacherSubjects, reloadKey]);
+  }, [isOpen, teacherId, token, teacher, reloadKey]);
 
   const groupedSlots = useMemo(() => {
     const groups: Record<string, RawAvailability[]> = {};

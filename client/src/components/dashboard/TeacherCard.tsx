@@ -91,10 +91,7 @@ const TeacherCard = ({ teacher, session }: TeacherCardProps) => {
 			<BookLessonModal
 				isOpen={isModalOpen}
 				onClose={() => setIsModalOpen(false)}
-				teacherId={teacher.id}
-				teacherName={teacher.name}
-				hourlyRate={teacher.hourlyRate}
-				teacherSubjects={teacher.teaches?.map((t) => t.subject) || []}
+				teacher={teacher}
 				session={session}
 			/>
 		</>
