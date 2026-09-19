@@ -3,23 +3,17 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Route } from "next";
 
 interface SchedulePaginationProps {
+  query: ScheduleQueryState;
   currentPage: number;
   totalPages: number;
   totalResults: number;
-  activeFilter: string;
-  activeSort: SortDirection;
-  selectedYear: number;
-  selectedMonth?: number;
 }
 
 const SchedulePagination = ({
+  query: { filter: activeFilter, sort: activeSort, year: selectedYear, month: selectedMonth },
   currentPage,
   totalPages,
   totalResults,
-  activeFilter,
-  activeSort,
-  selectedYear,
-  selectedMonth,
 }: SchedulePaginationProps) => {
   const getPaginationUrl = (page: number): Route => {
     const params = new URLSearchParams();

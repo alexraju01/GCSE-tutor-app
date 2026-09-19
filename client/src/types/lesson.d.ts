@@ -25,3 +25,13 @@ interface Student {
 
 type StatusType = "all" | "Upcoming" | "Confirmed" | "Completed" | "Cancelled";
 type SortDirection = "asc" | "desc";
+
+// The schedule page's filter/sort/date state — ScheduleFilters and
+// SchedulePagination both need it to build their links, so it's passed as
+// one object instead of four separate, identically-named props.
+interface ScheduleQueryState {
+  filter: StatusType;
+  sort: SortDirection;
+  year: number;
+  month?: number;
+}

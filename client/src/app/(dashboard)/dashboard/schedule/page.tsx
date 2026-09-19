@@ -78,6 +78,13 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
       ? formatHeaderDate(selectedYear, selectedMonth)
       : formatHeaderDate(selectedYear);
 
+  const query: ScheduleQueryState = {
+    filter: activeFilter,
+    sort: activeSort,
+    year: selectedYear,
+    month: selectedMonth,
+  };
+
   const session = await auth();
   const isTeacher = session?.user?.role === "Teacher";
   const teacherId = session?.user?.id ?? "";
@@ -119,13 +126,7 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
         initialSlots={initialAvailability}
       />
 
-      <ScheduleFilters
-        activeFilter={activeFilter}
-        activeSort={activeSort}
-        selectedYear={selectedYear}
-        selectedMonth={selectedMonth}
-        formattedDateHeader={formattedDateHeader}
-      />
+      <ScheduleFilters query={query} formattedDateHeader={formattedDateHeader} />
 
       <div className="space-y-4">
         {lessons.length === 0 ? (
@@ -147,13 +148,10 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 
       {totalPages > 1 && (
         <SchedulePagination
+          query={query}
           currentPage={currentPage}
           totalPages={totalPages}
           totalResults={totalResults}
-          activeFilter={activeFilter}
-          activeSort={activeSort}
-          selectedYear={selectedYear}
-          selectedMonth={selectedMonth}
         />
       )}
     </div>

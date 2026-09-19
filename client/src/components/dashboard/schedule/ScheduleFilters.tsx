@@ -11,10 +11,7 @@ import {
 } from "lucide-react";
 
 interface ScheduleFiltersProps {
-  activeFilter: StatusType;
-  activeSort: SortDirection;
-  selectedYear: number;
-  selectedMonth?: number;
+  query: ScheduleQueryState;
   formattedDateHeader: string;
 }
 
@@ -26,10 +23,7 @@ export const FILTER_OPTIONS: { label: string; value: StatusType }[] = [
 ];
 
 const ScheduleFilters = ({
-  activeFilter,
-  activeSort,
-  selectedYear,
-  selectedMonth,
+  query: { filter: activeFilter, sort: activeSort, year: selectedYear, month: selectedMonth },
   formattedDateHeader,
 }: ScheduleFiltersProps) => {
   const isMonthlyView = selectedMonth !== undefined;
