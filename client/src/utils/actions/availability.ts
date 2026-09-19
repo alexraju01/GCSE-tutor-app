@@ -10,6 +10,9 @@ export interface TimeSlot {
   startTime: string; // e.g., "10:00"
   endTime: string; // e.g., "11:00"
   date?: string; // e.g., "2026-08-17"
+  // Undefined for a freshly-created slot (can't be booked yet) or the
+  // student-facing slot list (always unbooked by definition).
+  isBooked?: boolean;
 }
 
 export interface SetAvailabilityInput {

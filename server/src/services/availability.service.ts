@@ -245,11 +245,26 @@ export const findTeacherAvailabilities = async ({
       orderBy: { startTime: "asc" },
       skip,
       take: limit,
+      // Only needed to derive isBooked below — onlyUnbooked callers already
+      // exclude booked slots, so this is always empty for them.
+      include: {
+        lessons: {
+          where: { status: { not: LessonStatus.Cancelled } },
+          select: { id: true },
+          take: 1,
+        },
+      },
     }),
     prisma.availability.count({
       where: whereCondition,
     }),
   ]);
 
-  return { availabilities, totalResults };
+  return {
+    availabilities: availabilities.map(({ lessons, ...availability }) => ({
+      ...availability,
+      isBooked: lessons.length > 0,
+    })),
+    totalResults,
+  };
 };

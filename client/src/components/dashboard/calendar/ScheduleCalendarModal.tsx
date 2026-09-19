@@ -8,6 +8,7 @@ import {
   Clock,
   Plus,
   Trash2,
+  User,
   X,
 } from "lucide-react";
 
@@ -125,8 +126,10 @@ const ScheduleCalendarModal = ({
     setCurrentWeekStart(getMonday(nowInUk()));
   };
 
-  // A cell with existing availability toggles removal selection; an empty
-  // future cell opens the "add availability" modal instead.
+  // A cell with existing, unbooked availability toggles removal selection;
+  // an empty future cell opens the "add availability" modal instead. A
+  // booked cell can't be removed here (the server would reject it anyway,
+  // since the student's lesson depends on it), so it isn't clickable at all.
   const handleCellClick = (
     fullDayName: string,
     hour: number,
@@ -134,7 +137,7 @@ const ScheduleCalendarModal = ({
     isPast: boolean,
     activeAvailability: TimeSlot | undefined,
   ) => {
-    if (isPast) return;
+    if (isPast || activeAvailability?.isBooked) return;
 
     if (activeAvailability) {
       setRemoveError(null);
@@ -259,8 +262,8 @@ const ScheduleCalendarModal = ({
               Teacher Availability
             </h2>
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              Click an empty slot to add availability, or click an existing
-              one to select it for removal.
+              Click an empty slot to add availability, or an open one to
+              select it for removal. Booked slots can&apos;t be changed here.
             </p>
           </div>
 
@@ -353,6 +356,11 @@ const ScheduleCalendarModal = ({
             </div>
 
             <div className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-violet-500" />
+              <span>Booked by a Student</span>
+            </div>
+
+            <div className="flex items-center gap-1.5">
               <span className="h-2.5 w-2.5 rounded-sm bg-slate-50 dark:bg-slate-800/40 bg-[repeating-linear-gradient(135deg,rgba(203,213,225,0.4)_0,rgba(203,213,225,0.4)_1px,transparent_0,transparent_10px)] dark:bg-[repeating-linear-gradient(135deg,rgba(51,65,85,0.4)_0,rgba(51,65,85,0.4)_1px,transparent_0,transparent_10px)]" />
               <span>Unavailable / Past</span>
             </div>
@@ -414,7 +422,8 @@ const ScheduleCalendarModal = ({
 
                   const isPast = slotInstant < now;
                   const activeAvailability = getActiveAvailability(day, hour);
-                  const isAvailable = Boolean(activeAvailability);
+                  const isBooked = Boolean(activeAvailability?.isBooked);
+                  const isOpenAvailability = Boolean(activeAvailability) && !isBooked;
                   const isMarkedForRemoval = Boolean(
                     activeAvailability &&
                       selectedForRemoval.has(activeAvailability.id),
@@ -425,21 +434,31 @@ const ScheduleCalendarModal = ({
                   if (isPast) {
                     cellStyles =
                       "cursor-not-allowed bg-slate-50/60 dark:bg-slate-900/30 bg-[repeating-linear-gradient(135deg,rgba(203,213,225,0.4)_0,rgba(203,213,225,0.4)_1px,transparent_0,transparent_10px)] dark:bg-[repeating-linear-gradient(135deg,rgba(51,65,85,0.4)_0,rgba(51,65,85,0.4)_1px,transparent_0,transparent_10px)]";
+                  } else if (isBooked) {
+                    cellStyles =
+                      "cursor-default bg-violet-500/15 font-semibold text-violet-700 ring-1 ring-inset ring-violet-500/30 dark:bg-violet-500/20 dark:text-violet-300";
                   } else if (isMarkedForRemoval) {
                     cellStyles =
                       "bg-red-500/15 font-semibold text-red-700 ring-1 ring-inset ring-red-500/40 dark:bg-red-500/20 dark:text-red-300";
-                  } else if (isAvailable) {
+                  } else if (isOpenAvailability) {
                     cellStyles =
                       "bg-blue-500/20 font-semibold text-blue-700 ring-1 ring-inset ring-blue-500/30 dark:bg-blue-500/25 dark:text-blue-300";
                   }
 
                   let cellContent = null;
 
-                  if (!isPast && !isAvailable) {
+                  if (!isPast && !activeAvailability) {
                     cellContent = (
                       <span className="hidden items-center justify-center gap-1 text-[10px] text-blue-500 group-hover:flex">
                         <Plus size={12} />
                         Add
+                      </span>
+                    );
+                  } else if (isBooked) {
+                    cellContent = (
+                      <span className="flex items-center justify-center gap-1 text-[10px] font-semibold">
+                        <User size={12} />
+                        Booked
                       </span>
                     );
                   } else if (isMarkedForRemoval) {
@@ -449,7 +468,7 @@ const ScheduleCalendarModal = ({
                         Remove
                       </span>
                     );
-                  } else if (isAvailable) {
+                  } else if (isOpenAvailability) {
                     cellContent = (
                       <span className="flex items-center justify-center gap-1 text-[10px] font-semibold">
                         <Clock size={12} />
@@ -462,8 +481,13 @@ const ScheduleCalendarModal = ({
                     <button
                       key={`${day.isoDate}-${hour}`}
                       type="button"
-                      disabled={isPast || isRemoving}
+                      disabled={isPast || isRemoving || isBooked}
                       aria-pressed={isMarkedForRemoval}
+                      title={
+                        isBooked
+                          ? "Booked by a student — cancel the lesson to free up this slot."
+                          : undefined
+                      }
                       onClick={() =>
                         handleCellClick(
                           day.fullDayName,

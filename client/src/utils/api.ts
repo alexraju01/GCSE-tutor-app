@@ -15,6 +15,13 @@ export interface TeacherAvailabilitySlot {
   endTime: string;
 }
 
+// The teacher's own view of a slot — unlike the public/student-facing
+// TeacherAvailabilitySlot list (always unbooked by definition), this can
+// include slots a student has already booked.
+export interface OwnAvailabilitySlot extends TeacherAvailabilitySlot {
+  isBooked: boolean;
+}
+
 export interface LessonBookingPayloadItem {
   teacherProfileId: string;
   availabilityId: string;
@@ -150,7 +157,7 @@ export const api = {
       ),
 
     getMyTeacherAvailabilities: (token?: string) =>
-      fetchData<APIResponse<AvailabilityPayloadItem[]>>(`/availability/me`, {
+      fetchData<APIResponse<OwnAvailabilitySlot[]>>(`/availability/me`, {
         method: "GET",
         headers: authHeaders(token),
       }),
