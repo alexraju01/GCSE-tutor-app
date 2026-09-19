@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import type { Route } from "next";
 import { GraduationCap } from "lucide-react";
-import BookLessonModal from "./BookLessonModal";
+import BookLessonModal from "./BookLessonModal/BookLessonModal";
 import type { Teacher, TeachesSubject } from "@/types/teacher";
 import type { SessionData } from "@/types/auth";
 
