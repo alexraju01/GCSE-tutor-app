@@ -44,7 +44,14 @@ export const useBookLessonModal = ({
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
 
+  // `subject` is the picker's current choice, applied to each slot as it's
+  // selected; `slotSubjects` keeps every selected lesson's own subject so
+  // changing the picker doesn't rewrite lessons already chosen.
   const [subject, setSubject] = useState<string>("");
+  const [slotSubjects, setSlotSubjects] = useState<Record<string, string>>({});
+  const [bookedSubjects, setBookedSubjects] = useState<string[]>([]);
+  // The lesson the subject picker is currently editing.
+  const [activeSlotId, setActiveSlotId] = useState<string | null>(null);
   const [topic, setTopic] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
 
@@ -62,10 +69,13 @@ export const useBookLessonModal = ({
       setErrorMessage(null);
       // Reset ephemeral state so it doesn't leak into the next open.
       setSelectedSlots([]);
+      setSlotSubjects({});
+      setActiveSlotId(null);
       setTopic("");
       setNotes("");
       setBookingSuccess(false);
       setBookedCount(0);
+      setBookedSubjects([]);
       try {
         // limit=100 (the server's max) so a teacher with lots of open slots
         // doesn't silently get cut off after the default page size of 10.
@@ -216,20 +226,39 @@ export const useBookLessonModal = ({
   );
   const estimatedCost = (hourlyRate * totalMinutes) / 60;
 
+  const getSlotSubject = (slot: RawAvailability): string =>
+    slotSubjects[slot.id] ?? subject;
+
   const toggleSlot = (slot: RawAvailability) => {
     setErrorMessage(null);
-    setSelectedSlots((prev) => {
-      if (prev.some((s) => s.id === slot.id)) {
-        return prev.filter((s) => s.id !== slot.id);
-      }
-      if (prev.length >= MAX_BATCH_SIZE) {
-        setErrorMessage(
-          `You can book at most ${MAX_BATCH_SIZE} lessons at once.`,
-        );
-        return prev;
-      }
-      return [...prev, slot];
-    });
+
+    if (selectedIds.has(slot.id)) {
+      setSelectedSlots((prev) => prev.filter((s) => s.id !== slot.id));
+      if (activeSlotId === slot.id) setActiveSlotId(null);
+      return;
+    }
+    if (selectedSlots.length >= MAX_BATCH_SIZE) {
+      setErrorMessage(`You can book at most ${MAX_BATCH_SIZE} lessons at once.`);
+      return;
+    }
+
+    setSlotSubjects((prev) => ({ ...prev, [slot.id]: subject }));
+    setSelectedSlots((prev) => [...prev, slot]);
+    setActiveSlotId(slot.id);
+  };
+
+  const setSlotSubject = (slotId: string, newSubject: string) => {
+    setSlotSubjects((prev) => ({ ...prev, [slotId]: newSubject }));
+    if (slotId === activeSlotId) setSubject(newSubject);
+  };
+
+  // The picker only edits the most recently selected lesson (and is the
+  // default for the next pick) — every other lesson keeps its own subject.
+  const changeSubject = (newSubject: string) => {
+    setSubject(newSubject);
+    if (activeSlotId) {
+      setSlotSubjects((prev) => ({ ...prev, [activeSlotId]: newSubject }));
+    }
   };
 
   const getConfirmHint = (): string | null => {
@@ -285,7 +314,7 @@ export const useBookLessonModal = ({
         selectedSlots.map((slot) => ({
           teacherProfileId: teacherId,
           availabilityId: slot.id,
-          subject,
+          subject: getSlotSubject(slot),
           topic: topic || undefined,
           notes: notes || undefined,
         })),
@@ -294,6 +323,7 @@ export const useBookLessonModal = ({
 
       const bookedIds = new Set(selectedSlots.map((s) => s.id));
       setBookedCount(selectedSlots.length);
+      setBookedSubjects(Array.from(new Set(selectedSlots.map(getSlotSubject))));
       setSlots((prev) => prev.filter((s) => !bookedIds.has(s.id)));
       setBookingSuccess(true);
       return true;
@@ -310,6 +340,8 @@ export const useBookLessonModal = ({
   const resetAfterSuccess = () => {
     setBookingSuccess(false);
     setSelectedSlots([]);
+    setSlotSubjects({});
+    setActiveSlotId(null);
     setTopic("");
     setNotes("");
   };
@@ -326,11 +358,15 @@ export const useBookLessonModal = ({
     errorMessage,
     selectedSlots,
     bookedCount,
+    bookedSubjects,
     selectedDateKey,
     setSelectedDateKey,
     currentMonth,
     subject,
-    setSubject,
+    changeSubject,
+    activeSlotId,
+    getSlotSubject,
+    setSlotSubject,
     topic,
     setTopic,
     notes,
@@ -343,6 +379,7 @@ export const useBookLessonModal = ({
     sortedSelectedSlots,
     selectedIds,
     selectedCountByDate,
+    totalMinutes,
     estimatedCost,
     toggleSlot,
     getConfirmHint,

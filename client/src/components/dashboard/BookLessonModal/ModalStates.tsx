@@ -59,12 +59,18 @@ export const EmptyState = ({ teacherName }: { teacherName: string | null }) => (
   </div>
 );
 
+// "Maths", "Maths and Physics", "Maths, Physics and Chemistry"
+const joinSubjects = (subjects: string[]) =>
+  subjects.length <= 1
+    ? (subjects[0] ?? "")
+    : `${subjects.slice(0, -1).join(", ")} and ${subjects[subjects.length - 1]}`;
+
 export const SuccessState = ({
   bookedCount,
-  subject,
+  subjects,
 }: {
   bookedCount: number;
-  subject: string;
+  subjects: string[];
 }) => (
   <div className="flex flex-col items-center justify-center py-20 text-center">
     <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400">
@@ -75,8 +81,8 @@ export const SuccessState = ({
     </h3>
     <p className="mt-1 max-w-xs text-sm text-slate-500 dark:text-slate-400">
       {bookedCount === 1
-        ? `Your ${subject} lesson is booked.`
-        : `${bookedCount} ${subject} lessons are booked.`}{" "}
+        ? `Your ${joinSubjects(subjects)} lesson is booked.`
+        : `${bookedCount} ${joinSubjects(subjects)} lessons are booked.`}{" "}
       You&apos;ll find {bookedCount === 1 ? "it" : "them"} on your schedule.
     </p>
   </div>

@@ -35,6 +35,12 @@ const LessonDetailsForm = ({
           value={subject}
           onChange={onSubjectChange}
         />
+        {subjects.length > 1 && (
+          <p className="mt-1 text-[11px] text-slate-400">
+            Applies to the time slot you just selected (highlighted below).
+            Change any other lesson&apos;s subject in the summary.
+          </p>
+        )}
       </div>
 
       <div>

@@ -33,11 +33,15 @@ const BookLessonModal = ({
     errorMessage,
     selectedSlots,
     bookedCount,
+    bookedSubjects,
     selectedDateKey,
     setSelectedDateKey,
     currentMonth,
     subject,
-    setSubject,
+    changeSubject,
+    activeSlotId,
+    getSlotSubject,
+    setSlotSubject,
     topic,
     setTopic,
     notes,
@@ -50,6 +54,7 @@ const BookLessonModal = ({
     sortedSelectedSlots,
     selectedIds,
     selectedCountByDate,
+    totalMinutes,
     estimatedCost,
     toggleSlot,
     getConfirmHint,
@@ -118,7 +123,7 @@ const BookLessonModal = ({
           )}
 
           {bookingSuccess && (
-            <SuccessState bookedCount={bookedCount} subject={subject} />
+            <SuccessState bookedCount={bookedCount} subjects={bookedSubjects} />
           )}
 
           {!bookingSuccess && isLoading && <LoadingState />}
@@ -158,7 +163,7 @@ const BookLessonModal = ({
                 <LessonDetailsForm
                   subjects={availableSubjects}
                   subject={subject}
-                  onSubjectChange={setSubject}
+                  onSubjectChange={changeSubject}
                   topic={topic}
                   onTopicChange={setTopic}
                   notes={notes}
@@ -167,8 +172,16 @@ const BookLessonModal = ({
 
                 <BookingSummary
                   selectedSlots={sortedSelectedSlots}
-                  subject={subject}
+                  activeSlotId={activeSlotId}
+                  subjects={availableSubjects}
+                  getSlotSubject={getSlotSubject}
+                  onSlotSubjectChange={setSlotSubject}
+                  teacherName={teacher.name}
+                  hourlyRate={teacher.hourlyRate}
+                  totalMinutes={totalMinutes}
                   estimatedCost={estimatedCost}
+                  topic={topic}
+                  notes={notes}
                   onRemoveSlot={toggleSlot}
                 />
               </div>
