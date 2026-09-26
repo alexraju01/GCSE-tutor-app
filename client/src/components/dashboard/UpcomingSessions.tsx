@@ -14,9 +14,7 @@ const UpcomingSessions = ({
   isTeacher,
   sessions = [],
 }: UpcomingSessionsProps) => {
-  const title = isTeacher
-    ? "Today's Teaching Schedule"
-    : "Today's Learning Schedule";
+  const title = "Upcoming Lessons";
   const roleLabel = isTeacher ? "Student" : "Tutor";
 
   return (
