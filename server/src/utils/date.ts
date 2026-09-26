@@ -11,6 +11,44 @@ const ukDateKeyFormatter = new Intl.DateTimeFormat("en-CA", {
   day: "2-digit",
 });
 
+const ukPartsFormatter = new Intl.DateTimeFormat("en-GB", {
+  timeZone: UK_TIME_ZONE,
+  hour12: false,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+});
+
+// Converts a UK wall-clock date/time (month is 1-12) into the real instant,
+// accounting for GMT/BST — mirrors the client's ukWallClockToIsoString.
+export const ukWallClockToDate = (
+  year: number,
+  month: number,
+  day: number,
+  hours: number,
+  minutes: number,
+): Date => {
+  // Guess UTC, see what that reads as in the UK, then correct by the offset.
+  const guessUtc = Date.UTC(year, month - 1, day, hours, minutes);
+  const parts: Record<string, number> = {};
+  for (const part of ukPartsFormatter.formatToParts(new Date(guessUtc))) {
+    if (part.type !== "literal") parts[part.type] = Number(part.value);
+  }
+  const asIfUtc = Date.UTC(
+    parts.year,
+    parts.month - 1,
+    parts.day,
+    parts.hour % 24, // Intl can format midnight as "24"
+    parts.minute,
+    parts.second,
+  );
+
+  return new Date(guessUtc + (guessUtc - asIfUtc));
+};
+
 export const formatDateLabel = (startTime: Date): string => {
   return startTime.toLocaleDateString("en-US", {
     weekday: "short",

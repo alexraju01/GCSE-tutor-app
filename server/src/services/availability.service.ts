@@ -1,7 +1,7 @@
 import { prisma } from "@db/prisma.js";
 import { LessonStatus, Prisma } from "@generated/client.js";
 import { AppError } from "@utils/AppError.js";
-import { formatSessionTime } from "@utils/date.js";
+import { formatSessionTime, ukWallClockToDate } from "@utils/date.js";
 
 export const requireTeacherId = async (userId?: string): Promise<string> => {
   if (!userId) throw new AppError("Unauthorized.", 401);
@@ -128,6 +128,139 @@ export const createAvailabilities = async (teacherId: string, slots: Availabilit
       return created;
     },
     // serializable so two overlapping creates can't both sneak past the check
+    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+  );
+};
+
+export interface RecurringPattern {
+  days: number[]; // 0 = Monday … 6 = Sunday
+  startDate: string; // UK "YYYY-MM-DD"
+  from: string; // UK "HH:mm"
+  to: string; // UK "HH:mm"
+  lessonLength: number;
+  weeks: number;
+  exclude?: string[]; // "YYYY-MM-DD|HH:mm"
+}
+
+const MAX_RECURRING_SLOTS = 200;
+const DAY_MS = 86_400_000;
+
+const toMinutes = (time: string): number => {
+  const [hours, minutes] = time.split(":").map(Number);
+  return hours * 60 + minutes;
+};
+
+const toHHMM = (totalMinutes: number): string =>
+  `${String(Math.floor(totalMinutes / 60)).padStart(2, "0")}:${String(totalMinutes % 60).padStart(2, "0")}`;
+
+// Expands a weekly pattern into concrete future slots (UK wall-clock → real
+// instants), splitting each day's window into back-to-back lessons.
+const expandRecurringPattern = (pattern: RecurringPattern) => {
+  const [year, month, day] = pattern.startDate.split("-").map(Number);
+  const startMs = Date.UTC(year, month - 1, day);
+  const startDayIndex = (new Date(startMs).getUTCDay() + 6) % 7;
+  const mondayMs = startMs - startDayIndex * DAY_MS;
+  const fromMinutes = toMinutes(pattern.from);
+  const toMinutesValue = toMinutes(pattern.to);
+  const excluded = new Set(pattern.exclude ?? []);
+  const now = new Date();
+  const days = [...pattern.days].sort((a, b) => a - b);
+
+  const slots: { key: string; startTime: Date; endTime: Date }[] = [];
+
+  for (let week = 0; week < pattern.weeks; week++) {
+    for (const dayIndex of days) {
+      const dateMs = mondayMs + (week * 7 + dayIndex) * DAY_MS;
+      if (dateMs < startMs) continue;
+
+      const date = new Date(dateMs);
+      const dateKey = date.toISOString().slice(0, 10);
+
+      for (
+        let start = fromMinutes;
+        start + pattern.lessonLength <= toMinutesValue;
+        start += pattern.lessonLength
+      ) {
+        const key = `${dateKey}|${toHHMM(start)}`;
+        if (excluded.has(key)) continue;
+
+        const startTime = ukWallClockToDate(
+          date.getUTCFullYear(),
+          date.getUTCMonth() + 1,
+          date.getUTCDate(),
+          Math.floor(start / 60),
+          start % 60,
+        );
+        if (startTime <= now) continue;
+
+        slots.push({
+          key,
+          startTime,
+          endTime: new Date(startTime.getTime() + pattern.lessonLength * 60_000),
+        });
+      }
+    }
+  }
+
+  return slots;
+};
+
+// Creates a whole weekly pattern in one transaction. Unlike createAvailabilities,
+// slots that clash with availability the teacher already has are skipped rather
+// than failing the batch — re-running a pattern over an existing week should
+// just fill the gaps.
+export const createRecurringAvailabilities = async (
+  teacherId: string,
+  pattern: RecurringPattern,
+) => {
+  const slots = expandRecurringPattern(pattern);
+
+  if (slots.length === 0) {
+    throw new AppError("No upcoming slots match these settings.", 400);
+  }
+  if (slots.length > MAX_RECURRING_SLOTS) {
+    throw new AppError(
+      `That's ${slots.length} slots — please keep it to ${MAX_RECURRING_SLOTS} or fewer.`,
+      400,
+    );
+  }
+
+  return prisma.$transaction(
+    async (tx) => {
+      // One query for every existing slot in the pattern's span, instead of
+      // an overlap check per slot.
+      const existing = await tx.availability.findMany({
+        where: {
+          teacherId,
+          startTime: { lt: slots[slots.length - 1].endTime },
+          endTime: { gt: slots[0].startTime },
+        },
+        select: { startTime: true, endTime: true },
+      });
+
+      const toCreate = slots.filter(
+        (slot) =>
+          !existing.some(
+            (other) => other.startTime < slot.endTime && other.endTime > slot.startTime,
+          ),
+      );
+      const skipped = slots.filter((slot) => !toCreate.includes(slot)).map((slot) => slot.key);
+
+      if (toCreate.length === 0) {
+        throw new AppError(
+          "Every slot in this pattern overlaps availability you've already scheduled.",
+          409,
+        );
+      }
+
+      const created = await tx.availability.createManyAndReturn({
+        data: toCreate.map(({ startTime, endTime }) => ({ teacherId, startTime, endTime })),
+      });
+
+      created.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+
+      return { created, skipped };
+    },
     { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
   );
 };

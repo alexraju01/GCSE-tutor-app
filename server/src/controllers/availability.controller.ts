@@ -3,6 +3,7 @@ import {
   findTeacherAvailabilities,
   requireTeacherId,
   createAvailabilities as createAvailabilitySlots,
+  createRecurringAvailabilities as createRecurringAvailabilitySlots,
   updateAvailabilityForTeacher,
   deleteAvailabilitiesForTeacher,
 } from "../services/availability.service.js";
@@ -10,6 +11,7 @@ import type {
   AvailabilitySlotInput,
   createAvailabilityInput,
   DeleteAvailabilityInput,
+  RecurringAvailabilityInput,
 } from "../schemas/availability.schema.js";
 import type { Request, Response } from "express";
 
@@ -80,6 +82,21 @@ export const createAvailabilities = async (req: Request, res: Response) => {
   return res.status(201).json({
     status: "success",
     data: isBatch ? created : created[0],
+  });
+};
+
+export const createRecurringAvailabilities = async (req: Request, res: Response) => {
+  const teacherId = await requireTeacherId(req.user?.id);
+  const { created, skipped } = await createRecurringAvailabilitySlots(
+    teacherId,
+    req.body as RecurringAvailabilityInput,
+  );
+
+  return res.status(201).json({
+    status: "success",
+    results: created.length,
+    data: created,
+    skipped,
   });
 };
 

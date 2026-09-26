@@ -14,7 +14,7 @@ import {
 
 import { api } from "@utils/api";
 import { TimeSlot } from "@utils/actions/availability";
-import { toUkDateKey, ukWallClockToIsoString } from "@utils/ukTime";
+import { formatUkTime, toUkDateKey, ukWallClockToIsoString } from "@utils/ukTime";
 
 export interface AvailabilityPayloadItem {
   startTime: string;
@@ -55,7 +55,9 @@ const DAY_PRESETS: { label: string; days: number[] }[] = [
 // A lesson block is 1, 1.5 or 2 hours.
 const DURATIONS = [60, 90, 120];
 const REPEAT_OPTIONS = [1, 2, 4, 8, 12];
+// Match the server's caps for a recurring pattern and a batch create.
 const MAX_SLOTS = 200;
+const MAX_BLOCKS = 50;
 const DAY_MS = 86_400_000;
 const MINUTES_IN_DAY = 24 * 60;
 
@@ -390,6 +392,7 @@ const SetAvailabilityModal = ({
     if (mode === "specific") {
       if (blocks.length === 0) return "Add at least one block.";
       if (Object.keys(blockErrors).length > 0) return "Fix the highlighted blocks first.";
+      if (blocks.length > MAX_BLOCKS) return `Please keep it to ${MAX_BLOCKS} blocks or fewer.`;
       return null;
     }
 
@@ -413,77 +416,47 @@ const SetAvailabilityModal = ({
       return;
     }
 
+    // One request per save — firing a request per slot made the server's
+    // serializable transactions abort each other.
     startTransition(async () => {
       try {
-        const results = await Promise.allSettled(
-          slots.map((slot) => {
-            const { year, month, day } = parseDate(slot.date);
-            const [hours, minutes] = slot.startTime.split(":").map(Number);
+        const response =
+          mode === "weekly"
+            ? await api.availability.createRecurring(
+                {
+                  ...weekly,
+                  exclude: [...removedKeys],
+                },
+                token,
+              )
+            : await api.availability.createMany(
+                slots.map((slot) => {
+                  const { year, month, day } = parseDate(slot.date);
+                  const [hours, minutes] = slot.startTime.split(":").map(Number);
 
-            // Pickers are always UK wall-clock time, not the device's timezone.
-            return api.availability.create(
-              {
-                startTime: ukWallClockToIsoString(year, month, day, hours, minutes),
-                durationInMinutes: toMinutes(slot.endTime) - toMinutes(slot.startTime),
-              },
-              token,
-            );
-          }),
-        );
+                  // Pickers are always UK wall-clock time, not the device's timezone.
+                  return {
+                    startTime: ukWallClockToIsoString(year, month, day, hours, minutes),
+                    durationInMinutes: toMinutes(slot.endTime) - toMinutes(slot.startTime),
+                  };
+                }),
+                token,
+              );
 
-        const created: TimeSlot[] = [];
-        const savedKeys = new Set<string>();
-        let failed = 0;
-        let firstFailure = "";
-
-        results.forEach((result, index) => {
-          const slot = slots[index];
-
-          if (result.status === "fulfilled" && result.value.data) {
-            created.push({
-              // The server-assigned id — needed to delete this slot later.
-              id: result.value.data.id,
-              date: slot.date,
-              dayOfWeek: slot.dayOfWeek,
-              startTime: slot.startTime,
-              endTime: slot.endTime,
-            });
-            savedKeys.add(slot.key);
-            return;
-          }
-
-          failed++;
-          if (!firstFailure) {
-            console.error(
-              "Availability submission error:",
-              result.status === "rejected" ? result.reason : result.value,
-            );
-            firstFailure =
-              result.status === "rejected" && result.reason instanceof Error
-                ? result.reason.message
-                : "Server did not return the created slot.";
-          }
+        const created: TimeSlot[] = (response.data ?? []).map((saved) => {
+          const date = toUkDateKey(new Date(saved.startTime));
+          return {
+            // The server-assigned id — needed to delete this slot later.
+            id: saved.id,
+            date,
+            dayOfWeek: DAYS[dayIndexOfDate(date)],
+            startTime: formatUkTime(new Date(saved.startTime)),
+            endTime: formatUkTime(new Date(saved.endTime)),
+          };
         });
 
         if (created.length > 0) onSuccess?.(created);
-
-        if (failed === 0) {
-          onClose();
-          return;
-        }
-
-        // Keep the modal open with only the slots that failed so they can be retried.
-        if (mode === "specific") {
-          setBlocks((previous) =>
-            previous.filter((block) => !savedKeys.has(blockToSlot(block).key)),
-          );
-        } else {
-          setRemovedKeys((previous) => new Set([...previous, ...savedKeys]));
-        }
-
-        setError(
-          `${created.length} saved, ${failed} failed: ${firstFailure}. The failed slots are still listed so you can try again.`,
-        );
+        onClose();
       } catch (err: unknown) {
         console.error("Availability submission error:", err);
         setError(err instanceof Error ? err.message : "Failed to save availability.");

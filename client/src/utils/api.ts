@@ -8,6 +8,17 @@ export interface AvailabilityPayloadItem {
   durationInMinutes: number;
 }
 
+// A weekly pattern in UK wall-clock time; days are 0 = Monday … 6 = Sunday.
+export interface RecurringAvailabilityPayload {
+  days: number[];
+  startDate: string; // "YYYY-MM-DD"
+  from: string; // "HH:mm"
+  to: string; // "HH:mm"
+  lessonLength: number;
+  weeks: number;
+  exclude?: string[]; // "YYYY-MM-DD|HH:mm" slots removed from the preview
+}
+
 export interface TeacherAvailabilitySlot {
   id: string;
   teacherId: string;
@@ -168,6 +179,26 @@ export const api = {
         body: data,
         headers: authHeaders(token),
       }),
+
+    // Batch create — all-or-nothing, one transaction on the server.
+    createMany: (data: AvailabilityPayloadItem[], token?: string) =>
+      fetchData<APIResponse<TeacherAvailabilitySlot[]>>("/availability", {
+        method: "POST",
+        body: data,
+        headers: authHeaders(token),
+      }),
+
+    // The server expands the weekly pattern itself; slots clashing with
+    // existing availability come back in `skipped` instead of failing.
+    createRecurring: (data: RecurringAvailabilityPayload, token?: string) =>
+      fetchData<APIResponse<TeacherAvailabilitySlot[]> & { skipped?: string[] }>(
+        "/availability/recurring",
+        {
+          method: "POST",
+          body: data,
+          headers: authHeaders(token),
+        },
+      ),
 
     remove: (id: string, token?: string) =>
       fetchData<void>(`/availability/${encodeURIComponent(id)}`, {

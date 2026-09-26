@@ -1,6 +1,7 @@
 import {
   getOwnAvailabilities,
   createAvailabilities,
+  createRecurringAvailabilities,
   updateAvailability,
   deleteAvailability,
   deleteAvailabilities,
@@ -10,6 +11,7 @@ import { protect, authorize, validate } from "@middleware";
 import { Router } from "express";
 import {
   createAvailabilitySchema,
+  recurringAvailabilitySchema,
   updateAvailabilitySchema,
   deleteAvailabilitySchema,
 } from "../schemas/availability.schema.js";
@@ -26,6 +28,15 @@ availabilityRouter.post(
   authorize(Role.Teacher),
   validate(createAvailabilitySchema),
   createAvailabilities,
+);
+
+// /availabilities/recurring — expand a weekly pattern server-side
+availabilityRouter.post(
+  "/recurring",
+  protect,
+  authorize(Role.Teacher),
+  validate(recurringAvailabilitySchema),
+  createRecurringAvailabilities,
 );
 
 // /availabilities/:id
