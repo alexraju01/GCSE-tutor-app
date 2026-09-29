@@ -1,12 +1,27 @@
+type LessonStatus =
+  | "Pending"
+  | "Upcoming"
+  | "Confirmed"
+  | "Declined"
+  | "Cancelled"
+  | "Completed";
+
 interface Lesson {
   id: string;
   subject: string;
-  topic: string;
-  meetingRoomId: string;
+  topic: string | null;
+  meetingRoomId: string | null;
   startTime: string;
   duration: number;
-  status: StatusType;
-  notes: string;
+  status: LessonStatus;
+  notes: string | null;
+  priceAtBooking: number | null;
+  cancelledAt: string | null;
+  cancelledBy: "Student" | "Teacher" | null;
+  cancelReason: string | null;
+  // worked out on the server from the tutor's cancellation policy
+  canCancel: boolean;
+  cancellationCutoffHours: number;
   student?: Student;
   teacher?: Teacher;
 }
@@ -23,7 +38,8 @@ interface Student {
   email: string;
 }
 
-type StatusType = "all" | "Upcoming" | "Confirmed" | "Completed" | "Cancelled";
+// "upcoming" = future requests + bookings (default), "all" = everything
+type StatusType = "all" | "upcoming" | LessonStatus;
 type SortDirection = "asc" | "desc";
 
 // The schedule page's filter/sort/date state — ScheduleFilters and

@@ -100,3 +100,66 @@ export const formatUkTime = (
     ...options,
     timeZone: UK_TIME_ZONE,
   });
+
+// day keys are "YYYY-MM-DD" UK dates - doing the maths on keys instead of
+// instants means GMT/BST changes can't shift anything
+
+const DAY_MS = 86_400_000;
+
+const parseKey = (key: string) => {
+  const [year, month, day] = key.split("-").map(Number);
+  return { year, month, day };
+};
+
+export const addDaysToKey = (key: string, days: number): string => {
+  const { year, month, day } = parseKey(key);
+  return new Date(Date.UTC(year, month - 1, day) + days * DAY_MS).toISOString().slice(0, 10);
+};
+
+// 0 = Monday … 6 = Sunday
+export const dayIndexOfKey = (key: string): number => {
+  const { year, month, day } = parseKey(key);
+  return (new Date(Date.UTC(year, month - 1, day)).getUTCDay() + 6) % 7;
+};
+
+// monday of the week `date` is in
+export const ukWeekStartKey = (date: Date): string => {
+  const key = toUkDateKey(date);
+  return addDaysToKey(key, -dayIndexOfKey(key));
+};
+
+// UK day key + minutes -> real Date
+export const ukInstant = (key: string, minutesOfDay = 0): Date => {
+  const { year, month, day } = parseKey(key);
+  return new Date(
+    ukWallClockToIsoString(year, month, day, Math.floor(minutesOfDay / 60), minutesOfDay % 60),
+  );
+};
+
+// minutes since UK midnight
+export const ukMinutesOfDay = (date: Date): number => {
+  const { hour, minute } = getUkDateParts(date);
+  return hour * 60 + minute;
+};
+
+export const minutesToHHMM = (totalMinutes: number): string =>
+  `${String(Math.floor(totalMinutes / 60)).padStart(2, "0")}:${String(totalMinutes % 60).padStart(2, "0")}`;
+
+export const hhmmToMinutes = (time: string): number => {
+  const [hours, minutes] = time.split(":").map(Number);
+  return hours * 60 + minutes;
+};
+
+export const formatDayKey = (key: string, options: Intl.DateTimeFormatOptions): string =>
+  new Date(`${key}T12:00:00Z`).toLocaleDateString("en-GB", { ...options, timeZone: "UTC" });
+
+// true if the user isn't on UK time, so we can show their local time too
+export const viewerIsOutsideUk = (): boolean =>
+  typeof Intl !== "undefined" &&
+  Intl.DateTimeFormat().resolvedOptions().timeZone !== UK_TIME_ZONE &&
+  new Date().getTimezoneOffset() !== -getUkOffsetMinutes(new Date());
+
+const getUkOffsetMinutes = (date: Date): number => {
+  const { year, month, day, hour, minute } = getUkDateParts(date);
+  return Math.round((Date.UTC(year, month - 1, day, hour, minute) - date.getTime()) / 60_000);
+};

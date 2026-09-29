@@ -3,7 +3,7 @@ interface UpcomingLessonBase {
   subject: string;
   topic: string;
   time: string;
-  status: "Upcoming" | "Confirmed" | "Completed" | "Cancelled" | "Pending";
+  status: LessonStatus;
 }
 
 interface StudentSession extends UpcomingLessonBase {
@@ -31,6 +31,7 @@ interface TeacherDashboardData {
   completedLessons: number;
   activeStudents: number;
   totalHoursTaught: number;
+  pendingRequests: number;
   upcomingLessons?: StudentSession[];
 }
 

@@ -1,7 +1,6 @@
 import { fetchData } from "@utils/fetchData";
-import { Teacher } from "../types/teacher";
+import type { BookingPolicy, Teacher } from "../types/teacher";
 import type { SocialLoginResponse, SocialUserData } from "../types/auth";
-// import type { Lesson } from "@types/lesson";
 
 export interface AvailabilityPayloadItem {
   startTime: string; // ISO 8601 string
@@ -26,11 +25,24 @@ export interface TeacherAvailabilitySlot {
   endTime: string;
 }
 
-// The teacher's own view of a slot — unlike the public/student-facing
-// TeacherAvailabilitySlot list (always unbooked by definition), this can
-// include slots a student has already booked.
+// teacher's own view - includes booked slots and who booked them
 export interface OwnAvailabilitySlot extends TeacherAvailabilitySlot {
+  seriesId: string | null;
   isBooked: boolean;
+  lesson: {
+    id: string;
+    status: LessonStatus;
+    subject: string;
+    topic: string | null;
+    studentName: string | null;
+    studentImage: string | null;
+  } | null;
+}
+
+export interface BookableAvailabilityResponse
+  extends APIResponse<TeacherAvailabilitySlot[]> {
+  policy: BookingPolicy;
+  bookableWindow: { from: string; to: string };
 }
 
 export interface LessonBookingPayloadItem {
@@ -40,6 +52,42 @@ export interface LessonBookingPayloadItem {
   topic?: string;
   notes?: string;
 }
+
+// comes back in ApiError.details when a booking is rejected, one per bad slot
+export interface BookingConflict {
+  availabilityId: string;
+  reason:
+    | "not_found"
+    | "wrong_teacher"
+    | "slot_taken"
+    | "policy"
+    | "subject"
+    | "student_overlap";
+  message: string;
+}
+
+export interface AppNotification {
+  id: string;
+  lessonId: string | null;
+  type:
+    | "LessonBooked"
+    | "LessonRequested"
+    | "LessonConfirmed"
+    | "LessonDeclined"
+    | "LessonCancelled";
+  title: string;
+  body: string;
+  readAt: string | null;
+  createdAt: string;
+}
+
+export interface DateRange {
+  from: Date;
+  to: Date;
+}
+
+const rangeQuery = ({ from, to }: DateRange) =>
+  new URLSearchParams({ from: from.toISOString(), to: to.toISOString() }).toString();
 
 const authHeaders = (token?: string) =>
   token ? { Authorization: `Bearer ${token}` } : undefined;
@@ -52,6 +100,7 @@ export interface GetLessonsParams {
   year?: number;
   month?: number;
   sort?: SortDirection;
+  scope?: "upcoming";
 }
 
 export const api = {
@@ -113,21 +162,11 @@ export const api = {
       fetchData<APIResponse<Teacher>>(`/teachers/${encodeURIComponent(id)}`, {
         headers: authHeaders(token),
       }),
-    getAvailabilities: (
-      id: string,
-      params?: { limit?: number; page?: number },
-      token?: string,
-    ) => {
-      const query = new URLSearchParams();
-      if (params?.limit !== undefined) query.set("limit", String(params.limit));
-      if (params?.page !== undefined) query.set("page", String(params.page));
-      const qs = query.toString();
-
-      return fetchData<APIResponse<TeacherAvailabilitySlot[]>>(
-        `/teachers/${encodeURIComponent(id)}/availabilities${qs ? `?${qs}` : ""}`,
-        { headers: authHeaders(token) },
-      );
-    },
+    // only bookable slots (unbooked + inside the tutor's booking window) + the policy
+    getBookableAvailabilities: (id: string, range: DateRange) =>
+      fetchData<BookableAvailabilityResponse>(
+        `/teachers/${encodeURIComponent(id)}/availabilities?${rangeQuery(range)}`,
+      ),
     getMyProfile: (token: string) =>
       fetchData<APIResponse<Teacher>>("/teachers/me", {
         headers: {
@@ -138,6 +177,12 @@ export const api = {
       fetchData<APIResponse<Teacher>>(`/teachers/${encodeURIComponent(id)}`, {
         method: "PATCH",
         body: data,
+      }),
+    updateMyBookingPolicy: (data: Partial<BookingPolicy>, token: string) =>
+      fetchData<APIResponse<Teacher>>("/teachers/me", {
+        method: "PATCH",
+        body: data,
+        headers: { Authorization: `Bearer ${token}` },
       }),
   },
 
@@ -158,27 +203,12 @@ export const api = {
   },
 
   availability: {
-    getByTeacherId: (teacherId: string, token?: string) =>
-      fetchData<APIResponse<AvailabilityPayloadItem[]>>(
-        `/availability/${encodeURIComponent(teacherId)}`,
-        {
-          method: "GET",
-          headers: authHeaders(token),
-        },
+    // all slots (booked or not) in the date range
+    getMine: (range: DateRange, token?: string) =>
+      fetchData<APIResponse<OwnAvailabilitySlot[]>>(
+        `/availability/me?${rangeQuery(range)}`,
+        { headers: authHeaders(token) },
       ),
-
-    getMyTeacherAvailabilities: (token?: string) =>
-      fetchData<APIResponse<OwnAvailabilitySlot[]>>(`/availability/me`, {
-        method: "GET",
-        headers: authHeaders(token),
-      }),
-
-    create: (data: AvailabilityPayloadItem, token?: string) =>
-      fetchData<APIResponse<TeacherAvailabilitySlot>>("/availability", {
-        method: "POST",
-        body: data,
-        headers: authHeaders(token),
-      }),
 
     // Batch create — all-or-nothing, one transaction on the server.
     createMany: (data: AvailabilityPayloadItem[], token?: string) =>
@@ -191,18 +221,14 @@ export const api = {
     // The server expands the weekly pattern itself; slots clashing with
     // existing availability come back in `skipped` instead of failing.
     createRecurring: (data: RecurringAvailabilityPayload, token?: string) =>
-      fetchData<APIResponse<TeacherAvailabilitySlot[]> & { skipped?: string[] }>(
-        "/availability/recurring",
-        {
-          method: "POST",
-          body: data,
-          headers: authHeaders(token),
-        },
-      ),
-
-    remove: (id: string, token?: string) =>
-      fetchData<void>(`/availability/${encodeURIComponent(id)}`, {
-        method: "DELETE",
+      fetchData<
+        APIResponse<TeacherAvailabilitySlot[]> & {
+          skipped?: string[];
+          seriesId?: string;
+        }
+      >("/availability/recurring", {
+        method: "POST",
+        body: data,
         headers: authHeaders(token),
       }),
 
@@ -212,19 +238,51 @@ export const api = {
         body: { ids },
         headers: authHeaders(token),
       }),
+
+    // removes upcoming unbooked slots in a series, booked ones are kept
+    removeSeries: (seriesId: string, token?: string) =>
+      fetchData<APIResponse<{ deleted: string[]; keptBooked: string[] }>>(
+        `/availability/series/${encodeURIComponent(seriesId)}`,
+        { method: "DELETE", headers: authHeaders(token) },
+      ),
   },
 
   lesson: {
-    create: (items: LessonBookingPayloadItem[], token: string) =>
+    // same idempotencyKey on a retry returns the original booking instead of a duplicate
+    create: (
+      items: LessonBookingPayloadItem[],
+      token: string,
+      idempotencyKey?: string,
+    ) =>
       fetchData<APIResponse<Lesson[]>>("/lessons", {
         method: "POST",
         body: items,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          ...(idempotencyKey && { "Idempotency-Key": idempotencyKey }),
+        },
+      }),
+
+    cancel: (
+      lessonId: string,
+      token: string,
+      options: { reason?: string; reopenSlot?: boolean } = {},
+    ) =>
+      fetchData<void>(`/lessons/${encodeURIComponent(lessonId)}`, {
+        method: "DELETE",
+        body: options,
         headers: { Authorization: `Bearer ${token}` },
       }),
 
-    cancel: (lessonId: string, token: string) =>
-      fetchData<void>(`/lessons/${encodeURIComponent(lessonId)}`, {
-        method: "DELETE",
+    respond: (
+      lessonId: string,
+      token: string,
+      decision: "approve" | "decline",
+      reason?: string,
+    ) =>
+      fetchData<void>(`/lessons/${encodeURIComponent(lessonId)}/respond`, {
+        method: "PATCH",
+        body: { decision, ...(reason && { reason }) },
         headers: { Authorization: `Bearer ${token}` },
       }),
 
@@ -244,5 +302,25 @@ export const api = {
         headers: { Authorization: `Bearer ${token}` },
       });
     },
+  },
+
+  notifications: {
+    getMine: (token: string) =>
+      fetchData<APIResponse<AppNotification[]> & { unreadCount: number }>(
+        "/notifications/me",
+        { headers: { Authorization: `Bearer ${token}` } },
+      ),
+
+    markRead: (id: string, token: string) =>
+      fetchData<void>(`/notifications/${encodeURIComponent(id)}/read`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+
+    markAllRead: (token: string) =>
+      fetchData<void>("/notifications/read-all", {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}` },
+      }),
   },
 };

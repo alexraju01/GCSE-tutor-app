@@ -21,7 +21,17 @@ export interface Teacher {
   qualifications: string;
   hourlyRate: number;
   teaches: TeachesSubject[];
+  // Booking policy
+  requireApproval: boolean;
+  minNoticeHours: number;
+  maxAdvanceDays: number;
+  cancellationCutoffHours: number;
 }
+
+export type BookingPolicy = Pick<
+  Teacher,
+  "requireApproval" | "minNoticeHours" | "maxAdvanceDays" | "cancellationCutoffHours"
+>;
 
 export interface TeachersAPIResponse {
   status: string;

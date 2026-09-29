@@ -8,6 +8,19 @@ interface FetchOptions {
 	headers?: HeadersInit;
 }
 
+// keeps the status code and the server's `details` (e.g. conflicting slots)
+export class ApiError extends Error {
+	status: number;
+	details?: Record<string, unknown>;
+
+	constructor(message: string, status: number, details?: Record<string, unknown>) {
+		super(message);
+		this.name = "ApiError";
+		this.status = status;
+		this.details = details;
+	}
+}
+
 export const fetchData = async <T>(endpoint: string, options: FetchOptions = {}): Promise<T> => {
 	const { method = "GET", body, headers } = options;
 
@@ -24,23 +37,20 @@ export const fetchData = async <T>(endpoint: string, options: FetchOptions = {})
 		body: body ? JSON.stringify(body) : undefined,
 	});
 
-	if (response.status === 404) {
-		const errorData = await response.json().catch(() => ({}));
-		throw new Error(errorData.message || `Endpoint not found: ${method} ${endpoint}`);
-	}
-
 	if (!response.ok) {
-		let errorMessage = "Request failed";
+		const text = await response.text();
+		let message = response.status === 404 ? `Endpoint not found: ${method} ${endpoint}` : "Request failed";
+		let details: Record<string, unknown> | undefined;
 
 		try {
-			const errorData = await response.json();
-			errorMessage = errorData.message || `Error ${response.status}: ${response.statusText}`;
+			const errorData = JSON.parse(text);
+			message = errorData.message || `Error ${response.status}: ${response.statusText}`;
+			details = errorData.details;
 		} catch {
-			const text = await response.text();
-			errorMessage = text || response.statusText;
+			if (text) message = text;
 		}
 
-		throw new Error(errorMessage);
+		throw new ApiError(message, response.status, details);
 	}
 
 	// 204 (and any other empty-bodied success) has nothing to parse —
