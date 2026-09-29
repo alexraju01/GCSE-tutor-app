@@ -36,6 +36,8 @@ export const getLessonsQuerySchema = z.object({
   // year would be ambiguous about which year's month is meant.
   month: z.coerce.number().int().min(1).max(12).optional(),
   sort: z.enum(["asc", "desc"]).default("asc"),
+  // "upcoming" = future requests + booked lessons
+  scope: z.enum(["upcoming"]).optional(),
 });
 
 export type GetLessonsQuery = z.infer<typeof getLessonsQuerySchema>;
@@ -67,5 +69,34 @@ export const createLessonSchema = z.union([
     }),
 ]);
 
+// body is optional, a plain DELETE still works
+export const cancelLessonSchema = z
+  .object({
+    reason: z.string().trim().max(255).optional(),
+    // teacher only - reopen the slot for other students
+    reopenSlot: z.boolean().optional(),
+  })
+  .strict()
+  .default({});
+
+export const respondToLessonSchema = z
+  .object({
+    decision: z.enum(["approve", "decline"], {
+      message: "Decision must be either 'approve' or 'decline'.",
+    }),
+    reason: z.string().trim().max(255).optional(),
+  })
+  .strict();
+
+// Idempotency-Key header (client sends a uuid)
+export const idempotencyKeySchema = z
+  .string()
+  .trim()
+  .min(8, { message: "Idempotency-Key must be at least 8 characters." })
+  .max(64, { message: "Idempotency-Key must be at most 64 characters." })
+  .optional();
+
 export type LessonBookingItem = z.infer<typeof lessonBookingItemSchema>;
 export type CreateLessonInput = z.infer<typeof createLessonSchema>;
+export type CancelLessonInput = z.infer<typeof cancelLessonSchema>;
+export type RespondToLessonInput = z.infer<typeof respondToLessonSchema>;

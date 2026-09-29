@@ -1,8 +1,20 @@
-import { LessonStatus, Prisma, Role, Subject } from "@generated/client.js";
+import { LessonStatus, NotificationType, Prisma, Role, Subject } from "@generated/client.js";
 import { formatSessionTime } from "@utils/date.js";
+import { DB_CONSTRAINTS, isConstraintViolation } from "@utils/dbErrors.js";
 import { prisma } from "../db/prisma.js";
 import { AppError } from "../utils/AppError.js";
+import {
+  assertLessonCancellable,
+  assertSlotBookable,
+  calculateLessonPrice,
+  getEffectiveStatus,
+  LIVE_STATUSES,
+} from "./booking.policy.js";
+import { enqueueNotifications, type NotificationInput } from "./notification.service.js";
 import type { GetLessonsQuery } from "../schemas/lesson.schema.js";
+
+type Db = Prisma.TransactionClient;
+type LessonActorRole = typeof Role.Student | typeof Role.Teacher;
 
 const USER_SELECT = {
   name: true,
@@ -19,11 +31,21 @@ const BASE_LESSON_SELECT = {
   duration: true,
   status: true,
   notes: true,
+  priceAtBooking: true,
+  cancelledAt: true,
+  cancelledBy: true,
+  cancelReason: true,
 } as const;
+
+// longest lesson is 2h - bounds how far back the overlap lookup needs to go
+const MAX_LESSON_MINUTES = 120;
+const MINUTE_MS = 60_000;
+
+export const formatSubject = (subject: Subject): string => subject.replace(/_/g, " ");
 
 export interface FindLessonsParams extends GetLessonsQuery {
   userId: string;
-  role: typeof Role.Student | typeof Role.Teacher;
+  role: LessonActorRole;
 }
 
 export interface CreateLessonParams {
@@ -50,18 +72,8 @@ const buildDateRangeFilter = (year?: number, month?: number) => {
   };
 };
 
-// Nothing ever flips a lesson from Upcoming/Confirmed to Completed once its
-// start time passes — there's no worker for it — so the stored status goes
-// stale. Derive the real status here instead of trusting it as-is.
-const getEffectiveStatus = (status: LessonStatus, startTime: Date, now: Date): LessonStatus => {
-  const isPending = status === LessonStatus.Upcoming || status === LessonStatus.Confirmed;
-  return isPending && startTime <= now ? LessonStatus.Completed : status;
-};
-
-// A lesson counts as completed once it's actually Completed OR its start
-// time has simply passed (see getEffectiveStatus) — reused anywhere a query
-// filters on `status: Completed` directly, so those don't stay stuck at
-// zero for lessons no one ever flips.
+// completed = marked Completed, or booked and already started (see
+// getEffectiveStatus) - covers the gap before the worker catches up
 export const effectivelyCompletedCondition = (now: Date = new Date()) => ({
   OR: [
     { status: LessonStatus.Completed },
@@ -69,10 +81,8 @@ export const effectivelyCompletedCondition = (now: Date = new Date()) => ({
   ],
 });
 
-// Keeps filtering consistent with getEffectiveStatus above — otherwise a
-// lesson could display as Completed but never show up under a "Completed"
-// filter (or a started-but-technically-Upcoming one could still show up
-// under "Upcoming").
+// filters need to match getEffectiveStatus, otherwise a lesson can show as
+// Completed but not turn up under the Completed filter
 const buildStatusCondition = (status: LessonStatus | undefined, now: Date) => {
   if (!status) return undefined;
 
@@ -80,11 +90,69 @@ const buildStatusCondition = (status: LessonStatus | undefined, now: Date) => {
     return effectivelyCompletedCondition(now);
   }
 
-  if (status === LessonStatus.Upcoming || status === LessonStatus.Confirmed) {
+  if (status === LessonStatus.Declined) {
+    return {
+      OR: [
+        { status: LessonStatus.Declined },
+        { status: LessonStatus.Pending, startTime: { lte: now } },
+      ],
+    };
+  }
+
+  // approved requests (Confirmed) are upcoming lessons too
+  if (status === LessonStatus.Upcoming) {
+    return {
+      status: { in: [LessonStatus.Upcoming, LessonStatus.Confirmed] },
+      startTime: { gt: now },
+    };
+  }
+
+  if (LIVE_STATUSES.includes(status)) {
     return { status, startTime: { gt: now } };
   }
 
   return { status };
+};
+
+const canCancel = (
+  lesson: { status: LessonStatus; startTime: Date },
+  role: LessonActorRole,
+  cancellationCutoffHours: number,
+  now: Date,
+): boolean => {
+  try {
+    assertLessonCancellable(lesson, role, { cancellationCutoffHours }, now);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const serializeLesson = <
+  T extends {
+    status: LessonStatus;
+    startTime: Date;
+    priceAtBooking: Prisma.Decimal | null;
+  },
+>(
+  lesson: T,
+  role: LessonActorRole,
+  cancellationCutoffHours: number,
+  now: Date,
+) => {
+  const status = getEffectiveStatus(lesson.status, lesson.startTime, now);
+  return {
+    ...lesson,
+    status,
+    priceAtBooking: lesson.priceAtBooking === null ? null : Number(lesson.priceAtBooking),
+    cancellationCutoffHours,
+    canCancel: canCancel(
+      { status, startTime: lesson.startTime },
+      role,
+      cancellationCutoffHours,
+      now,
+    ),
+  };
 };
 
 export const findLessonsByRole = async ({
@@ -97,6 +165,7 @@ export const findLessonsByRole = async ({
   year,
   month,
   sort,
+  scope,
 }: FindLessonsParams) => {
   const isStudent = role === Role.Student;
   const skip = (page - 1) * limit;
@@ -104,6 +173,9 @@ export const findLessonsByRole = async ({
   const orderBy = [{ startTime: sort }, { id: sort }];
   const now = new Date();
   const statusCondition = buildStatusCondition(status, now);
+  const scopeCondition =
+    scope === "upcoming" ? { status: { in: LIVE_STATUSES }, startTime: { gt: now } } : undefined;
+  const conditions = [statusCondition, scopeCondition].filter((c) => c !== undefined);
 
   const where = {
     ...(isStudent ? { student: { userId } } : { teacher: { userId } }),
@@ -111,7 +183,7 @@ export const findLessonsByRole = async ({
     ...(dateRange && { startTime: dateRange }),
     // A separate AND entry so this never collides with dateRange's own
     // startTime key above — both need to hold at once when both are set.
-    ...(statusCondition && { AND: [statusCondition] }),
+    ...(conditions.length > 0 && { AND: conditions }),
   };
 
   if (isStudent) {
@@ -124,15 +196,14 @@ export const findLessonsByRole = async ({
         orderBy,
         select: {
           ...BASE_LESSON_SELECT,
-          teacher: { select: { user: { select: USER_SELECT } } },
+          teacher: { select: { cancellationCutoffHours: true, user: { select: USER_SELECT } } },
         },
       }),
     ]);
 
     const lessons = rawLessons.map(({ teacher, ...lesson }) => ({
-      ...lesson,
+      ...serializeLesson(lesson, role, teacher.cancellationCutoffHours, now),
       teacher: teacher.user,
-      status: getEffectiveStatus(lesson.status, lesson.startTime, now),
     }));
 
     return { lessons, totalResults };
@@ -147,172 +218,451 @@ export const findLessonsByRole = async ({
       orderBy,
       select: {
         ...BASE_LESSON_SELECT,
+        teacher: { select: { cancellationCutoffHours: true } },
         student: { select: { user: { select: USER_SELECT } } },
       },
     }),
   ]);
 
-  const lessons = rawLessons.map(({ student, ...lesson }) => ({
-    ...lesson,
+  const lessons = rawLessons.map(({ student, teacher, ...lesson }) => ({
+    ...serializeLesson(lesson, role, teacher.cancellationCutoffHours, now),
     student: student.user,
-    status: getEffectiveStatus(lesson.status, lesson.startTime, now),
   }));
 
   return { lessons, totalResults };
 };
 
+// ---------------------------------------------------------------------------
+// Cancelling and responding
+// ---------------------------------------------------------------------------
+
+const LESSON_PARTIES_SELECT = {
+  id: true,
+  status: true,
+  startTime: true,
+  duration: true,
+  subject: true,
+  availabilityId: true,
+  student: { select: { userId: true, user: { select: { name: true } } } },
+  teacher: {
+    select: { userId: true, cancellationCutoffHours: true, user: { select: { name: true } } },
+  },
+} as const;
+
+// only updates if the lesson is still in one of fromStatuses, so two
+// cancels/responses at the same time can't both go through
+const transitionLesson = async (
+  db: Db,
+  lessonId: string,
+  fromStatuses: LessonStatus[],
+  data: Prisma.LessonUpdateManyMutationInput,
+) => {
+  const { count } = await db.lesson.updateMany({
+    where: { id: lessonId, status: { in: fromStatuses } },
+    data,
+  });
+
+  if (count === 0) {
+    throw new AppError("This lesson was just updated by someone else. Please refresh.", 409);
+  }
+};
+
+export interface CancelLessonOptions {
+  reason?: string;
+  // teacher only - off by default, if they're cancelling they probably
+  // can't teach then either
+  reopenSlot?: boolean;
+}
+
 export const cancelLesson = async (
   lessonId: string,
-  canceller: { userId: string; role: typeof Role.Student | typeof Role.Teacher },
+  canceller: { userId: string; role: LessonActorRole },
+  { reason, reopenSlot = false }: CancelLessonOptions = {},
 ) => {
   await prisma.$transaction(async (tx) => {
     const lesson = await tx.lesson.findUnique({
       where: { id: lessonId },
-      select: {
-        id: true,
-        status: true,
-        startTime: true,
-        student: { select: { userId: true } },
-        teacher: { select: { userId: true } },
-      },
+      select: LESSON_PARTIES_SELECT,
     });
 
-    const ownerUserId =
-      canceller.role === Role.Student ? lesson?.student.userId : lesson?.teacher.userId;
+    const isStudent = canceller.role === Role.Student;
+    const ownerUserId = isStudent ? lesson?.student.userId : lesson?.teacher.userId;
 
     if (!lesson || ownerUserId !== canceller.userId) {
       throw new AppError("No lesson found with that ID.", 404);
     }
 
-    if (lesson.status === LessonStatus.Cancelled || lesson.status === LessonStatus.Completed) {
-      throw new AppError(`This lesson is already ${lesson.status.toLowerCase()}.`, 400);
-    }
+    assertLessonCancellable(lesson, canceller.role, lesson.teacher);
 
-    if (lesson.startTime <= new Date()) {
-      throw new AppError("This lesson has already started and can no longer be cancelled.", 400);
-    }
-
-    await tx.lesson.update({
-      where: { id: lessonId },
-      data: { status: LessonStatus.Cancelled },
+    await transitionLesson(tx, lessonId, LIVE_STATUSES, {
+      status: LessonStatus.Cancelled,
+      activeAvailabilityId: null,
+      cancelledAt: new Date(),
+      cancelledBy: canceller.role,
+      cancelReason: reason ?? null,
     });
+
+    if (!isStudent && !reopenSlot && lesson.availabilityId) {
+      await tx.availability.delete({ where: { id: lesson.availabilityId } });
+    }
+
+    const when = formatSessionTime(lesson.startTime, lesson.duration);
+    const cancellerName = (isStudent ? lesson.student.user.name : lesson.teacher.user.name) ?? "";
+    const withdrawnRequest = lesson.status === LessonStatus.Pending;
+
+    await enqueueNotifications(tx, [
+      {
+        userId: isStudent ? lesson.teacher.userId : lesson.student.userId,
+        lessonId,
+        type: NotificationType.LessonCancelled,
+        title: withdrawnRequest
+          ? `${cancellerName} withdrew their lesson request`
+          : `${cancellerName} cancelled your lesson`,
+        body: `${formatSubject(lesson.subject)} · ${when}${reason ? `\nReason: ${reason}` : ""}`,
+      },
+    ]);
   });
 };
 
-// Books one lesson for an already-resolved student, inside a transaction a
-// caller controls — lets createLessonBookings loop over a whole batch inside
-// a single atomic transaction instead of one per lesson. itemPrefix is empty
-// for a lone booking and "Lesson 2 of 3: " style for a batch, so error
-// messages always point at the specific booking that failed.
-const bookSingleLessonInTx = async (
-  tx: Prisma.TransactionClient,
-  studentId: string,
-  { teacherId, availabilityId, subject, topic, notes }: CreateLessonParams,
-  itemPrefix: string,
+export type LessonDecision = "approve" | "decline";
+
+export const respondToLessonRequest = async (
+  lessonId: string,
+  teacherUserId: string,
+  decision: LessonDecision,
+  reason?: string,
 ) => {
-  // Verify availability slot matches the teacher - its startTime/endTime
-  // are what we use for the lesson, never trust the client for that
-  const availability = await tx.availability.findUnique({
-    where: { id: availabilityId },
+  await prisma.$transaction(async (tx) => {
+    const lesson = await tx.lesson.findFirst({
+      where: { id: lessonId, teacher: { userId: teacherUserId } },
+      select: LESSON_PARTIES_SELECT,
+    });
+
+    if (!lesson) throw new AppError("No lesson found with that ID.", 404);
+
+    if (lesson.status !== LessonStatus.Pending) {
+      throw new AppError(
+        `This lesson isn't awaiting a response — it's ${lesson.status.toLowerCase()}.`,
+        400,
+      );
+    }
+    if (lesson.startTime <= new Date()) {
+      throw new AppError("This lesson request has expired.", 400);
+    }
+
+    const approved = decision === "approve";
+
+    await transitionLesson(tx, lessonId, [LessonStatus.Pending], {
+      status: approved ? LessonStatus.Confirmed : LessonStatus.Declined,
+      respondedAt: new Date(),
+      ...(!approved && { activeAvailabilityId: null, cancelReason: reason ?? null }),
+    });
+
+    const when = formatSessionTime(lesson.startTime, lesson.duration);
+    const teacherName = lesson.teacher.user.name ?? "Your tutor";
+
+    await enqueueNotifications(tx, [
+      {
+        userId: lesson.student.userId,
+        lessonId,
+        type: approved ? NotificationType.LessonConfirmed : NotificationType.LessonDeclined,
+        title: approved
+          ? `${teacherName} confirmed your lesson`
+          : `${teacherName} couldn't take your lesson`,
+        body: `${formatSubject(lesson.subject)} · ${when}${!approved && reason ? `\nReason: ${reason}` : ""}`,
+      },
+    ]);
   });
-
-  if (!availability) {
-    throw new AppError(`${itemPrefix}No availability slot found with that ID.`, 404);
-  }
-
-  const durationInMinutes = Math.round(
-    (availability.endTime.getTime() - availability.startTime.getTime()) / (1000 * 60),
-  );
-  const slotLabel = formatSessionTime(availability.startTime, durationInMinutes);
-
-  if (availability.teacherId !== teacherId) {
-    throw new AppError(
-      `${itemPrefix}The ${slotLabel} slot does not belong to the specified teacher.`,
-      400,
-    );
-  }
-
-  // Check if slot has already been booked (a cancelled lesson frees the slot back up)
-  const existingBooking = await tx.lesson.findFirst({
-    where: { availabilityId, status: { not: LessonStatus.Cancelled } },
-    select: { id: true },
-  });
-
-  if (existingBooking) {
-    throw new AppError(`${itemPrefix}The ${slotLabel} slot has already been booked.`, 409);
-  }
-
-  // Verify teacher exists and teaches the requested subject
-  const teacherSubject = await tx.teaches.findFirst({
-    where: {
-      teacherId,
-      subject,
-    },
-    select: { id: true },
-  });
-
-  if (!teacherSubject) {
-    throw new AppError(
-      `${itemPrefix}The teacher for the ${slotLabel} slot doesn't teach ${subject}.`,
-      400,
-    );
-  }
-
-  const lesson = await tx.lesson.create({
-    data: {
-      studentId,
-      teacherId,
-      availabilityId,
-      subject,
-      topic,
-      startTime: availability.startTime,
-      duration: durationInMinutes,
-      notes,
-      status: LessonStatus.Upcoming,
-    },
-    select: {
-      ...BASE_LESSON_SELECT,
-      teacher: { select: { user: { select: USER_SELECT } } },
-    },
-  });
-
-  return {
-    ...lesson,
-    teacher: lesson.teacher.user,
-  };
 };
 
-// Books one or many lessons atomically — either every booking in the batch
-// succeeds, or none do (a partially-booked "weekly slot for a month" request
-// would just confuse whoever asked for all of them).
+// ---------------------------------------------------------------------------
+// Booking
+// ---------------------------------------------------------------------------
+
+export type BookingConflictReason =
+  "not_found" | "wrong_teacher" | "slot_taken" | "policy" | "subject" | "student_overlap";
+
+export interface BookingConflict {
+  availabilityId: string;
+  reason: BookingConflictReason;
+  message: string;
+}
+
+// 409 if the student can fix it by picking other slots, 400 otherwise
+const RETRYABLE_CONFLICTS: BookingConflictReason[] = ["slot_taken", "student_overlap", "not_found"];
+
+const buildConflictError = (conflicts: BookingConflict[], total: number): AppError => {
+  const statusCode = conflicts.every((c) => RETRYABLE_CONFLICTS.includes(c.reason)) ? 409 : 400;
+  const message =
+    total === 1
+      ? conflicts[0].message
+      : `${conflicts.length} of ${total} lessons can't be booked. ${conflicts[0].message}`;
+
+  return new AppError(message, statusCode, { conflicts });
+};
+
+const BOOKED_LESSON_SELECT = {
+  ...BASE_LESSON_SELECT,
+  teacher: { select: { user: { select: USER_SELECT } } },
+} as const;
+
+const findLessonsByBookingRef = async (studentId: string, bookingRef: string) => {
+  const lessons = await prisma.lesson.findMany({
+    where: { studentId, bookingRef },
+    orderBy: { startTime: "asc" },
+    select: BOOKED_LESSON_SELECT,
+  });
+
+  return lessons.map(({ teacher, ...lesson }) => ({
+    ...lesson,
+    priceAtBooking: lesson.priceAtBooking === null ? null : Number(lesson.priceAtBooking),
+    teacher: teacher.user,
+  }));
+};
+
+const slotMinutes = (slot: { startTime: Date; endTime: Date }) =>
+  Math.round((slot.endTime.getTime() - slot.startTime.getTime()) / MINUTE_MS);
+
+// books the whole batch or nothing. every item is checked up front so all
+// conflicts come back together in error.details.conflicts.
+// races are handled by the db constraints (activeAvailabilityId unique +
+// student overlap exclusion), the error handler turns those into 409s
 export const createLessonBookings = async (
   studentUserId: string,
   bookings: CreateLessonParams[],
+  idempotencyKey?: string,
 ) => {
-  const isBatch = bookings.length > 1;
+  const student = await prisma.student.findUnique({
+    where: { userId: studentUserId },
+    select: { id: true, userId: true, user: { select: { name: true } } },
+  });
 
-  return prisma.$transaction(
-    async (tx) => {
-      const student = await tx.student.findUnique({
-        where: { userId: studentUserId },
-        select: { id: true },
-      });
+  if (!student) {
+    throw new AppError("Student profile not found.", 404);
+  }
 
-      if (!student) {
-        throw new AppError("Student profile not found.", 404);
-      }
+  if (idempotencyKey) {
+    const previous = await findLessonsByBookingRef(student.id, idempotencyKey);
+    if (previous.length > 0) return { lessons: previous, replayed: true };
+  }
 
-      const lessons = [];
-      for (let i = 0; i < bookings.length; i++) {
-        const itemPrefix = isBatch ? `Lesson ${i + 1} of ${bookings.length}: ` : "";
-        lessons.push(await bookSingleLessonInTx(tx, student.id, bookings[i], itemPrefix));
-      }
+  try {
+    const lessons = await prisma.$transaction((tx) =>
+      bookInTransaction(tx, student, bookings, idempotencyKey),
+    );
+    return { lessons, replayed: false };
+  } catch (err) {
+    // same request sent twice at once - return the one that won
+    if (
+      idempotencyKey &&
+      (isConstraintViolation(err, DB_CONSTRAINTS.activeSlotBooking) ||
+        isConstraintViolation(err, DB_CONSTRAINTS.studentLessonOverlap))
+    ) {
+      const previous = await findLessonsByBookingRef(student.id, idempotencyKey);
+      if (previous.length > 0) return { lessons: previous, replayed: true };
+    }
+    throw err;
+  }
+};
 
-      return lessons;
-    },
-    // serializable so two people booking the same slot at once can't both slip
-    // past the existing-booking check - postgres kills one with a P2034, we
-    // turn that into a 409 in the error handler instead of letting it double-book
-    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+const bookInTransaction = async (
+  tx: Db,
+  student: { id: string; userId: string; user: { name: string | null } },
+  bookings: CreateLessonParams[],
+  bookingRef?: string,
+) => {
+  const now = new Date();
+  const availabilityIds = bookings.map((b) => b.availabilityId);
+
+  const [slots, takenSlots] = await Promise.all([
+    tx.availability.findMany({
+      where: { id: { in: availabilityIds } },
+      select: {
+        id: true,
+        teacherId: true,
+        startTime: true,
+        endTime: true,
+        teacher: {
+          select: {
+            userId: true,
+            hourlyRate: true,
+            requireApproval: true,
+            minNoticeHours: true,
+            maxAdvanceDays: true,
+            cancellationCutoffHours: true,
+            user: { select: { name: true } },
+            teaches: { select: { subject: true } },
+          },
+        },
+      },
+    }),
+    tx.lesson.findMany({
+      where: { activeAvailabilityId: { in: availabilityIds } },
+      select: { activeAvailabilityId: true },
+    }),
+  ]);
+
+  const slotById = new Map(slots.map((slot) => [slot.id, slot]));
+  const takenIds = new Set(takenSlots.map((l) => l.activeAvailabilityId));
+
+  const studentLessons =
+    slots.length === 0
+      ? []
+      : await tx.lesson.findMany({
+          where: {
+            studentId: student.id,
+            status: { in: LIVE_STATUSES },
+            startTime: {
+              gt: new Date(
+                Math.min(...slots.map((s) => s.startTime.getTime())) -
+                  MAX_LESSON_MINUTES * MINUTE_MS,
+              ),
+              lt: new Date(Math.max(...slots.map((s) => s.endTime.getTime()))),
+            },
+          },
+          select: { startTime: true, duration: true },
+        });
+
+  const busy = studentLessons.map((l) => ({
+    start: l.startTime,
+    end: new Date(l.startTime.getTime() + l.duration * MINUTE_MS),
+  }));
+
+  const conflicts: BookingConflict[] = [];
+
+  for (const booking of bookings) {
+    const addConflict = (reason: BookingConflictReason, message: string) =>
+      conflicts.push({ availabilityId: booking.availabilityId, reason, message });
+
+    const slot = slotById.get(booking.availabilityId);
+    if (!slot) {
+      addConflict("not_found", "One of the selected slots is no longer available.");
+      continue;
+    }
+
+    const label = formatSessionTime(slot.startTime, slotMinutes(slot));
+
+    if (slot.teacherId !== booking.teacherId) {
+      addConflict("wrong_teacher", `The ${label} slot does not belong to this tutor.`);
+      continue;
+    }
+    if (takenIds.has(slot.id)) {
+      addConflict("slot_taken", `The ${label} slot has just been booked by someone else.`);
+      continue;
+    }
+    try {
+      assertSlotBookable(slot.startTime, slot.teacher, now, `The ${label} slot`);
+    } catch (err) {
+      if (!(err instanceof AppError)) throw err;
+      addConflict("policy", err.message);
+      continue;
+    }
+    if (!slot.teacher.teaches.some((t) => t.subject === booking.subject)) {
+      addConflict("subject", `This tutor doesn't teach ${formatSubject(booking.subject)}.`);
+      continue;
+    }
+    // busy includes earlier items in this batch too
+    if (busy.some((b) => b.start < slot.endTime && slot.startTime < b.end)) {
+      addConflict("student_overlap", `You already have a lesson during ${label}.`);
+      continue;
+    }
+
+    busy.push({ start: slot.startTime, end: slot.endTime });
+  }
+
+  if (conflicts.length > 0) {
+    throw buildConflictError(conflicts, bookings.length);
+  }
+
+  const lessons = [];
+  // one notification per person per batch, not one per lesson
+  const linesByTeacher = new Map<
+    string,
+    { teacher: (typeof slots)[number]["teacher"]; lines: string[] }
+  >();
+
+  for (const booking of bookings) {
+    const slot = slotById.get(booking.availabilityId)!;
+    const duration = slotMinutes(slot);
+
+    const entry = linesByTeacher.get(slot.teacherId) ?? { teacher: slot.teacher, lines: [] };
+    entry.lines.push(
+      `${formatSubject(booking.subject)} · ${formatSessionTime(slot.startTime, duration)}`,
+    );
+    linesByTeacher.set(slot.teacherId, entry);
+
+    const lesson = await tx.lesson.create({
+      data: {
+        studentId: student.id,
+        teacherId: slot.teacherId,
+        availabilityId: slot.id,
+        activeAvailabilityId: slot.id,
+        subject: booking.subject,
+        topic: booking.topic,
+        notes: booking.notes,
+        startTime: slot.startTime,
+        duration,
+        priceAtBooking: calculateLessonPrice(Number(slot.teacher.hourlyRate), duration),
+        bookingRef,
+        status: slot.teacher.requireApproval ? LessonStatus.Pending : LessonStatus.Upcoming,
+      },
+      select: BOOKED_LESSON_SELECT,
+    });
+
+    lessons.push({
+      ...lesson,
+      priceAtBooking: lesson.priceAtBooking === null ? null : Number(lesson.priceAtBooking),
+      teacher: lesson.teacher.user,
+    });
+  }
+
+  await enqueueNotifications(
+    tx,
+    buildBookingNotifications(student, [...linesByTeacher.values()], lessons),
   );
+
+  return lessons;
+};
+
+const buildBookingNotifications = (
+  student: { userId: string; user: { name: string | null } },
+  byTeacher: {
+    teacher: { userId: string; requireApproval: boolean; user: { name: string | null } };
+    lines: string[];
+  }[],
+  lessons: { id: string }[],
+): NotificationInput[] => {
+  const studentName = student.user.name ?? "A student";
+  const count = (n: number) => `${n} lesson${n === 1 ? "" : "s"}`;
+  const lessonId = lessons.length === 1 ? lessons[0].id : undefined;
+
+  return byTeacher.flatMap(({ teacher, lines }) => {
+    const tutorName = teacher.user.name ?? "your tutor";
+    const body = lines.join("\n");
+
+    return [
+      {
+        userId: teacher.userId,
+        lessonId,
+        type: teacher.requireApproval
+          ? NotificationType.LessonRequested
+          : NotificationType.LessonBooked,
+        title: teacher.requireApproval
+          ? `${studentName} requested ${count(lines.length)} — please respond`
+          : `${studentName} booked ${count(lines.length)}`,
+        body,
+      },
+      {
+        userId: student.userId,
+        lessonId,
+        type: teacher.requireApproval
+          ? NotificationType.LessonRequested
+          : NotificationType.LessonBooked,
+        title: teacher.requireApproval
+          ? `Request sent to ${tutorName} — we'll let you know when they respond`
+          : `You're booked with ${tutorName}`,
+        body,
+      },
+    ];
+  });
 };

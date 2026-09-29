@@ -3,7 +3,9 @@ import { Role, LessonStatus } from "@generated/client.js";
 import type { User } from "@generated/client.js";
 
 // Valid statuses that grant a teacher permission to view a student's profile
+// (Pending so a teacher can check who's asking before approving)
 const AUTHORIZED_LESSON_STATUSES: LessonStatus[] = [
+  LessonStatus.Pending,
   LessonStatus.Upcoming,
   LessonStatus.Confirmed,
   LessonStatus.Completed,
