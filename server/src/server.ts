@@ -8,6 +8,7 @@ import {
   socialRouter,
   dashboardRouter,
   lessonRouter,
+  notificationRouter,
 } from "@routes";
 import { AppError } from "@utils/AppError.js";
 import cookieParser from "cookie-parser";
@@ -47,6 +48,7 @@ app.use("/api/v1/availability", availabilityRouter);
 app.use("/api/v1/auth", socialRouter);
 app.use("/api/v1/dashboard", dashboardRouter);
 app.use("/api/v1/lessons", lessonRouter);
+app.use("/api/v1/notifications", notificationRouter);
 
 // Unmatched routes
 app.all("/*splat", (req, res, next) => {

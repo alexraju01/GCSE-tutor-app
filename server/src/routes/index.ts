@@ -5,3 +5,4 @@ export * from "./availability.route.js";
 export * from "./socialAuth.route.js";
 export * from "./dashboard.route.js";
 export * from "./lesson.route.js";
+export * from "./notification.route.js";
