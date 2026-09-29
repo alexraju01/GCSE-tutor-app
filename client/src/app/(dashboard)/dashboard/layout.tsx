@@ -2,6 +2,7 @@ import { auth } from "@auth";
 import {
   BookOpen,
   Calendar,
+  CalendarRange,
   LayoutDashboard,
   MessageSquare,
   Settings,
@@ -14,6 +15,7 @@ import { redirect } from "next/navigation";
 import ActiveLink from "@/components/ActiveLink";
 import Logo from "@/components/Logo";
 import UserMenu from "@/components/UserMenu";
+import NotificationBell from "@components/dashboard/NotificationBell";
 import Link from "next/link";
 import Breadcrumb from "@components/Breadcrumb";
 import { UserRole } from "@/types/role";
@@ -47,6 +49,15 @@ const DashboardLayout = async ({ children }: { children: React.ReactNode }) => {
         href: "/dashboard/schedule" as Route,
         icon: <Calendar size={18} />,
       },
+      ...(isTeacher
+        ? [
+            {
+              label: "Availability",
+              href: "/dashboard/availability" as Route,
+              icon: <CalendarRange size={18} />,
+            },
+          ]
+        : []),
       {
         label: "Messages",
         href: "/dashboard/messages" as Route,
@@ -115,6 +126,8 @@ const DashboardLayout = async ({ children }: { children: React.ReactNode }) => {
               <ArrowLeft size={14} />
               <span>Back to Main Site</span>
             </Link>
+
+            <NotificationBell />
 
             <UserMenu user={user} />
           </div>
