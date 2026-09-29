@@ -1,7 +1,18 @@
+import { randomUUID } from "node:crypto";
 import { prisma } from "@db/prisma.js";
 import { LessonStatus, Prisma } from "@generated/client.js";
 import { AppError } from "@utils/AppError.js";
-import { formatSessionTime, ukWallClockToDate } from "@utils/date.js";
+import { formatSessionTime } from "@utils/date.js";
+import { bookableWindow, LIVE_STATUSES, type BookingPolicy } from "./booking.policy.js";
+import {
+  DAY_MS,
+  expandRecurringPattern,
+  MAX_RECURRING_SLOTS,
+  type RecurringPattern,
+} from "./recurrence.js";
+
+// overlaps are blocked by the availabilities_no_overlap constraint, so no need
+// for serializable here. the checks below are just for nicer error messages
 
 export const requireTeacherId = async (userId?: string): Promise<string> => {
   if (!userId) throw new AppError("Unauthorized.", 401);
@@ -47,11 +58,10 @@ export const checkOverlap = async (
 };
 
 // block reschedule/delete while a slot has a live booking on it - moving it
-// would desync the lesson's startTime, deleting it cascades and wipes the
-// lesson row entirely
+// would desync the lesson's startTime, deleting it would unlink the booking
 const assertNoActiveLesson = async (db: Db, availabilityId: string, action: string) => {
   const activeLesson = await db.lesson.findFirst({
-    where: { availabilityId, status: { not: LessonStatus.Cancelled } },
+    where: { availabilityId, status: { in: LIVE_STATUSES } },
     select: { id: true },
   });
 
@@ -93,7 +103,6 @@ export const createAvailabilities = async (teacherId: string, slots: Availabilit
   });
 
   // Reject overlaps within the batch itself before touching the database.
-  // This loop only ever runs with 2+ slots, so both sides always get an index.
   for (let i = 0; i < ranges.length; i++) {
     for (let j = i + 1; j < ranges.length; j++) {
       if (ranges[i].startTime < ranges[j].endTime && ranges[j].startTime < ranges[i].endTime) {
@@ -105,110 +114,31 @@ export const createAvailabilities = async (teacherId: string, slots: Availabilit
     }
   }
 
-  return prisma.$transaction(
-    async (tx) => {
-      const created = [];
-      for (let i = 0; i < ranges.length; i++) {
-        const { startTime, endTime, label } = ranges[i];
+  return prisma.$transaction(async (tx) => {
+    const created = [];
+    for (let i = 0; i < ranges.length; i++) {
+      const { startTime, endTime, label } = ranges[i];
 
-        try {
-          await checkOverlap(tx, teacherId, startTime, endTime);
-        } catch (err) {
-          if (err instanceof AppError && isBatch) {
-            throw new AppError(
-              `Slot ${i + 1} of ${ranges.length} (${label}): ${err.message}`,
-              err.statusCode,
-            );
-          }
-          throw err;
+      try {
+        await checkOverlap(tx, teacherId, startTime, endTime);
+      } catch (err) {
+        if (err instanceof AppError && isBatch) {
+          throw new AppError(
+            `Slot ${i + 1} of ${ranges.length} (${label}): ${err.message}`,
+            err.statusCode,
+          );
         }
-
-        created.push(await tx.availability.create({ data: { teacherId, startTime, endTime } }));
+        throw err;
       }
-      return created;
-    },
-    // serializable so two overlapping creates can't both sneak past the check
-    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
-  );
-};
 
-export interface RecurringPattern {
-  days: number[]; // 0 = Monday … 6 = Sunday
-  startDate: string; // UK "YYYY-MM-DD"
-  from: string; // UK "HH:mm"
-  to: string; // UK "HH:mm"
-  lessonLength: number;
-  weeks: number;
-  exclude?: string[]; // "YYYY-MM-DD|HH:mm"
-}
-
-const MAX_RECURRING_SLOTS = 200;
-const DAY_MS = 86_400_000;
-
-const toMinutes = (time: string): number => {
-  const [hours, minutes] = time.split(":").map(Number);
-  return hours * 60 + minutes;
-};
-
-const toHHMM = (totalMinutes: number): string =>
-  `${String(Math.floor(totalMinutes / 60)).padStart(2, "0")}:${String(totalMinutes % 60).padStart(2, "0")}`;
-
-// Expands a weekly pattern into concrete future slots (UK wall-clock → real
-// instants), splitting each day's window into back-to-back lessons.
-const expandRecurringPattern = (pattern: RecurringPattern) => {
-  const [year, month, day] = pattern.startDate.split("-").map(Number);
-  const startMs = Date.UTC(year, month - 1, day);
-  const startDayIndex = (new Date(startMs).getUTCDay() + 6) % 7;
-  const mondayMs = startMs - startDayIndex * DAY_MS;
-  const fromMinutes = toMinutes(pattern.from);
-  const toMinutesValue = toMinutes(pattern.to);
-  const excluded = new Set(pattern.exclude ?? []);
-  const now = new Date();
-  const days = [...pattern.days].sort((a, b) => a - b);
-
-  const slots: { key: string; startTime: Date; endTime: Date }[] = [];
-
-  for (let week = 0; week < pattern.weeks; week++) {
-    for (const dayIndex of days) {
-      const dateMs = mondayMs + (week * 7 + dayIndex) * DAY_MS;
-      if (dateMs < startMs) continue;
-
-      const date = new Date(dateMs);
-      const dateKey = date.toISOString().slice(0, 10);
-
-      for (
-        let start = fromMinutes;
-        start + pattern.lessonLength <= toMinutesValue;
-        start += pattern.lessonLength
-      ) {
-        const key = `${dateKey}|${toHHMM(start)}`;
-        if (excluded.has(key)) continue;
-
-        const startTime = ukWallClockToDate(
-          date.getUTCFullYear(),
-          date.getUTCMonth() + 1,
-          date.getUTCDate(),
-          Math.floor(start / 60),
-          start % 60,
-        );
-        if (startTime <= now) continue;
-
-        slots.push({
-          key,
-          startTime,
-          endTime: new Date(startTime.getTime() + pattern.lessonLength * 60_000),
-        });
-      }
+      created.push(await tx.availability.create({ data: { teacherId, startTime, endTime } }));
     }
-  }
-
-  return slots;
+    return created;
+  });
 };
 
-// Creates a whole weekly pattern in one transaction. Unlike createAvailabilities,
-// slots that clash with availability the teacher already has are skipped rather
-// than failing the batch — re-running a pattern over an existing week should
-// just fill the gaps.
+// creates a weekly pattern in one go under one seriesId. clashing slots are
+// skipped rather than failing everything, so re-running a pattern fills gaps
 export const createRecurringAvailabilities = async (
   teacherId: string,
   pattern: RecurringPattern,
@@ -225,44 +155,41 @@ export const createRecurringAvailabilities = async (
     );
   }
 
-  return prisma.$transaction(
-    async (tx) => {
-      // One query for every existing slot in the pattern's span, instead of
-      // an overlap check per slot.
-      const existing = await tx.availability.findMany({
-        where: {
-          teacherId,
-          startTime: { lt: slots[slots.length - 1].endTime },
-          endTime: { gt: slots[0].startTime },
-        },
-        select: { startTime: true, endTime: true },
-      });
+  const seriesId = randomUUID();
 
-      const toCreate = slots.filter(
-        (slot) =>
-          !existing.some(
-            (other) => other.startTime < slot.endTime && other.endTime > slot.startTime,
-          ),
+  return prisma.$transaction(async (tx) => {
+    // One query for every existing slot in the pattern's span, instead of
+    // an overlap check per slot.
+    const existing = await tx.availability.findMany({
+      where: {
+        teacherId,
+        startTime: { lt: slots[slots.length - 1].endTime },
+        endTime: { gt: slots[0].startTime },
+      },
+      select: { startTime: true, endTime: true },
+    });
+
+    const toCreate = slots.filter(
+      (slot) =>
+        !existing.some((other) => other.startTime < slot.endTime && other.endTime > slot.startTime),
+    );
+    const skipped = slots.filter((slot) => !toCreate.includes(slot)).map((slot) => slot.key);
+
+    if (toCreate.length === 0) {
+      throw new AppError(
+        "Every slot in this pattern overlaps availability you've already scheduled.",
+        409,
       );
-      const skipped = slots.filter((slot) => !toCreate.includes(slot)).map((slot) => slot.key);
+    }
 
-      if (toCreate.length === 0) {
-        throw new AppError(
-          "Every slot in this pattern overlaps availability you've already scheduled.",
-          409,
-        );
-      }
+    const created = await tx.availability.createManyAndReturn({
+      data: toCreate.map(({ startTime, endTime }) => ({ teacherId, startTime, endTime, seriesId })),
+    });
 
-      const created = await tx.availability.createManyAndReturn({
-        data: toCreate.map(({ startTime, endTime }) => ({ teacherId, startTime, endTime })),
-      });
+    created.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
 
-      created.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
-
-      return { created, skipped };
-    },
-    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
-  );
+    return { created, skipped, seriesId };
+  });
 };
 
 interface UpdateAvailabilityParams {
@@ -282,37 +209,35 @@ export const updateAvailabilityForTeacher = async ({
     throw new AppError("Please provide at least one field to update.", 400);
   }
 
-  return prisma.$transaction(
-    async (tx) => {
-      const existing = await tx.availability.findFirst({
-        where: { id: availabilityId, teacherId },
-        select: { startTime: true, endTime: true },
-      });
+  return prisma.$transaction(async (tx) => {
+    const existing = await tx.availability.findFirst({
+      where: { id: availabilityId, teacherId },
+      select: { startTime: true, endTime: true },
+    });
 
-      if (!existing) {
-        throw new AppError("Availability record not found or access denied.", 404);
-      }
+    if (!existing) {
+      throw new AppError("Availability record not found or access denied.", 404);
+    }
 
-      await assertNoActiveLesson(tx, availabilityId, "reschedule");
+    await assertNoActiveLesson(tx, availabilityId, "reschedule");
 
-      const startTime = startIsoString ? new Date(startIsoString) : existing.startTime;
-      if (startIsoString && startTime < new Date()) {
-        throw new AppError("Cannot schedule availability in the past.", 400);
-      }
+    const startTime = startIsoString ? new Date(startIsoString) : existing.startTime;
+    if (startIsoString && startTime < new Date()) {
+      throw new AppError("Cannot schedule availability in the past.", 400);
+    }
 
-      const currentDuration = (existing.endTime.getTime() - existing.startTime.getTime()) / 60000;
-      const finalDuration = durationInMinutes !== undefined ? durationInMinutes : currentDuration;
-      const endTime = new Date(startTime.getTime() + finalDuration * 60000);
+    const currentDuration = (existing.endTime.getTime() - existing.startTime.getTime()) / 60000;
+    const finalDuration = durationInMinutes !== undefined ? durationInMinutes : currentDuration;
+    const endTime = new Date(startTime.getTime() + finalDuration * 60000);
 
-      await checkOverlap(tx, teacherId, startTime, endTime, availabilityId);
+    await checkOverlap(tx, teacherId, startTime, endTime, availabilityId);
 
-      return tx.availability.update({
-        where: { id: availabilityId },
-        data: { startTime, endTime },
-      });
-    },
-    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
-  );
+    // edited slot no longer follows the pattern, take it out of the series
+    return tx.availability.update({
+      where: { id: availabilityId },
+      data: { startTime, endTime, seriesId: null },
+    });
+  });
 };
 
 // Deletes one or many slots atomically — either every slot in the batch is
@@ -352,6 +277,152 @@ export const deleteAvailabilitiesForTeacher = (teacherId: string, availabilityId
   });
 };
 
+// removes the upcoming unbooked slots in a series. booked ones are kept and
+// returned so the teacher knows which lessons still need sorting
+export const deleteSeriesForTeacher = async (teacherId: string, seriesId: string) => {
+  const now = new Date();
+
+  return prisma.$transaction(async (tx) => {
+    const seriesSlots = await tx.availability.findMany({
+      where: { teacherId, seriesId, startTime: { gt: now } },
+      select: {
+        id: true,
+        startTime: true,
+        lessons: { where: { status: { in: LIVE_STATUSES } }, select: { id: true }, take: 1 },
+      },
+    });
+
+    if (seriesSlots.length === 0) {
+      throw new AppError("No upcoming slots found for that series.", 404);
+    }
+
+    const removable = seriesSlots.filter((slot) => slot.lessons.length === 0).map((s) => s.id);
+    const keptBooked = seriesSlots.filter((slot) => slot.lessons.length > 0).map((s) => s.id);
+
+    if (removable.length > 0) {
+      await tx.availability.deleteMany({ where: { id: { in: removable } } });
+    }
+
+    return { deleted: removable, keptBooked };
+  });
+};
+
+// ---------------------------------------------------------------------------
+// Reading
+// ---------------------------------------------------------------------------
+
+// calendars fetch by date range - paging by count was hiding slots past page 1
+const MAX_RANGE_DAYS = 120;
+const MAX_RANGE_RESULTS = 1000;
+
+export interface AvailabilityRange {
+  from: Date;
+  to: Date;
+}
+
+export const assertValidRange = ({ from, to }: AvailabilityRange) => {
+  if (to <= from) throw new AppError("'to' must be after 'from'.", 400);
+  if (to.getTime() - from.getTime() > MAX_RANGE_DAYS * DAY_MS) {
+    throw new AppError(`Please request at most ${MAX_RANGE_DAYS} days at a time.`, 400);
+  }
+};
+
+const POLICY_SELECT = {
+  minNoticeHours: true,
+  maxAdvanceDays: true,
+  cancellationCutoffHours: true,
+  requireApproval: true,
+} as const;
+
+// student view: unbooked slots inside the tutor's notice/advance window,
+// plus the policy so the ui can show it
+export const findBookableAvailabilities = async (teacherId: string, range: AvailabilityRange) => {
+  assertValidRange(range);
+
+  const teacher = await prisma.teacher.findUnique({
+    where: { id: teacherId },
+    select: POLICY_SELECT,
+  });
+  if (!teacher) throw new AppError("No teacher found with that ID.", 404);
+
+  const policy: BookingPolicy = teacher;
+  const window = bookableWindow(policy);
+  const from = range.from > window.earliest ? range.from : window.earliest;
+  const to = range.to < window.latest ? range.to : window.latest;
+
+  const availabilities =
+    from >= to
+      ? []
+      : await prisma.availability.findMany({
+          where: {
+            teacherId,
+            startTime: { gte: from, lt: to },
+            lessons: { none: { status: { in: LIVE_STATUSES } } },
+          },
+          orderBy: { startTime: "asc" },
+          take: MAX_RANGE_RESULTS,
+          select: { id: true, teacherId: true, startTime: true, endTime: true },
+        });
+
+  return {
+    availabilities,
+    policy: teacher,
+    bookableWindow: { from: window.earliest, to: window.latest },
+  };
+};
+
+// teacher view: every slot in the range + who booked it
+export const findOwnAvailabilitiesInRange = async (teacherId: string, range: AvailabilityRange) => {
+  assertValidRange(range);
+
+  const availabilities = await prisma.availability.findMany({
+    where: {
+      teacherId,
+      startTime: { lt: range.to },
+      endTime: { gt: range.from },
+    },
+    orderBy: { startTime: "asc" },
+    take: MAX_RANGE_RESULTS,
+    select: {
+      id: true,
+      teacherId: true,
+      startTime: true,
+      endTime: true,
+      seriesId: true,
+      lessons: {
+        where: { status: { in: [...LIVE_STATUSES, LessonStatus.Completed] } },
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: {
+          id: true,
+          status: true,
+          subject: true,
+          topic: true,
+          student: { select: { user: { select: { name: true, image: true } } } },
+        },
+      },
+    },
+  });
+
+  return availabilities.map(({ lessons, ...slot }) => {
+    const lesson = lessons[0];
+    return {
+      ...slot,
+      isBooked: Boolean(lesson),
+      lesson: lesson
+        ? {
+            id: lesson.id,
+            status: lesson.status,
+            subject: lesson.subject,
+            topic: lesson.topic,
+            studentName: lesson.student.user.name,
+            studentImage: lesson.student.user.image,
+          }
+        : null,
+    };
+  });
+};
+
 interface FindAvailabilitiesParams {
   teacherId: string;
   skip: number;
@@ -359,6 +430,7 @@ interface FindAvailabilitiesParams {
   onlyUnbooked?: boolean;
 }
 
+// old paginated version, kept so existing callers don't break
 export const findTeacherAvailabilities = async ({
   teacherId,
   skip,
@@ -368,8 +440,7 @@ export const findTeacherAvailabilities = async ({
   const whereCondition = {
     teacherId,
     startTime: { gte: new Date() },
-    // A cancelled lesson shouldn't keep its slot permanently locked as "booked".
-    ...(onlyUnbooked && { lessons: { none: { status: { not: LessonStatus.Cancelled } } } }),
+    ...(onlyUnbooked && { lessons: { none: { status: { in: LIVE_STATUSES } } } }),
   };
 
   const [availabilities, totalResults] = await prisma.$transaction([
@@ -378,11 +449,9 @@ export const findTeacherAvailabilities = async ({
       orderBy: { startTime: "asc" },
       skip,
       take: limit,
-      // Only needed to derive isBooked below — onlyUnbooked callers already
-      // exclude booked slots, so this is always empty for them.
       include: {
         lessons: {
-          where: { status: { not: LessonStatus.Cancelled } },
+          where: { status: { in: LIVE_STATUSES } },
           select: { id: true },
           take: 1,
         },

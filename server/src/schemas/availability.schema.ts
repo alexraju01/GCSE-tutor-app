@@ -82,6 +82,23 @@ export const deleteAvailabilitySchema = z.object({
     }),
 });
 
+// ?from=&to= for calendars - optional so ?page=&limit= still works, but need both or neither
+export const availabilityRangeQuerySchema = z
+  .object({
+    from: z.iso.datetime({ message: "'from' must be an ISO 8601 date-time." }).optional(),
+    to: z.iso.datetime({ message: "'to' must be an ISO 8601 date-time." }).optional(),
+    page: z.string().optional(),
+    limit: z.string().optional(),
+  })
+  .refine(({ from, to }) => (from === undefined) === (to === undefined), {
+    error: "Provide both 'from' and 'to', or neither.",
+  });
+
+export const seriesIdParamSchema = z.object({
+  seriesId: z.uuid({ message: "Invalid series id format" }),
+});
+
+export type AvailabilityRangeQuery = z.infer<typeof availabilityRangeQuerySchema>;
 export type AvailabilitySlotInput = z.infer<typeof availabilitySlotSchema>;
 export type createAvailabilityInput = z.infer<typeof createAvailabilitySchema>;
 export type RecurringAvailabilityInput = z.infer<typeof recurringAvailabilitySchema>;

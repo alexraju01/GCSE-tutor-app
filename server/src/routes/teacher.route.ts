@@ -10,6 +10,7 @@ import { Role } from "@generated/enums.js";
 import { protect, authorize } from "@middleware";
 import { Router } from "express";
 import { validate } from "../middleware/validate.js";
+import { availabilityRangeQuerySchema } from "../schemas/availability.schema.js";
 import { updateTeacherFieldsSchema } from "../schemas/teacher.schema.js";
 
 export const teacherRouter = Router();
@@ -32,7 +33,11 @@ teacherRouter.route("/").get(getAllTeachers);
 // -----------------------------------------------------------------------------
 // 3. Sub-resource Routes (Must come BEFORE pure dynamic /:id routes) Public Routes for teacher availabilities
 // -----------------------------------------------------------------------------
-teacherRouter.get("/:teacherId/availabilities", getTeacherAvailabilities);
+teacherRouter.get(
+  "/:teacherId/availabilities",
+  validate(availabilityRangeQuerySchema, "query"),
+  getTeacherAvailabilities,
+);
 
 // -----------------------------------------------------------------------------
 // 4. Pure Dynamic Parameter Routes (Catch-all for single resource lookup)

@@ -1,13 +1,17 @@
 import { formatPagination, getPaginationOptions } from "@utils/pagination.js";
 import {
   findTeacherAvailabilities,
+  findBookableAvailabilities,
+  findOwnAvailabilitiesInRange,
   requireTeacherId,
   createAvailabilities as createAvailabilitySlots,
   createRecurringAvailabilities as createRecurringAvailabilitySlots,
   updateAvailabilityForTeacher,
   deleteAvailabilitiesForTeacher,
+  deleteSeriesForTeacher,
 } from "../services/availability.service.js";
 import type {
+  AvailabilityRangeQuery,
   AvailabilitySlotInput,
   createAvailabilityInput,
   DeleteAvailabilityInput,
@@ -16,15 +20,32 @@ import type {
 import type { Request, Response } from "express";
 
 /**
- * Public: Get unbooked availability slots for a specific teacher with pagination.
+ * Public: bookable slots for a teacher.
+ * ?from=&to= for a date range (+ booking policy), or the old ?page=&limit=
  */
 export const getTeacherAvailabilities = async (
-  req: Request<{ teacherId: string }, unknown, unknown, { page?: string; limit?: string }>,
+  req: Request<{ teacherId: string }>,
   res: Response,
 ) => {
   const { teacherId } = req.params;
-  const { page, limit, skip } = getPaginationOptions(req.query.page, req.query.limit);
+  const query = req.query as AvailabilityRangeQuery;
 
+  if (query.from && query.to) {
+    const { availabilities, policy, bookableWindow } = await findBookableAvailabilities(teacherId, {
+      from: new Date(query.from),
+      to: new Date(query.to),
+    });
+
+    return res.status(200).json({
+      status: "success",
+      results: availabilities.length,
+      data: availabilities,
+      policy,
+      bookableWindow,
+    });
+  }
+
+  const { page, limit, skip } = getPaginationOptions(query.page, query.limit);
   const { availabilities, totalResults } = await findTeacherAvailabilities({
     teacherId,
     skip,
@@ -41,15 +62,26 @@ export const getTeacherAvailabilities = async (
 };
 
 /**
- * Private: Get all availability slots (booked & unbooked) for the authenticated teacher with pagination.
+ * Private: the teacher's own slots (booked & unbooked), same query options as above.
  */
-export const getOwnAvailabilities = async (
-  req: Request<unknown, unknown, unknown, { page?: string; limit?: string }>,
-  res: Response,
-) => {
+export const getOwnAvailabilities = async (req: Request, res: Response) => {
   const teacherId = await requireTeacherId(req.user?.id);
-  const { page, limit, skip } = getPaginationOptions(req.query.page, req.query.limit);
+  const query = req.query as AvailabilityRangeQuery;
 
+  if (query.from && query.to) {
+    const availabilities = await findOwnAvailabilitiesInRange(teacherId, {
+      from: new Date(query.from),
+      to: new Date(query.to),
+    });
+
+    return res.status(200).json({
+      status: "success",
+      results: availabilities.length,
+      data: availabilities,
+    });
+  }
+
+  const { page, limit, skip } = getPaginationOptions(query.page, query.limit);
   const { availabilities, totalResults } = await findTeacherAvailabilities({
     teacherId,
     skip,
@@ -87,7 +119,7 @@ export const createAvailabilities = async (req: Request, res: Response) => {
 
 export const createRecurringAvailabilities = async (req: Request, res: Response) => {
   const teacherId = await requireTeacherId(req.user?.id);
-  const { created, skipped } = await createRecurringAvailabilitySlots(
+  const { created, skipped, seriesId } = await createRecurringAvailabilitySlots(
     teacherId,
     req.body as RecurringAvailabilityInput,
   );
@@ -97,6 +129,7 @@ export const createRecurringAvailabilities = async (req: Request, res: Response)
     results: created.length,
     data: created,
     skipped,
+    seriesId,
   });
 };
 
@@ -130,4 +163,14 @@ export const deleteAvailabilities = async (req: Request, res: Response) => {
   await deleteAvailabilitiesForTeacher(teacherId, ids);
 
   return res.status(204).send();
+};
+
+export const deleteSeries = async (req: Request<{ seriesId: string }>, res: Response) => {
+  const teacherId = await requireTeacherId(req.user?.id);
+  const { deleted, keptBooked } = await deleteSeriesForTeacher(teacherId, req.params.seriesId);
+
+  return res.status(200).json({
+    status: "success",
+    data: { deleted, keptBooked },
+  });
 };
