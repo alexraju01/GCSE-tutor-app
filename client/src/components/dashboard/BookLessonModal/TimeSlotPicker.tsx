@@ -1,5 +1,11 @@
 import { Check, Clock } from "lucide-react";
-import { formatUkTime } from "@utils/ukTime";
+import { useSyncExternalStore } from "react";
+import { formatUkTime, viewerIsOutsideUk } from "@utils/ukTime";
+
+const subscribeNever = () => () => {};
+
+const localTime = (date: Date) =>
+  date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", timeZoneName: "short" });
 import type { RawAvailability } from "./useBookLessonModal";
 
 interface TimeSlotPickerProps {
@@ -16,6 +22,8 @@ const TimeSlotPicker = ({
   onToggleSlot,
 }: TimeSlotPickerProps) => {
   const slotsForDate = selectedDateKey ? groupedSlots[selectedDateKey] : null;
+  // timezone is only known in the browser, false on the server avoids a hydration mismatch
+  const showLocal = useSyncExternalStore(subscribeNever, viewerIsOutsideUk, () => false);
 
   return (
     <div>
@@ -38,6 +46,7 @@ const TimeSlotPicker = ({
                   key={slot.id}
                   type="button"
                   onClick={() => onToggleSlot(slot)}
+                  aria-pressed={isSelected}
                   className={`w-full flex items-center justify-between p-3 rounded-xl border text-xs transition-all cursor-pointer ${
                     isSelected
                       ? "border-transparent bg-linear-to-r from-blue-600 to-indigo-600 text-white shadow-sm font-semibold"
@@ -51,6 +60,11 @@ const TimeSlotPicker = ({
                     />
                     <span>
                       {formatUkTime(start)} - {formatUkTime(end)}
+                      {showLocal && (
+                        <span className={`ml-1.5 font-normal ${isSelected ? "text-blue-100" : "text-slate-400"}`}>
+                          ({localTime(start)} your time)
+                        </span>
+                      )}
                     </span>
                   </div>
                   {isSelected && (

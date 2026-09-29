@@ -1,81 +1,84 @@
 import type { ChangeEvent } from "react";
 import SubjectDropdown from "./SubjectDropdown";
+import type { LessonDetails } from "./useBookLessonModal";
 
 interface LessonDetailsFormProps {
   subjects: string[];
-  subject: string;
-  onSubjectChange: (subject: string) => void;
-  topic: string;
-  onTopicChange: (topic: string) => void;
-  notes: string;
-  onNotesChange: (notes: string) => void;
+  details: LessonDetails;
+  onChange: (patch: Partial<LessonDetails>) => void;
+  // true when editing a selected lesson, false when setting defaults for the next pick
+  hasActiveLesson: boolean;
+  selectedCount: number;
+  onApplyToAll: () => void;
 }
+
+const inputClass =
+  "w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs text-slate-900 focus:border-blue-600 focus:bg-white focus:outline-hidden dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-blue-600";
 
 const LessonDetailsForm = ({
   subjects,
-  subject,
-  onSubjectChange,
-  topic,
-  onTopicChange,
-  notes,
-  onNotesChange,
-}: LessonDetailsFormProps) => {
-  return (
-    <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
+  details,
+  onChange,
+  hasActiveLesson,
+  selectedCount,
+  onApplyToAll,
+}: LessonDetailsFormProps) => (
+  <div className="space-y-3 border-t border-slate-100 pt-4 dark:border-slate-800">
+    <div className="flex items-center justify-between gap-2">
       <span className="block text-xs font-semibold uppercase tracking-wider text-slate-400">
         3. Lesson Details
       </span>
-
-      <div>
-        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-          Subject
-        </label>
-        <SubjectDropdown
-          subjects={subjects}
-          value={subject}
-          onChange={onSubjectChange}
-        />
-        {subjects.length > 1 && (
-          <p className="mt-1 text-[11px] text-slate-400">
-            Applies to the time slot you just selected (highlighted below).
-            Change any other lesson&apos;s subject in the summary.
-          </p>
-        )}
-      </div>
-
-      <div>
-        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-          Topic (Optional)
-        </label>
-        <input
-          type="text"
-          value={topic}
-          onChange={(e: ChangeEvent<HTMLInputElement>) =>
-            onTopicChange(e.target.value)
-          }
-          maxLength={255}
-          placeholder="e.g., Integration by parts, Organic Chemistry"
-          className="w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs text-slate-900 focus:border-blue-600 focus:bg-white focus:outline-hidden dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-blue-600"
-        />
-      </div>
-
-      <div>
-        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-          Additional Notes (Optional)
-        </label>
-        <textarea
-          rows={2}
-          value={notes}
-          onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
-            onNotesChange(e.target.value)
-          }
-          maxLength={255}
-          placeholder="Add requests or details for the session..."
-          className="w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs text-slate-900 focus:border-blue-600 focus:bg-white focus:outline-hidden dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-blue-600"
-        />
-      </div>
+      {selectedCount > 1 && hasActiveLesson && (
+        <button
+          type="button"
+          onClick={onApplyToAll}
+          className="cursor-pointer text-[11px] font-semibold text-blue-600 hover:underline dark:text-blue-400"
+        >
+          Apply to all {selectedCount} lessons
+        </button>
+      )}
     </div>
-  );
-};
+    <p className="text-[11px] text-slate-400">
+      {hasActiveLesson
+        ? "Editing the highlighted lesson in your summary — click another lesson there to edit it."
+        : "These details apply to the next time slot you pick."}
+    </p>
+
+    <div>
+      <span className="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">Subject</span>
+      <SubjectDropdown subjects={subjects} value={details.subject} onChange={(subject) => onChange({ subject })} />
+    </div>
+
+    <div>
+      <label htmlFor="lesson-topic" className="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">
+        Topic (Optional)
+      </label>
+      <input
+        id="lesson-topic"
+        type="text"
+        value={details.topic}
+        onChange={(e: ChangeEvent<HTMLInputElement>) => onChange({ topic: e.target.value })}
+        maxLength={255}
+        placeholder="e.g., Integration by parts, Organic Chemistry"
+        className={inputClass}
+      />
+    </div>
+
+    <div>
+      <label htmlFor="lesson-notes" className="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">
+        Notes for your tutor (Optional)
+      </label>
+      <textarea
+        id="lesson-notes"
+        rows={2}
+        value={details.notes}
+        onChange={(e: ChangeEvent<HTMLTextAreaElement>) => onChange({ notes: e.target.value })}
+        maxLength={255}
+        placeholder="e.g., Mock exam next week — please focus on past papers."
+        className={inputClass}
+      />
+    </div>
+  </div>
+);
 
 export default LessonDetailsForm;
