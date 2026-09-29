@@ -12,6 +12,9 @@ import UpcomingSessions from "@components/dashboard/UpcomingSessions";
 import WelcomeBanner from "@components/dashboard/WelcomeBanner";
 import { api } from "@utils/api";
 
+// days ahead shown on the availability card
+const AVAILABILITY_LOOKAHEAD_DAYS = 14;
+
 const TeacherDashboardPage = async () => {
   const session = await auth();
 
@@ -27,15 +30,21 @@ const TeacherDashboardPage = async () => {
   const teacherName = session.user.name || "Teacher";
   const backendToken = session.backendToken || "";
 
-  // Fetch dashboard summary and availability concurrently
+  const now = new Date();
+  const lookaheadEnd = new Date(now.getTime() + AVAILABILITY_LOOKAHEAD_DAYS * 86_400_000);
+
+  // dashboard summary + next 2 weeks of availability
   const [dashboardResponse, availabilityResponse] = await Promise.all([
     api.dashboard.teacherDashboard(backendToken),
-    api.availability.getMyTeacherAvailabilities(backendToken),
+    api.availability
+      .getMine({ from: now, to: lookaheadEnd }, backendToken)
+      .catch(() => null),
   ]);
   const dashboardData = dashboardResponse?.data;
 
-  // Destructure `data` from the API response payload
   const availabilitySlots = availabilityResponse?.data ?? [];
+  const openSlots = availabilitySlots.filter((slot) => !slot.isBooked).length;
+  const bookedSlots = availabilitySlots.length - openSlots;
 
   const upcomingBookings = dashboardData?.upcomingLessons ?? [];
   const teacherSubjects = dashboardData?.teaches ?? [];
@@ -104,8 +113,10 @@ const TeacherDashboardPage = async () => {
         {/* Sidebar: Availability & Quick Actions takes 1 column */}
         <div className="lg:col-span-1">
           <QuickActionsCard
-            availabilitySlots={availabilitySlots}
-            token={backendToken}
+            openSlots={openSlots}
+            bookedSlots={bookedSlots}
+            pendingRequests={dashboardData?.pendingRequests ?? 0}
+            lookaheadDays={AVAILABILITY_LOOKAHEAD_DAYS}
           />
         </div>
       </div>
