@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { SessionData } from "@/types/auth";
 import type { BookingPolicy, Teacher } from "@/types/teacher";
+import { isAllowedLessonDuration } from "@constants/index";
 import { api, type BookingConflict, type TeacherAvailabilitySlot } from "@utils/api";
 import { ApiError } from "@utils/fetchData";
 import {
@@ -38,6 +39,10 @@ const getUniqueSubjects = (teacher: Teacher): string[] =>
 
 const slotMinutes = (slot: RawAvailability) =>
   Math.round((new Date(slot.endTime).getTime() - new Date(slot.startTime).getTime()) / 60_000);
+
+// server already enforces this, just never show a non-standard slot
+const bookableSlots = (slots: RawAvailability[]) =>
+  slots.filter((slot) => isAllowedLessonDuration(slotMinutes(slot))).sort(byStart);
 
 const byStart = (a: RawAvailability, b: RawAvailability) =>
   new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
@@ -112,7 +117,7 @@ export const useBookLessonModal = ({ isOpen, teacher, session }: UseBookLessonMo
 
         if (ignore) return;
 
-        const loadedSlots = [...(response.data ?? [])].sort(byStart);
+        const loadedSlots = bookableSlots(response.data ?? []);
         setSlots(loadedSlots);
         setPolicy(response.policy ?? null);
 
@@ -142,7 +147,7 @@ export const useBookLessonModal = ({ isOpen, teacher, session }: UseBookLessonMo
         from: now,
         to: new Date(now.getTime() + FETCH_WINDOW_DAYS * DAY_MS),
       });
-      const fresh = [...(response.data ?? [])].sort(byStart);
+      const fresh = bookableSlots(response.data ?? []);
       const freshIds = new Set(fresh.map((s) => s.id));
       setSlots(fresh);
       setSelectedSlots((prev) => prev.filter((s) => freshIds.has(s.id)));

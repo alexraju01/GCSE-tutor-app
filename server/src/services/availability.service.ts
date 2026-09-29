@@ -3,7 +3,13 @@ import { prisma } from "@db/prisma.js";
 import { LessonStatus, Prisma } from "@generated/client.js";
 import { AppError } from "@utils/AppError.js";
 import { formatSessionTime } from "@utils/date.js";
-import { bookableWindow, LIVE_STATUSES, type BookingPolicy } from "./booking.policy.js";
+import {
+  bookableWindow,
+  isAllowedLessonDuration,
+  LESSON_DURATION_MESSAGE,
+  LIVE_STATUSES,
+  type BookingPolicy,
+} from "./booking.policy.js";
 import {
   DAY_MS,
   expandRecurringPattern,
@@ -87,6 +93,11 @@ export const createAvailabilities = async (teacherId: string, slots: Availabilit
   const ranges = slots.map(({ startTime, durationInMinutes }, index) => {
     const label = formatSessionTime(startTime, durationInMinutes);
 
+    if (!isAllowedLessonDuration(durationInMinutes)) {
+      const prefix = isBatch ? `Slot ${index + 1} of ${slots.length}: ` : "";
+      throw new AppError(`${prefix}${LESSON_DURATION_MESSAGE}`, 400);
+    }
+
     if (startTime < now) {
       const prefix = isBatch ? `Slot ${index + 1} of ${slots.length} (${label}): ` : "";
       throw new AppError(
@@ -143,6 +154,10 @@ export const createRecurringAvailabilities = async (
   teacherId: string,
   pattern: RecurringPattern,
 ) => {
+  if (!isAllowedLessonDuration(pattern.lessonLength)) {
+    throw new AppError(LESSON_DURATION_MESSAGE, 400);
+  }
+
   const slots = expandRecurringPattern(pattern);
 
   if (slots.length === 0) {
@@ -228,6 +243,9 @@ export const updateAvailabilityForTeacher = async ({
 
     const currentDuration = (existing.endTime.getTime() - existing.startTime.getTime()) / 60000;
     const finalDuration = durationInMinutes !== undefined ? durationInMinutes : currentDuration;
+    if (!isAllowedLessonDuration(finalDuration)) {
+      throw new AppError(LESSON_DURATION_MESSAGE, 400);
+    }
     const endTime = new Date(startTime.getTime() + finalDuration * 60000);
 
     await checkOverlap(tx, teacherId, startTime, endTime, availabilityId);

@@ -8,6 +8,7 @@ import {
   assertSlotBookable,
   calculateLessonPrice,
   getEffectiveStatus,
+  isAllowedLessonDuration,
   LIVE_STATUSES,
 } from "./booking.policy.js";
 import { enqueueNotifications, type NotificationInput } from "./notification.service.js";
@@ -544,6 +545,10 @@ const bookInTransaction = async (
 
     if (slot.teacherId !== booking.teacherId) {
       addConflict("wrong_teacher", `The ${label} slot does not belong to this tutor.`);
+      continue;
+    }
+    if (!isAllowedLessonDuration(slotMinutes(slot))) {
+      addConflict("policy", `The ${label} slot isn't a 1, 1.5 or 2 hour lesson.`);
       continue;
     }
     if (takenIds.has(slot.id)) {

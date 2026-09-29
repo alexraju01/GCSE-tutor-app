@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { CalendarDays, CalendarPlus, Clock, Plus, Repeat, RotateCcw, Trash2, X } from "lucide-react";
 
 import { Modal } from "@components/ui/modal";
+import { isAllowedLessonDuration, LESSON_DURATIONS } from "@constants/index";
 import {
   createAvailabilityAction,
   createRecurringAvailabilityAction,
@@ -43,7 +44,6 @@ const DAY_PRESETS: { label: string; days: number[] }[] = [
 ];
 
 // keep in sync with availability.schema.ts on the server
-const DURATIONS = [60, 90, 120];
 const REPEAT_OPTIONS = [1, 2, 4, 8, 12];
 const MAX_SLOTS = 200;
 const MAX_BLOCKS = 50;
@@ -87,7 +87,7 @@ const rangeOf = (date: string, startTime: string, minutes: number): Range => {
 
 const overlaps = (a: Range, b: Range) => a.start < b.end && b.start < a.end;
 
-const pickDuration = (minutes: number) => (DURATIONS.includes(minutes) ? minutes : 60);
+const pickDuration = (minutes: number) => (isAllowedLessonDuration(minutes) ? minutes : 60);
 const durationLabel = (minutes: number) => `${minutes / 60}h`;
 const pluralise = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;
 const dateHeading = (date: string) =>
@@ -329,6 +329,11 @@ const SetAvailabilityModal = ({ open, onClose, draft, onSaved }: SetAvailability
       ];
     });
 
+  // time at the end of the window that doesn't fit a whole lesson
+  const windowMinutes = hhmmToMinutes(windowForm.to || "00:00") - hhmmToMinutes(windowForm.from || "00:00");
+  const leftoverMinutes =
+    windowMinutes >= windowForm.lessonLength ? windowMinutes % windowForm.lessonLength : 0;
+
   const timeWindowInvalid =
     !!windowForm.from && !!windowForm.to && hhmmToMinutes(windowForm.to) <= hhmmToMinutes(windowForm.from);
 
@@ -536,7 +541,7 @@ const SetAvailabilityModal = ({ open, onClose, draft, onSaved }: SetAvailability
                     <div className="mt-3" role="group" aria-label="Lesson length">
                       <span className={labelClass}>Length</span>
                       <div className="flex flex-wrap gap-2">
-                        {DURATIONS.map((duration) => (
+                        {LESSON_DURATIONS.map((duration) => (
                           <button
                             key={duration}
                             type="button"
@@ -635,7 +640,7 @@ const SetAvailabilityModal = ({ open, onClose, draft, onSaved }: SetAvailability
               <section role="group" aria-label="Lesson length">
                 <span className={labelClass}>3 · Lesson length</span>
                 <div className="flex flex-wrap gap-2">
-                  {DURATIONS.map((length) => (
+                  {LESSON_DURATIONS.map((length) => (
                     <button
                       key={length}
                       type="button"
@@ -649,6 +654,8 @@ const SetAvailabilityModal = ({ open, onClose, draft, onSaved }: SetAvailability
                 </div>
                 <p className="mt-1.5 text-[11px] text-slate-400">
                   Your hours are split into back-to-back lessons of this length.
+                  {leftoverMinutes > 0 &&
+                    ` The last ${leftoverMinutes} min won't be used — lessons are 1, 1.5 or 2 hours.`}
                 </p>
               </section>
 

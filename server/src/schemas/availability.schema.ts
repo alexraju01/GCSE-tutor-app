@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isAllowedLessonDuration } from "../services/booking.policy.js";
 
 export const availabilitySlotSchema = z
   .object({
@@ -16,7 +17,7 @@ export const availabilitySlotSchema = z
             ? "Please specify how long this availability slot should last."
             : "Invalid durationInMinutes. Please select a valid length for your session.",
       })
-      .refine((val) => [60, 90, 120].includes(val), {
+      .refine(isAllowedLessonDuration, {
         error:
           "Please choose a standard duration: 1 hour (60m), 1.5 hours (90m), or 2 hours (120m).",
       }),
@@ -55,7 +56,7 @@ export const recurringAvailabilitySchema = z
     startDate: dateKey,
     from: wallClockTime,
     to: wallClockTime,
-    lessonLength: z.number().refine((val) => [60, 90, 120].includes(val), {
+    lessonLength: z.number().refine(isAllowedLessonDuration, {
       error: "Please choose a standard duration: 1 hour (60m), 1.5 hours (90m), or 2 hours (120m).",
     }),
     weeks: z.number().int().min(1).max(12, { message: "You can repeat for at most 12 weeks." }),

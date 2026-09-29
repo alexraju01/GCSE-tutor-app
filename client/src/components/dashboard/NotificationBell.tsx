@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Bell, CheckCheck } from "lucide-react";
-import type { Route } from "next";
+import { Bell, CheckCheck, GraduationCap } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -13,26 +13,16 @@ import {
   markNotificationReadAction,
 } from "@utils/actions/notification.action";
 import { cn } from "@utils/cn";
+import NotificationToast from "./notifications/NotificationToast";
+import { NOTIFICATION_STYLES, notificationHref, timeAgo } from "./notifications/notificationStyle";
 
 // polling + a check on tab focus - good enough for now, could move to SSE later
 const POLL_MS = 15_000;
 // cap toasts if a bunch arrive at once
 const MAX_TOASTS = 3;
-
-// page to open when a notification is clicked
-const notificationHref = (notification: AppNotification) =>
-  (notification.type === "LessonRequested"
-    ? "/dashboard/schedule?filter=Pending"
-    : "/dashboard/schedule") as Route;
-
-const timeAgo = (iso: string) => {
-  const minutes = Math.round((Date.now() - new Date(iso).getTime()) / 60_000);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.round(hours / 24)}d ago`;
-};
+// cancellations stay up longer so they're hard to miss
+const TOAST_MS = 8_000;
+const CANCELLED_TOAST_MS = 20_000;
 
 const NotificationBell = () => {
   const router = useRouter();
@@ -43,8 +33,42 @@ const NotificationBell = () => {
   // ids we've already seen, null until first load so old ones don't toast
   const seenIdsRef = useRef<Set<string> | null>(null);
 
+  const markRead = (id: string) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id && !n.readAt ? { ...n, readAt: new Date().toISOString() } : n)),
+    );
+    setUnreadCount((count) => Math.max(0, count - 1));
+    void markNotificationReadAction(id);
+  };
+
+  // kept in a ref so the polling effect doesn't restart every render
+  const markReadRef = useRef(markRead);
+  useEffect(() => {
+    markReadRef.current = markRead;
+  });
+
   useEffect(() => {
     let active = true;
+
+    const showToast = (notification: AppNotification) => {
+      toast.custom(
+        (id) => (
+          <NotificationToast
+            notification={notification}
+            onView={() => {
+              toast.dismiss(id);
+              markReadRef.current(notification.id);
+              router.push(notificationHref(notification));
+            }}
+            onDismiss={() => toast.dismiss(id)}
+          />
+        ),
+        {
+          position: "top-right",
+          duration: notification.type === "LessonCancelled" ? CANCELLED_TOAST_MS : TOAST_MS,
+        },
+      );
+    };
 
     const poll = () => {
       void getNotificationsAction().then((result) => {
@@ -59,12 +83,7 @@ const NotificationBell = () => {
         setUnreadCount(unread);
 
         if (fresh.length > 0) {
-          for (const notification of fresh.slice(0, MAX_TOASTS)) {
-            toast.info(notification.title, {
-              description: notification.body,
-              action: { label: "View", onClick: () => router.push(notificationHref(notification)) },
-            });
-          }
+          fresh.slice(0, MAX_TOASTS).forEach(showToast);
           // refetch server data so the current page picks up the change
           router.refresh();
         }
@@ -103,14 +122,8 @@ const NotificationBell = () => {
     };
   }, [isOpen]);
 
-  const openNotification = async (notification: AppNotification) => {
-    if (!notification.readAt) {
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === notification.id ? { ...n, readAt: new Date().toISOString() } : n)),
-      );
-      setUnreadCount((count) => Math.max(0, count - 1));
-      void markNotificationReadAction(notification.id);
-    }
+  const openNotification = (notification: AppNotification) => {
+    if (!notification.readAt) markRead(notification.id);
     setIsOpen(false);
     if (notification.lessonId) router.push(notificationHref(notification));
   };
@@ -129,11 +142,16 @@ const NotificationBell = () => {
         aria-expanded={isOpen}
         aria-haspopup="true"
         aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications"}
-        className="relative rounded-lg border border-slate-200 bg-white p-2 text-slate-600 transition-colors hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+        className={cn(
+          "relative rounded-lg border p-2 transition-colors",
+          isOpen || unreadCount > 0
+            ? "border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-300"
+            : "border-slate-200 bg-white text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800",
+        )}
       >
         <Bell size={16} />
         {unreadCount > 0 && (
-          <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
+          <span className="absolute -right-1.5 -top-1.5 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-linear-to-r from-blue-600 to-indigo-600 px-1 text-[9px] font-bold text-white shadow-sm ring-2 ring-white dark:ring-[#0b0f19]">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
@@ -143,55 +161,106 @@ const NotificationBell = () => {
         <div
           role="dialog"
           aria-label="Notifications"
-          className="absolute right-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900"
+          className="absolute right-0 top-full z-50 mt-2 w-96 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-blue-900/10 dark:border-slate-800 dark:bg-slate-900"
         >
+          <div className="h-1 bg-linear-to-r from-blue-600 to-indigo-600" />
+
           <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-800">
-            <span className="text-sm font-bold text-slate-900 dark:text-slate-100">Notifications</span>
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-blue-600 to-indigo-600 text-white shadow-sm">
+                <GraduationCap size={16} />
+              </span>
+              <div>
+                <p className="text-sm font-bold text-slate-900 dark:text-slate-100">Notifications</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  {unreadCount > 0 ? `${unreadCount} unread` : "You're all caught up"}
+                </p>
+              </div>
+            </div>
             {unreadCount > 0 && (
               <button
                 type="button"
                 onClick={() => void markAllRead()}
-                className="inline-flex cursor-pointer items-center gap-1 text-[11px] font-semibold text-blue-600 hover:underline dark:text-blue-400"
+                className="inline-flex cursor-pointer items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-semibold text-blue-600 transition-colors hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-500/10"
               >
-                <CheckCheck size={12} /> Mark all read
+                <CheckCheck size={13} /> Mark all read
               </button>
             )}
           </div>
 
           {notifications.length === 0 ? (
-            <p className="px-4 py-8 text-center text-xs text-slate-400">You&apos;re all caught up.</p>
+            <div className="flex flex-col items-center px-6 py-10 text-center">
+              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-300">
+                <Bell size={18} />
+              </span>
+              <p className="mt-3 text-sm font-semibold text-slate-800 dark:text-slate-200">No notifications yet</p>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                Bookings, requests and cancellations will show up here.
+              </p>
+            </div>
           ) : (
-            <ul className="max-h-96 overflow-y-auto">
-              {notifications.map((notification) => (
-                <li key={notification.id}>
-                  <button
-                    type="button"
-                    onClick={() => void openNotification(notification)}
-                    className={cn(
-                      "flex w-full cursor-pointer gap-2.5 border-b border-slate-100 px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/60",
-                      !notification.readAt && "bg-blue-50/50 dark:bg-blue-950/20",
-                    )}
-                  >
-                    <span
+            <ul className="max-h-[26rem] overflow-y-auto">
+              {notifications.map((notification) => {
+                const style = NOTIFICATION_STYLES[notification.type];
+                const Icon = style.icon;
+                const isUnread = !notification.readAt;
+
+                return (
+                  <li key={notification.id}>
+                    <button
+                      type="button"
+                      onClick={() => openNotification(notification)}
                       className={cn(
-                        "mt-1.5 h-2 w-2 shrink-0 rounded-full",
-                        notification.readAt ? "bg-transparent" : "bg-blue-500",
+                        "relative flex w-full cursor-pointer gap-3 border-b border-slate-100 px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/60",
+                        isUnread && "bg-blue-50/40 dark:bg-blue-500/5",
                       )}
-                    />
-                    <span className="min-w-0">
-                      <span className="block text-xs font-semibold text-slate-900 dark:text-slate-100">
-                        {notification.title}
+                    >
+                      {isUnread && <span className={cn("absolute inset-y-0 left-0 w-1", style.accentClass)} />}
+                      <span
+                        className={cn(
+                          "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1",
+                          style.iconClass,
+                        )}
+                      >
+                        <Icon size={16} />
                       </span>
-                      <span className="mt-0.5 line-clamp-2 block whitespace-pre-line text-[11px] text-slate-500 dark:text-slate-400">
-                        {notification.body}
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-center justify-between gap-2">
+                          <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                            {style.label}
+                          </span>
+                          <span className="shrink-0 text-[10px] text-slate-400">
+                            {timeAgo(notification.createdAt)}
+                          </span>
+                        </span>
+                        <span
+                          className={cn(
+                            "mt-0.5 block text-xs text-slate-900 dark:text-slate-100",
+                            isUnread ? "font-semibold" : "font-medium",
+                          )}
+                        >
+                          {notification.title}
+                        </span>
+                        <span className="mt-0.5 line-clamp-2 block whitespace-pre-line text-[11px] text-slate-500 dark:text-slate-400">
+                          {notification.body}
+                        </span>
                       </span>
-                      <span className="mt-1 block text-[10px] text-slate-400">{timeAgo(notification.createdAt)}</span>
-                    </span>
-                  </button>
-                </li>
-              ))}
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           )}
+
+          <div className="border-t border-slate-100 bg-slate-50/70 px-4 py-2.5 text-center dark:border-slate-800 dark:bg-slate-900/60">
+            <Link
+              href="/dashboard/schedule?filter=all"
+              onClick={() => setIsOpen(false)}
+              className="text-xs font-semibold text-blue-600 hover:underline dark:text-blue-400"
+            >
+              Go to my schedule
+            </Link>
+          </div>
         </div>
       )}
     </div>

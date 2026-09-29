@@ -11,6 +11,7 @@ import {
 import { BLUE, GREEN, RED, RESET } from "@utils/colours.js";
 import { formatSessionTime, ukWallClockToDate } from "@utils/date.js";
 import bcrypt from "bcrypt";
+import { isAllowedLessonDuration, LESSON_DURATIONS } from "../../services/booking.policy.js";
 import { prisma } from "../prisma.js";
 import type { Availability, Prisma } from "@generated/client.js";
 
@@ -19,15 +20,18 @@ const TOTAL_EXTRA_TEACHERS = 4;
 const TOTAL_STUDENTS = 10;
 const DEFAULT_PASSWORD = "password123";
 
-// weekday after-school slots (UK time), 1h each. every teacher gets their own
-// times so a student's lesson never overlaps another tutor's open slot
+// weekday after-school blocks (UK time), 2h each. every teacher gets their own
+// blocks so a student's lesson never overlaps another tutor's open slot
 const WEEKDAYS = [0, 1, 2, 3, 4]; // Mon–Fri
-const AFTER_SCHOOL_HOURS = [15, 16, 17, 18, 19];
-const CELLS_PER_TEACHER = 4;
-const LESSON_MINUTES = 60;
-// one-off 90 min saturday slots, staggered per teacher for the same reason
+const BLOCK_START_HOURS = [15, 17, 19];
+const BLOCK_MINUTES = 120;
+const BLOCKS_PER_TEACHER = 2;
+// each teacher teaches one lesson length, blocks are filled back to back with it.
+// test teacher 1h, approval teacher 1.5h, the rest rotate so all lengths show up
+const TEACHER_LESSON_MINUTES = [60, 90, 120, 60, 90, 120];
+// one-off 2h saturday slots, staggered per teacher for the same reason
 const SATURDAY_FIRST_START_MINUTES = 9 * 60;
-const SATURDAY_SLOT_MINUTES = 90;
+const SATURDAY_SLOT_MINUTES = 120;
 const PAST_WEEKS = 2; // history for completed/cancelled lessons
 const FUTURE_WEEKS = 3; // bookable availability
 
@@ -152,33 +156,40 @@ type SeededStudent = NonNullable<Awaited<ReturnType<typeof createMockStudent>>["
 
 // --- AVAILABILITY ---
 
-interface WeeklyCell {
+interface WeeklyBlock {
   dayIndex: number; // 0 = Monday
   hour: number;
 }
 
-// hands out (weekday, hour) cells so no two teachers share a time
-const dealWeeklyCells = (teacherCount: number): WeeklyCell[][] => {
-  const cells = faker.helpers.shuffle(
-    WEEKDAYS.flatMap((dayIndex) => AFTER_SCHOOL_HOURS.map((hour) => ({ dayIndex, hour }))),
+// hands out (weekday, start hour) blocks so no two teachers share a time
+const dealWeeklyBlocks = (teacherCount: number): WeeklyBlock[][] => {
+  const blocks = faker.helpers.shuffle(
+    WEEKDAYS.flatMap((dayIndex) => BLOCK_START_HOURS.map((hour) => ({ dayIndex, hour }))),
   );
-  if (teacherCount * CELLS_PER_TEACHER > cells.length) {
+  if (teacherCount * BLOCKS_PER_TEACHER > blocks.length) {
     throw new Error(
-      `Only ${cells.length} weekly cells for ${teacherCount} teachers — add hours or lower CELLS_PER_TEACHER.`,
+      `Only ${blocks.length} weekly blocks for ${teacherCount} teachers — add hours or lower BLOCKS_PER_TEACHER.`,
     );
   }
   return Array.from({ length: teacherCount }, (_, i) =>
-    cells.slice(i * CELLS_PER_TEACHER, (i + 1) * CELLS_PER_TEACHER),
+    blocks.slice(i * BLOCKS_PER_TEACHER, (i + 1) * BLOCKS_PER_TEACHER),
   );
 };
 
-// weekly series on the teacher's cells (past + future weeks, one seriesId)
+// weekly series on the teacher's blocks (past + future weeks, one seriesId)
 // plus a one-off saturday slot each week
 const createTeacherAvailabilities = async (
   teacherId: string,
-  cells: WeeklyCell[],
+  blocks: WeeklyBlock[],
   teacherIndex: number,
+  lessonMinutes: number,
 ) => {
+  if (!isAllowedLessonDuration(lessonMinutes)) {
+    throw new Error(
+      `${lessonMinutes} min isn't an allowed lesson length (${LESSON_DURATIONS.join("/")}).`,
+    );
+  }
+
   const todayKey = ukDateKeyFormatter.format(new Date());
   const thisMonday = addDaysToKey(todayKey, -dayIndexOfKey(todayKey));
   const seriesId = randomUUID();
@@ -188,18 +199,21 @@ const createTeacherAvailabilities = async (
   const data: Prisma.AvailabilityCreateManyInput[] = [];
 
   for (let week = -PAST_WEEKS; week < FUTURE_WEEKS; week++) {
-    for (const { dayIndex, hour } of cells) {
+    for (const { dayIndex, hour } of blocks) {
       const dateKey = addDaysToKey(thisMonday, week * 7 + dayIndex);
-      const startTime = ukInstant(dateKey, hour);
-      // skip anything happening right now
-      if (startTime <= now && startTime.getTime() + LESSON_MINUTES * MINUTE_MS > now.getTime())
-        continue;
-      data.push({
-        teacherId,
-        startTime,
-        endTime: new Date(startTime.getTime() + LESSON_MINUTES * MINUTE_MS),
-        seriesId,
-      });
+      // fill the block back to back, e.g. 2 x 1h, 1 x 1.5h or 1 x 2h
+      for (let offset = 0; offset + lessonMinutes <= BLOCK_MINUTES; offset += lessonMinutes) {
+        const startTime = ukInstant(dateKey, hour, offset);
+        // skip anything happening right now
+        if (startTime <= now && startTime.getTime() + lessonMinutes * MINUTE_MS > now.getTime())
+          continue;
+        data.push({
+          teacherId,
+          startTime,
+          endTime: new Date(startTime.getTime() + lessonMinutes * MINUTE_MS),
+          seriesId,
+        });
+      }
     }
 
     // One-off Saturday slot each future week.
@@ -263,6 +277,7 @@ const createLesson = async (
   teacher: SeededTeacher,
   student: SeededStudent,
   status: LessonStatus,
+  forcedCancelledBy?: Role,
 ) => {
   const duration = Math.round((slot.endTime.getTime() - slot.startTime.getTime()) / MINUTE_MS);
   const subject = faker.helpers.arrayElement(teacher.teaches.map((t) => t.subject));
@@ -273,7 +288,7 @@ const createLesson = async (
       : null;
   const cancelledBy =
     status === LessonStatus.Cancelled
-      ? faker.helpers.arrayElement([Role.Student, Role.Teacher])
+      ? (forcedCancelledBy ?? faker.helpers.arrayElement([Role.Student, Role.Teacher]))
       : null;
 
   // half of the booked/completed lessons get a classroom
@@ -348,6 +363,38 @@ const futureStatusFor = (requireApproval: boolean): LessonStatus | null => {
   return LessonStatus.Cancelled;
 };
 
+// fixed lessons for student@test.com so every flow can be tested straight away.
+// the rest of the test teachers' slots go to other students
+interface ScriptedLesson {
+  status: LessonStatus;
+  cancelledBy?: Role;
+}
+
+const TEST_STUDENT_SCRIPT: Record<
+  "test" | "approval",
+  { past: ScriptedLesson[]; future: ScriptedLesson[] }
+> = {
+  test: {
+    past: [{ status: LessonStatus.Completed }, { status: LessonStatus.Completed }],
+    future: [
+      { status: LessonStatus.Upcoming },
+      { status: LessonStatus.Cancelled, cancelledBy: Role.Teacher },
+      { status: LessonStatus.Upcoming },
+      { status: LessonStatus.Cancelled, cancelledBy: Role.Student },
+      { status: LessonStatus.Upcoming },
+    ],
+  },
+  approval: {
+    past: [{ status: LessonStatus.Completed }],
+    future: [
+      { status: LessonStatus.Pending },
+      { status: LessonStatus.Confirmed },
+      { status: LessonStatus.Declined },
+      { status: LessonStatus.Pending },
+    ],
+  },
+};
+
 const pastStatusFor = (): LessonStatus | null => {
   const roll = Math.random();
   if (roll < 0.35) return null; // was never booked
@@ -396,11 +443,14 @@ const main = async () => {
   // 3. Availability - weekly after-school series per teacher
   console.info(`${GREEN}Generating weekly availability series...`);
   const slotsByTeacher = new Map<string, Availability[]>();
-  const weeklyCells = dealWeeklyCells(teachers.length);
+  const weeklyBlocks = dealWeeklyBlocks(teachers.length);
+  const lessonMinutesByTeacher = new Map<string, number>();
   for (const [index, teacher] of teachers.entries()) {
+    const lessonMinutes = TEACHER_LESSON_MINUTES[index % TEACHER_LESSON_MINUTES.length];
+    lessonMinutesByTeacher.set(teacher.id, lessonMinutes);
     slotsByTeacher.set(
       teacher.id,
-      await createTeacherAvailabilities(teacher.id, weeklyCells[index], index),
+      await createTeacherAvailabilities(teacher.id, weeklyBlocks[index], index, lessonMinutes),
     );
   }
 
@@ -415,24 +465,46 @@ const main = async () => {
     return "other";
   };
 
+  const otherStudents = students.filter((s) => s.id !== testStudent.id);
+  const testStudentLessons: string[] = [];
+
   for (const teacher of teachers) {
-    const isTestTeacher = teacher.id === testTeacher.id || teacher.id === approvalTeacher.id;
+    const label = teacherLabel(teacher.id);
+    const script = label === "other" ? null : TEST_STUDENT_SCRIPT[label];
+    const pastScript = [...(script?.past ?? [])];
+    const futureScript = [...(script?.future ?? [])];
     const teacherUserId = teacherUsers.find((u) => u.teacher?.id === teacher.id)!.id;
 
     for (const slot of slotsByTeacher.get(teacher.id) ?? []) {
       const isPast = slot.endTime <= now;
-      const status = isPast ? pastStatusFor() : futureStatusFor(teacher.requireApproval);
-      if (!status) continue;
+      const queue = isPast ? pastScript : futureScript;
 
-      // give the test student some of the test teachers' lessons
-      const student = pickFreeStudent(
-        students,
-        slot,
-        isTestTeacher && faker.datatype.boolean() ? testStudent : undefined,
-      );
+      let student: SeededStudent | undefined;
+      let status: LessonStatus | null;
+      let cancelledBy: Role | undefined;
+
+      if (queue.length > 0 && isStudentFree(testStudent.id, slot)) {
+        // scripted lesson for student@test.com
+        const scripted = queue.shift()!;
+        student = testStudent;
+        status = scripted.status;
+        cancelledBy = scripted.cancelledBy;
+      } else {
+        status = isPast ? pastStatusFor() : futureStatusFor(teacher.requireApproval);
+        if (!status) continue;
+        student = pickFreeStudent(otherStudents, slot);
+      }
       if (!student) continue;
 
-      const lesson = await createLesson(slot, teacher, student, status);
+      const lesson = await createLesson(slot, teacher, student, status, cancelledBy);
+      if (student.id === testStudent.id) {
+        const who = lesson.cancelledBy
+          ? ` by ${lesson.cancelledBy === Role.Teacher ? "tutor" : "student"}`
+          : "";
+        testStudentLessons.push(
+          `${status}${who} · ${teacher.name} · ${formatSessionTime(slot.startTime, lesson.duration)}`,
+        );
+      }
       const key = `${teacherLabel(teacher.id)}:${status}`;
       statusCounts.set(key, (statusCounts.get(key) ?? 0) + 1);
 
@@ -511,11 +583,16 @@ const main = async () => {
 
   console.info("\n-------------------------------------------------------");
   console.info(`${GREEN}🚀 Seed accounts (password for all: ${DEFAULT_PASSWORD})`);
-  console.info(`\n👨‍🏫 teacher@test.com — instant booking (${testTeacher.name})`);
+  const lengthLabel = (id: string) => `${(lessonMinutesByTeacher.get(id) ?? 60) / 60}h lessons`;
+  console.info(
+    `\n👨‍🏫 teacher@test.com — instant booking, ${lengthLabel(testTeacher.id)} (${testTeacher.name})`,
+  );
   console.info(
     `   ${describe("test", [LessonStatus.Upcoming, LessonStatus.Cancelled, LessonStatus.Completed])}`,
   );
-  console.info(`\n👩‍🏫 approval.teacher@test.com — approves each booking (${approvalTeacher.name})`);
+  console.info(
+    `\n👩‍🏫 approval.teacher@test.com — approves each booking, ${lengthLabel(approvalTeacher.id)} (${approvalTeacher.name})`,
+  );
   console.info(
     `   ${describe("approval", [
       LessonStatus.Pending,
@@ -528,6 +605,8 @@ const main = async () => {
   console.info(
     `   Subjects: ${testStudent.subjects.map((s) => `${subjectLabel(s.subject)} (${s.level})`).join(", ")}`,
   );
+  console.info("   Lessons:");
+  for (const line of testStudentLessons) console.info(`     - ${line}`);
   console.info(`\n📬 ${notifications.length} notifications seeded`);
   console.info("-------------------------------------------------------\n");
 

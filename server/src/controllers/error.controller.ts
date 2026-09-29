@@ -126,6 +126,14 @@ const handleSchedulingConstraintError = (err: unknown): AppError | null => {
       reason: "student_overlap",
     });
   }
+  if (
+    isConstraintViolation(err, DB_CONSTRAINTS.availabilityLength) ||
+    isConstraintViolation(err, DB_CONSTRAINTS.lessonDuration)
+  ) {
+    return new AppError("Lessons must be 1 hour, 1.5 hours or 2 hours long.", 400, {
+      reason: "invalid_duration",
+    });
+  }
   if (isConstraintViolation(err, DB_CONSTRAINTS.availabilityOverlap)) {
     return new AppError("This time overlaps with availability you've already scheduled.", 409, {
       reason: "availability_overlap",

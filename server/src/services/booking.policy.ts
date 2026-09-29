@@ -6,6 +6,14 @@ import { AppError } from "@utils/AppError.js";
 const HOUR_MS = 3_600_000;
 const DAY_MS = 86_400_000;
 
+// lessons are 1h, 1.5h or 2h - also enforced by db check constraints
+export const LESSON_DURATIONS = [60, 90, 120] as const;
+
+export const isAllowedLessonDuration = (minutes: number): boolean =>
+  (LESSON_DURATIONS as readonly number[]).includes(minutes);
+
+export const LESSON_DURATION_MESSAGE = "Lessons must be 1 hour, 1.5 hours or 2 hours long.";
+
 // these statuses hold the slot (and the student's time)
 export const LIVE_STATUSES: LessonStatus[] = [
   LessonStatus.Pending,
