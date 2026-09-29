@@ -3,6 +3,7 @@ import { ProfileHeader } from "@components/ProfileHeader";
 import { ProfilePhotoSection } from "@components/ProfilePhotoSection";
 import { PersonalInfoSection } from "@components/PersonalInfoSection";
 import { TeachingInformationSection } from "@components/TeachingInformationSection";
+import { BookingPolicySection } from "@components/BookingPolicySection";
 import { api } from "@utils/api";
 
 const TeacherProfilePage = async () => {
@@ -35,6 +36,17 @@ const TeacherProfilePage = async () => {
             key={teacher?.id || "teaching-loading"}
             teaches={teacher?.teaches}
           />
+
+          {teacher && (
+            <BookingPolicySection
+              policy={{
+                requireApproval: teacher.requireApproval,
+                minNoticeHours: teacher.minNoticeHours,
+                maxAdvanceDays: teacher.maxAdvanceDays,
+                cancellationCutoffHours: teacher.cancellationCutoffHours,
+              }}
+            />
+          )}
         </div>
       </main>
     </div>
