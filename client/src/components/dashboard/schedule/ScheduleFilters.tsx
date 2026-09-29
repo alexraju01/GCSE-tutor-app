@@ -16,10 +16,13 @@ interface ScheduleFiltersProps {
 }
 
 export const FILTER_OPTIONS: { label: string; value: StatusType }[] = [
-  { label: "All", value: "all" },
-  { label: "Upcoming", value: "Upcoming" },
+  { label: "Next up", value: "upcoming" },
+  { label: "Requests", value: "Pending" },
+  { label: "Booked", value: "Upcoming" },
   { label: "Completed", value: "Completed" },
   { label: "Cancelled", value: "Cancelled" },
+  { label: "Declined", value: "Declined" },
+  { label: "All", value: "all" },
 ];
 
 const ScheduleFilters = ({
@@ -27,6 +30,7 @@ const ScheduleFilters = ({
   formattedDateHeader,
 }: ScheduleFiltersProps) => {
   const isMonthlyView = selectedMonth !== undefined;
+  const showDateSteppers = isMonthlyView || activeFilter !== "upcoming";
   // "This month"/"today" always mean UK time, not the viewer's device clock.
   const now = nowInUk();
   const isCurrentMonth =
@@ -89,6 +93,8 @@ const ScheduleFilters = ({
     <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 md:flex-row md:items-center md:justify-between">
       {/* Date Navigation & View Toggle */}
       <div className="flex flex-wrap items-center gap-2">
+        {/* no year arrows on "Next up" - it always starts from today */}
+        {showDateSteppers && (
         <Link
           href={prevUrl}
           aria-label={isMonthlyView ? "Previous month" : "Previous year"}
@@ -96,10 +102,12 @@ const ScheduleFilters = ({
         >
           <ChevronLeft size={16} />
         </Link>
+        )}
         <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-200">
           <CalendarIcon size={14} className="text-blue-500" />
           <span>{formattedDateHeader}</span>
         </div>
+        {showDateSteppers && (
         <Link
           href={nextUrl}
           aria-label={isMonthlyView ? "Next month" : "Next year"}
@@ -107,6 +115,7 @@ const ScheduleFilters = ({
         >
           <ChevronRight size={16} />
         </Link>
+        )}
 
         {isMonthlyView && !isCurrentMonth && (
           <Link
