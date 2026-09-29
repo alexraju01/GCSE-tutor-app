@@ -60,6 +60,8 @@ const AvailabilityPlanner = ({ initialWeekStartKey, initialSlots }: Availability
 
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [draft, setDraft] = useState<AvailabilityDraft | null>(null);
+  // new key per open so the form always starts from the latest draft
+  const [formKey, setFormKey] = useState(0);
   const [selectedSlot, setSelectedSlot] = useState<OwnAvailabilitySlot | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
 
@@ -227,6 +229,7 @@ const AvailabilityPlanner = ({ initialWeekStartKey, initialSlots }: Availability
       return;
     }
     setDraft({ date, from: minutesToHHMM(fromMinutes), to: minutesToHHMM(toMinutes) });
+    setFormKey((key) => key + 1);
     setIsAddOpen(true);
   };
 
@@ -289,6 +292,7 @@ const AvailabilityPlanner = ({ initialWeekStartKey, initialSlots }: Availability
             type="button"
             onClick={() => {
               setDraft(null);
+              setFormKey((key) => key + 1);
               setIsAddOpen(true);
             }}
             className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-blue-500"
@@ -345,6 +349,7 @@ const AvailabilityPlanner = ({ initialWeekStartKey, initialSlots }: Availability
       />
 
       <SetAvailabilityModal
+        key={formKey}
         open={isAddOpen}
         onClose={() => setIsAddOpen(false)}
         draft={draft}

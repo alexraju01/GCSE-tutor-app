@@ -114,8 +114,11 @@ const WeekGrid = ({ weekStartKey, slots, now, onSlotClick, onCreateRange }: Week
     const toMinutes = moved
       ? Math.max(drag.anchor, drag.current) + ROW_MINUTES
       : Math.min(fromMinutes + DEFAULT_CLICK_MINUTES, 24 * 60);
+    const range = { date: drag.date, fromMinutes, toMinutes };
     setDrag(null);
-    onCreateRange({ date: drag.date, fromMinutes, toMinutes });
+    // wait for this gesture's click to finish, otherwise the dialog sees it as
+    // a click outside and closes straight away
+    window.setTimeout(() => onCreateRange(range), 0);
   };
 
   const dragRange = drag && {

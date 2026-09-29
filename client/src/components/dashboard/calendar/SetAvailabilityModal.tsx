@@ -465,6 +465,13 @@ const SetAvailabilityModal = ({ open, onClose, draft, onSaved }: SetAvailability
             </div>
           )}
 
+          {draft && (
+            <p className="flex items-center gap-1.5 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-700 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-300">
+              <CalendarDays size={13} />
+              From your selection: <strong>{dateHeading(draft.date)}, {draft.from}–{draft.to}</strong>
+            </p>
+          )}
+
           {mode === "slots" ? (
             <section className="space-y-3">
               <p className="text-[11px] text-slate-400">

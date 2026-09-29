@@ -13,7 +13,7 @@ import {
   markNotificationReadAction,
 } from "@utils/actions/notification.action";
 import { cn } from "@utils/cn";
-import NotificationToast from "./notifications/NotificationToast";
+import { ToastIcon } from "@components/ui/sonner";
 import { NOTIFICATION_STYLES, notificationHref, timeAgo } from "./notifications/notificationStyle";
 
 // polling + a check on tab focus - good enough for now, could move to SSE later
@@ -23,6 +23,15 @@ const MAX_TOASTS = 3;
 // cancellations stay up longer so they're hard to miss
 const TOAST_MS = 8_000;
 const CANCELLED_TOAST_MS = 20_000;
+
+// toast variant per type, sets the coloured edge on the branded toast
+const TOAST_BY_TYPE: Record<AppNotification["type"], typeof toast.info> = {
+  LessonBooked: toast.info,
+  LessonRequested: toast.warning,
+  LessonConfirmed: toast.success,
+  LessonDeclined: toast,
+  LessonCancelled: toast.error,
+};
 
 const NotificationBell = () => {
   const router = useRouter();
@@ -51,20 +60,31 @@ const NotificationBell = () => {
     let active = true;
 
     const showToast = (notification: AppNotification) => {
-      toast.custom(
-        (id) => (
-          <NotificationToast
-            notification={notification}
-            onView={() => {
-              toast.dismiss(id);
+      const style = NOTIFICATION_STYLES[notification.type];
+      const Icon = style.icon;
+      const show = TOAST_BY_TYPE[notification.type];
+
+      show(
+        <span className="block">
+          <span className="block text-[10px] font-semibold uppercase tracking-wider text-blue-600">
+            GCSE Ace · {style.label}
+          </span>
+          <span className="mt-0.5 block">{notification.title}</span>
+        </span>,
+        {
+          description: notification.body,
+          icon: (
+            <ToastIcon className={style.iconClass}>
+              <Icon size={17} />
+            </ToastIcon>
+          ),
+          action: {
+            label: "View",
+            onClick: () => {
               markReadRef.current(notification.id);
               router.push(notificationHref(notification));
-            }}
-            onDismiss={() => toast.dismiss(id)}
-          />
-        ),
-        {
-          position: "top-right",
+            },
+          },
           duration: notification.type === "LessonCancelled" ? CANCELLED_TOAST_MS : TOAST_MS,
         },
       );
@@ -199,7 +219,7 @@ const NotificationBell = () => {
               </p>
             </div>
           ) : (
-            <ul className="max-h-[26rem] overflow-y-auto">
+            <ul className="max-h-104 overflow-y-auto">
               {notifications.map((notification) => {
                 const style = NOTIFICATION_STYLES[notification.type];
                 const Icon = style.icon;
