@@ -75,6 +75,11 @@ export const assertLessonCancellable = (
     throw new AppError("This lesson has already started and can no longer be cancelled.", 400);
   }
 
+  // teachers decline requests rather than cancel them
+  if (cancellerRole === Role.Teacher && lesson.status === LessonStatus.Pending) {
+    throw new AppError("This is still a request — decline it instead of cancelling.", 400);
+  }
+
   // cutoff only applies to students on agreed lessons - teachers can always
   // cancel, and a pending request can always be withdrawn
   if (cancellerRole === Role.Teacher || lesson.status === LessonStatus.Pending) return;

@@ -19,7 +19,6 @@ const ROW_MINUTES = 30;
 const ROW_HEIGHT = 22; // px
 const ROWS = (24 * 60) / ROW_MINUTES;
 const INITIAL_SCROLL_MINUTES = 14 * 60;
-const DEFAULT_CLICK_MINUTES = 60;
 
 export interface CreateRange {
   date: string;
@@ -68,6 +67,21 @@ const slotLabel = (slot: OwnAvailabilitySlot) => {
 const snap = (minutes: number) =>
   Math.max(0, Math.min(ROWS - 1, Math.floor(minutes / ROW_MINUTES))) * ROW_MINUTES;
 
+// drags start on any half hour but always cover whole hours (min 1h), so
+// the default 1h lessons fill the box exactly - no 30 min leftovers
+const DRAG_STEP_MINUTES = 60;
+const DAY_MINUTES = 24 * 60;
+
+const rangeFromDrag = (anchor: number, current: number) => {
+  const start = Math.min(anchor, current);
+  const span = Math.max(anchor, current) + ROW_MINUTES - start;
+  const length = Math.max(DRAG_STEP_MINUTES, Math.ceil(span / DRAG_STEP_MINUTES) * DRAG_STEP_MINUTES);
+  const to = Math.min(start + length, DAY_MINUTES);
+  // keep at least one whole lesson if we hit midnight
+  const from = Math.min(start, to - DRAG_STEP_MINUTES);
+  return { from, to };
+};
+
 const WeekGrid = ({ weekStartKey, slots, now, onSlotClick, onCreateRange }: WeekGridProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [drag, setDrag] = useState<DragState | null>(null);
@@ -109,27 +123,20 @@ const WeekGrid = ({ weekStartKey, slots, now, onSlotClick, onCreateRange }: Week
 
   const handlePointerUp = () => {
     if (!drag) return;
-    const moved = drag.current !== drag.anchor;
-    const fromMinutes = Math.min(drag.anchor, drag.current);
-    const toMinutes = moved
-      ? Math.max(drag.anchor, drag.current) + ROW_MINUTES
-      : Math.min(fromMinutes + DEFAULT_CLICK_MINUTES, 24 * 60);
-    const range = { date: drag.date, fromMinutes, toMinutes };
+    const { from, to } = rangeFromDrag(drag.anchor, drag.current);
+    const range = { date: drag.date, fromMinutes: from, toMinutes: to };
     setDrag(null);
     // wait for this gesture's click to finish, otherwise the dialog sees it as
     // a click outside and closes straight away
     window.setTimeout(() => onCreateRange(range), 0);
   };
 
-  const dragRange = drag && {
-    from: Math.min(drag.anchor, drag.current),
-    to: Math.max(drag.anchor, drag.current) + ROW_MINUTES,
-  };
+  const dragRange = drag && rangeFromDrag(drag.anchor, drag.current);
 
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white dark:border-slate-800/80 dark:bg-slate-900">
       <div className="overflow-x-auto">
-        <div className="min-w-[760px]">
+        <div className="min-w-190">
           {/* Day headers */}
           <div className="grid grid-cols-[56px_repeat(7,1fr)] border-b border-slate-200/80 bg-slate-50 text-center dark:border-slate-800/80 dark:bg-slate-800/40">
             <div className="border-r border-slate-200/80 p-2 text-[10px] font-semibold uppercase text-slate-400 dark:border-slate-800/80">
@@ -165,7 +172,7 @@ const WeekGrid = ({ weekStartKey, slots, now, onSlotClick, onCreateRange }: Week
           </div>
 
           {/* Scrollable day body */}
-          <div ref={scrollRef} className="max-h-[560px] overflow-y-auto">
+          <div ref={scrollRef} className="max-h-140 overflow-y-auto">
             <div className="grid grid-cols-[56px_repeat(7,1fr)]">
               {/* Time gutter */}
               <div className="relative border-r border-slate-200/80 dark:border-slate-800/80" style={{ height: ROWS * ROW_HEIGHT }}>
@@ -254,6 +261,9 @@ const WeekGrid = ({ weekStartKey, slots, now, onSlotClick, onCreateRange }: Week
                         }}
                       >
                         {minutesToHHMM(dragRange.from)}–{minutesToHHMM(dragRange.to)}
+                        <span className="block font-medium">
+                          {(dragRange.to - dragRange.from) / 60} × 1h lesson{dragRange.to - dragRange.from > 60 ? "s" : ""}
+                        </span>
                       </div>
                     )}
                   </div>

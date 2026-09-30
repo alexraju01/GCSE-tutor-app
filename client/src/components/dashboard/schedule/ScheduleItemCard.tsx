@@ -137,7 +137,8 @@ const ScheduleItemCard = ({ lesson, isTeacher }: ScheduleItemCardProps) => {
 								filename={`lesson-${lesson.id}.ics`}
 							/>
 						)}
-						{lesson.canCancel && (
+						{/* tutors decline requests, they only cancel once it's booked */}
+						{lesson.canCancel && !(isTeacher && isRequest) && (
 							<CancelLessonButton
 								lessonId={lesson.id}
 								isTeacher={isTeacher}

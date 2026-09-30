@@ -5,10 +5,10 @@ import {
   Calendar as CalendarIcon,
   ChevronLeft,
   ChevronRight,
-  Filter,
   ArrowDownNarrowWide,
   ArrowUpNarrowWide,
 } from "lucide-react";
+import StatusFilterSelect from "./StatusFilterSelect";
 
 interface ScheduleFiltersProps {
   query: ScheduleQueryState;
@@ -22,7 +22,7 @@ export const FILTER_OPTIONS: { label: string; value: StatusType }[] = [
   { label: "Completed", value: "Completed" },
   { label: "Cancelled", value: "Cancelled" },
   { label: "Declined", value: "Declined" },
-  { label: "All", value: "all" },
+  { label: "All lessons", value: "all" },
 ];
 
 const ScheduleFilters = ({
@@ -79,15 +79,6 @@ const ScheduleFilters = ({
     : buildUrl({ year: selectedYear, month: now.getMonth() });
 
   const sortUrl = buildUrl({ sort: activeSort === "asc" ? "desc" : "asc" });
-
-  const getFilterClass = (filterName: StatusType) => {
-    const base = "rounded-lg px-3 py-1.5 font-semibold text-xs transition-all";
-
-    if (activeFilter === filterName)
-      return `${base} bg-linear-to-r from-blue-600 to-indigo-600 text-white shadow-sm`;
-
-    return `${base} border border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800`;
-  };
 
   return (
     <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 md:flex-row md:items-center md:justify-between">
@@ -153,21 +144,14 @@ const ScheduleFilters = ({
           {activeSort === "asc" ? "Soonest first" : "Most recent first"}
         </Link>
 
-        {/* Filter Pills */}
-        <div className="flex flex-wrap items-center gap-2 text-xs font-medium">
-          <span className="flex items-center gap-1 pr-1 text-slate-400 dark:text-slate-500">
-            <Filter size={14} /> Filter:
-          </span>
-          {FILTER_OPTIONS.map(({ label, value }) => (
-            <Link
-              key={value}
-              href={buildUrl({ filter: value })}
-              className={getFilterClass(value)}
-            >
-              {label}
-            </Link>
-          ))}
-        </div>
+        <StatusFilterSelect
+          value={activeFilter}
+          options={FILTER_OPTIONS.map(({ label, value }) => ({
+            label,
+            value,
+            href: buildUrl({ filter: value }),
+          }))}
+        />
       </div>
     </div>
   );
