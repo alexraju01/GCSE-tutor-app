@@ -163,3 +163,7 @@ const getUkOffsetMinutes = (date: Date): number => {
   const { year, month, day, hour, minute } = getUkDateParts(date);
   return Math.round((Date.UTC(year, month - 1, day, hour, minute) - date.getTime()) / 60_000);
 };
+
+// "16:00–17:00" - one time-range format for the whole app
+export const formatUkTimeRange = (start: Date, end: Date): string =>
+  `${formatUkTime(start)}–${formatUkTime(end)}`;

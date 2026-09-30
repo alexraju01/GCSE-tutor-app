@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { BookingPolicy } from "@/types/teacher";
 import AddToCalendarButton from "@components/dashboard/schedule/AddToCalendarButton";
 import { formatSubject } from "@utils/format";
+import { buttonClass } from "@components/ui/styles";
 
 export const LoadingState = () => (
   <div role="status" className="py-20 text-center text-sm text-slate-500 dark:text-slate-400">
@@ -32,7 +33,7 @@ export const ErrorState = ({
     <button
       type="button"
       onClick={onRetry}
-      className="mt-5 cursor-pointer rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 px-5 py-2.5 text-xs font-semibold text-white shadow-sm transition-all hover:from-blue-700 hover:to-indigo-700"
+      className={buttonClass("primary", "md", "mt-5")}
     >
       Try again
     </button>
@@ -128,20 +129,20 @@ export const SuccessState = ({
             }))}
             filename={count === 1 ? "lesson.ics" : "lessons.ics"}
             label={count === 1 ? "Add to calendar" : `Add all ${count} to calendar`}
-            className="px-4 py-2.5"
+            className="px-4 py-2"
           />
         )}
         <Link
           href={"/dashboard/schedule" as Route}
           onClick={onDone}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-linear-to-r from-blue-600 to-indigo-600 px-4 py-2.5 text-xs font-semibold text-white shadow-sm hover:from-blue-700 hover:to-indigo-700"
+          className={buttonClass("primary")}
         >
           View my schedule
         </Link>
         <button
           type="button"
           onClick={onDone}
-          className="cursor-pointer rounded-lg px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+          className={buttonClass("ghost")}
         >
           Done
         </button>

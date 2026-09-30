@@ -8,6 +8,7 @@ import StatusBadge from "@components/dashboard/StatusBadge";
 import AddToCalendarButton from "./AddToCalendarButton";
 import CancelLessonButton from "./CancelLessonButton";
 import LessonRequestActions from "./LessonRequestActions";
+import { buttonClass } from "@components/ui/styles";
 
 interface ScheduleItemCardProps {
 	lesson: Lesson;
@@ -115,8 +116,8 @@ const ScheduleItemCard = ({ lesson, isTeacher }: ScheduleItemCardProps) => {
 				{isBooked && meetingUrl && (
 					<Link
 						href={meetingUrl}
-						className='inline-flex items-center gap-2 rounded-lg bg-linear-to-r from-blue-600 to-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition-all hover:from-blue-700 hover:to-indigo-700 active:scale-[0.98]'>
-						<Video size={14} /> Enter Classroom
+						className={buttonClass("primary")}>
+						<Video size={14} /> Enter classroom
 					</Link>
 				)}
 

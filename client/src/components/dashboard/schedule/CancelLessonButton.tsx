@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { Modal } from "@components/ui/modal";
 import { cancelLessonAction } from "@utils/actions/lesson.action";
+import { buttonClass, labelClass, textareaClass } from "@components/ui/styles";
 
 interface CancelLessonButtonProps {
   lessonId: string;
@@ -49,7 +50,7 @@ const CancelLessonButton = ({ lessonId, isTeacher, isRequest, lessonLabel }: Can
           setError(null);
           setIsOpen(true);
         }}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-slate-800 dark:text-slate-300 dark:hover:border-red-900 dark:hover:bg-red-950/40 dark:hover:text-red-400"
+        className={buttonClass("secondary", "sm", "hover:border-red-200 hover:bg-red-50 hover:text-red-600 dark:hover:border-red-900 dark:hover:bg-red-950/40 dark:hover:text-red-400")}
       >
         <CalendarX size={14} />
         {actionLabel}
@@ -68,7 +69,7 @@ const CancelLessonButton = ({ lessonId, isTeacher, isRequest, lessonLabel }: Can
               type="button"
               onClick={() => setIsOpen(false)}
               disabled={isPending}
-              className="cursor-pointer rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-100 disabled:opacity-50 dark:text-slate-300 dark:hover:bg-slate-800"
+              className={buttonClass("ghost", "sm")}
             >
               Keep it
             </button>
@@ -76,7 +77,7 @@ const CancelLessonButton = ({ lessonId, isTeacher, isRequest, lessonLabel }: Can
               type="button"
               onClick={handleConfirm}
               disabled={isPending}
-              className="cursor-pointer rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-red-700 disabled:opacity-50"
+              className={buttonClass("danger", "sm")}
             >
               {isPending ? "Cancelling..." : `Yes, ${actionLabel.toLowerCase()}`}
             </button>
@@ -93,7 +94,7 @@ const CancelLessonButton = ({ lessonId, isTeacher, isRequest, lessonLabel }: Can
           <div>
             <label
               htmlFor={`cancel-reason-${lessonId}`}
-              className="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300"
+              className={labelClass}
             >
               Reason <span className="font-normal text-slate-400">(optional, shared with the {isTeacher ? "student" : "tutor"})</span>
             </label>
@@ -104,7 +105,7 @@ const CancelLessonButton = ({ lessonId, isTeacher, isRequest, lessonLabel }: Can
               value={reason}
               onChange={(event) => setReason(event.target.value)}
               placeholder={isTeacher ? "e.g. I'm unwell — sorry for the short notice." : "e.g. School trip that day."}
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs text-slate-900 focus:border-blue-600 focus:bg-white focus:outline-hidden dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
+              className={textareaClass}
             />
           </div>
 

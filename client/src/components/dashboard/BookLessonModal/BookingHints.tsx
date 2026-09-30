@@ -2,7 +2,7 @@
 
 import { Clock, Zap } from "lucide-react";
 import { cn } from "@utils/cn";
-import { addDaysToKey, formatUkDate, formatUkTime, toUkDateKey } from "@utils/ukTime";
+import { addDaysToKey, formatUkDate, formatUkTime, formatUkTimeRange, toUkDateKey } from "@utils/ukTime";
 import type { BookingState } from "./useBookLessonModal";
 
 // "today at 21:35" / "tomorrow at 09:00" / "Fri 2 Oct at 09:00" (UK time)
@@ -62,7 +62,7 @@ export const NextAvailable = ({ booking }: { booking: BookingState }) => {
                 {formatUkDate(start, { weekday: "short", day: "numeric", month: "short" })}
               </span>
               <span className={isSelected ? "text-blue-100" : "text-slate-500 dark:text-slate-400"}>
-                {formatUkTime(start)} – {formatUkTime(new Date(slot.endTime))}
+                {formatUkTimeRange(start, new Date(slot.endTime))}
               </span>
             </button>
           );

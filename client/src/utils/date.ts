@@ -1,33 +1,25 @@
 // @utils/date.ts
 
-import { UK_TIME_ZONE } from "@utils/ukTime";
-
-// "4:00 PM" in UK time - used by the schedule cards
-const ukTime12h = (date: Date) =>
-  date.toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-    timeZone: UK_TIME_ZONE,
-  });
+import { formatUkDate, formatUkTime } from "@utils/ukTime";
 
 // Lesson times are real server instants, always displayed as UK time.
 export const formatScheduleDate = (dateInput: string | Date) => {
   const startDate = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
 
-  const formattedDate = startDate.toLocaleDateString("en-US", {
-    month: "short",
+  // UK style like the rest of the app: "Thu 1 Oct 2026"
+  const formattedDate = formatUkDate(startDate, {
+    weekday: "short",
     day: "numeric",
+    month: "short",
     year: "numeric",
-    timeZone: UK_TIME_ZONE,
   });
 
-  return { startDate, formattedDate, startTimeStr: ukTime12h(startDate) };
+  return { startDate, formattedDate, startTimeStr: formatUkTime(startDate) };
 };
 
 export const formatTimeRange = (startDate: Date, durationMinutes: number) => {
   const endDate = new Date(startDate.getTime() + durationMinutes * 60000);
-  return `${ukTime12h(startDate)} - ${ukTime12h(endDate)}`;
+  return `${formatUkTime(startDate)}–${formatUkTime(endDate)}`;
 };
 
 // length of a slot/lesson in whole minutes

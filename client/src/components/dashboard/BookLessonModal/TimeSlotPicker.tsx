@@ -1,6 +1,6 @@
 import { Check, Clock } from "lucide-react";
 import { useSyncExternalStore } from "react";
-import { formatUkTime, viewerIsOutsideUk } from "@utils/ukTime";
+import { formatUkTimeRange, viewerIsOutsideUk } from "@utils/ukTime";
 import type { BookingState } from "./useBookLessonModal";
 
 const subscribeNever = () => () => {};
@@ -48,7 +48,7 @@ const TimeSlotPicker = ({ booking }: { booking: BookingState }) => {
                       className={isSelected ? "text-white" : "text-slate-400"}
                     />
                     <span>
-                      {formatUkTime(start)} - {formatUkTime(end)}
+                      {formatUkTimeRange(start, end)}
                       {showLocal && (
                         <span className={`ml-1.5 font-normal ${isSelected ? "text-blue-100" : "text-slate-400"}`}>
                           ({localTime(start)} your time)

@@ -300,8 +300,8 @@ export const useBookLessonModal = ({ isOpen, teacher }: UseBookLessonModalParams
   const getConfirmButtonLabel = (): string => {
     if (isSubmitting) return requiresApproval ? "Sending..." : "Booking...";
     const noun = selectedSlots.length > 1 ? `${selectedSlots.length} ` : "";
-    if (requiresApproval) return `Request ${noun}${selectedSlots.length > 1 ? "Lessons" : "Lesson"}`;
-    return `Confirm ${noun}${selectedSlots.length > 1 ? "Bookings" : "Booking"}`;
+    if (requiresApproval) return `Request ${noun}${selectedSlots.length > 1 ? "lessons" : "lesson"}`;
+    return `Confirm ${noun}${selectedSlots.length > 1 ? "bookings" : "booking"}`;
   };
 
   // page by 4 weeks so the last 2 weeks stay on screen for context

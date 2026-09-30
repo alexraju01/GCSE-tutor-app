@@ -1,6 +1,7 @@
 import { BookOpen, CalendarRange, Inbox, Plus, Video } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
+import { buttonClass } from "@components/ui/styles";
 
 interface QuickActionsCardProps {
   openSlots: number;
@@ -55,7 +56,7 @@ const QuickActionsCard = ({ openSlots, bookedSlots, pendingRequests, lookaheadDa
 
       <Link
         href={"/dashboard/availability" as Route}
-        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition-all hover:from-blue-700 hover:to-indigo-700 active:scale-[0.98]"
+        className={buttonClass("primary", "md", "w-full py-2.5")}
       >
         <Plus size={15} />
         Manage availability

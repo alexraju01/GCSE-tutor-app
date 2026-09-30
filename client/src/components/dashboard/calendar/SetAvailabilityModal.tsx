@@ -22,6 +22,8 @@ import {
   toUkDateKey,
   ukInstant,
 } from "@utils/ukTime";
+import { buttonClass } from "@components/ui/styles";
+import { inputClass, labelClass } from "@components/ui/styles";
 
 // prefill from dragging on the week grid
 export interface AvailabilityDraft {
@@ -100,9 +102,6 @@ const buildSlots = ({ date, from, to, lessonLength, weeks }: FormState): Slot[] 
 
 const lengthLabel = (minutes: number) => (minutes === 90 ? "1.5h" : `${minutes / 60}h`);
 
-const inputClass =
-  "h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 shadow-xs transition-colors hover:border-slate-300 focus:border-blue-500 focus:outline-none focus:ring-3 focus:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200";
-const labelClass = "mb-1.5 block text-xs font-medium text-slate-600 dark:text-slate-400";
 
 const SetAvailabilityModal = ({ open, onClose, draft, onSaved }: SetAvailabilityModalProps) => {
   const [isPending, startTransition] = useTransition();
@@ -205,7 +204,7 @@ const SetAvailabilityModal = ({ open, onClose, draft, onSaved }: SetAvailability
             type="button"
             onClick={onClose}
             disabled={isPending}
-            className="cursor-pointer rounded-lg px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-50 dark:text-slate-300 dark:hover:bg-slate-800"
+            className={buttonClass("ghost")}
           >
             Cancel
           </button>
@@ -213,7 +212,7 @@ const SetAvailabilityModal = ({ open, onClose, draft, onSaved }: SetAvailability
             type="submit"
             form="set-availability-form"
             disabled={isPending || !!problem}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-linear-to-r from-blue-600 to-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:from-blue-700 hover:to-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className={buttonClass("primary")}
           >
             <CalendarPlus size={14} />
             {isPending ? "Saving..." : `Add ${pluralise(newSlots.length, "slot")}`}

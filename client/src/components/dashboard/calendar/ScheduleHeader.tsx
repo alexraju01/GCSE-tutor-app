@@ -2,6 +2,8 @@ import { CalendarRange, Plus } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 
+import { buttonClass } from "@components/ui/styles";
+
 interface ScheduleHeaderProps {
   isTeacher: boolean;
 }
@@ -22,18 +24,18 @@ const ScheduleHeader = ({ isTeacher }: ScheduleHeaderProps) => (
       {isTeacher ? (
         <Link
           href={"/dashboard/availability" as Route}
-          className="inline-flex items-center gap-2 rounded-lg bg-linear-to-r from-blue-600 to-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition-all hover:from-blue-700 hover:to-indigo-700 active:scale-[0.98]"
+          className={buttonClass("primary")}
         >
           <CalendarRange size={16} />
-          Manage Availability
+          Manage availability
         </Link>
       ) : (
         <Link
           href="/teachers"
-          className="inline-flex items-center gap-2 rounded-lg bg-linear-to-r from-blue-600 to-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition-all hover:from-blue-700 hover:to-indigo-700 active:scale-[0.98]"
+          className={buttonClass("primary")}
         >
           <Plus size={16} />
-          Book New Lesson
+          Book new lesson
         </Link>
       )}
     </div>

@@ -49,33 +49,27 @@ export const ukWallClockToDate = (
   return new Date(guessUtc + (guessUtc - asIfUtc));
 };
 
-export const formatDateLabel = (startTime: Date): string => {
-  return startTime.toLocaleDateString("en-US", {
+// UK style, same as the client: "Thu 1 Oct"
+export const formatDateLabel = (startTime: Date): string =>
+  startTime.toLocaleDateString("en-GB", {
     weekday: "short",
-    month: "short",
     day: "numeric",
+    month: "short",
     timeZone: UK_TIME_ZONE,
   });
-};
+
+// 24h UK time: "16:00"
+const formatUkTime = (date: Date): string =>
+  date.toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: UK_TIME_ZONE,
+  });
 
 export const formatTimeSlot = (startTime: Date, durationMinutes: number): string => {
   const endTime = new Date(startTime.getTime() + durationMinutes * 60 * 1000);
 
-  const startFormatted = startTime.toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-    timeZone: UK_TIME_ZONE,
-  });
-
-  const endFormatted = endTime.toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-    timeZone: UK_TIME_ZONE,
-  });
-
-  return `${startFormatted} - ${endFormatted}`;
+  return `${formatUkTime(startTime)}–${formatUkTime(endTime)}`;
 };
 
 export const formatDurationLabel = (durationMinutes: number): string => {
@@ -95,21 +89,14 @@ export const formatSessionTime = (startTime: Date, durationMinutes: number): str
 export const formatScheduleDate = (dateInput: string | Date) => {
   const startDate = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
 
-  const formattedDate = startDate.toLocaleDateString("en-US", {
-    month: "short",
+  const formattedDate = startDate.toLocaleDateString("en-GB", {
     day: "numeric",
+    month: "short",
     year: "numeric",
     timeZone: UK_TIME_ZONE,
   });
 
-  const startTimeStr = startDate.toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-    timeZone: UK_TIME_ZONE,
-  });
-
-  return { startDate, formattedDate, startTimeStr };
+  return { startDate, formattedDate, startTimeStr: formatUkTime(startDate) };
 };
 
 const MONTH_NAMES = [

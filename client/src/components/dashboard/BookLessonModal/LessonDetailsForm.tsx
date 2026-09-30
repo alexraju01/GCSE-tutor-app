@@ -3,9 +3,7 @@ import { BookOpen } from "lucide-react";
 import { Select } from "@components/ui/select";
 import { formatSubject } from "@utils/format";
 import type { BookingState } from "./useBookLessonModal";
-
-const inputClass =
-  "w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs text-slate-900 focus:border-blue-600 focus:bg-white focus:outline-hidden dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-blue-600";
+import { inputClass, labelClass, textareaClass } from "@components/ui/styles";
 
 const LessonDetailsForm = ({ booking }: { booking: BookingState }) => {
   const {
@@ -43,7 +41,7 @@ const LessonDetailsForm = ({ booking }: { booking: BookingState }) => {
     </p>
 
     <div>
-      <label htmlFor="lesson-subject" className="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">
+      <label htmlFor="lesson-subject" className={labelClass}>
         Subject
       </label>
       <Select
@@ -57,7 +55,7 @@ const LessonDetailsForm = ({ booking }: { booking: BookingState }) => {
     </div>
 
     <div>
-      <label htmlFor="lesson-topic" className="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">
+      <label htmlFor="lesson-topic" className={labelClass}>
         Topic (Optional)
       </label>
       <input
@@ -72,7 +70,7 @@ const LessonDetailsForm = ({ booking }: { booking: BookingState }) => {
     </div>
 
     <div>
-      <label htmlFor="lesson-notes" className="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">
+      <label htmlFor="lesson-notes" className={labelClass}>
         Notes for your tutor (Optional)
       </label>
       <textarea
@@ -82,7 +80,7 @@ const LessonDetailsForm = ({ booking }: { booking: BookingState }) => {
         onChange={(e: ChangeEvent<HTMLTextAreaElement>) => onChange({ notes: e.target.value })}
         maxLength={255}
         placeholder="e.g., Mock exam next week — please focus on past papers."
-        className={inputClass}
+        className={textareaClass}
       />
     </div>
   </div>

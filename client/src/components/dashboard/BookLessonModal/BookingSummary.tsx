@@ -2,7 +2,7 @@ import { CalendarDays, Clock, Receipt, Repeat, ShieldCheck, X } from "lucide-rea
 import { Select } from "@components/ui/select";
 import { slotMinutes } from "@utils/date";
 import { formatDuration, formatHours, formatMoney, formatSubject } from "@utils/format";
-import { formatUkDate, formatUkTime, toUkDateKey } from "@utils/ukTime";
+import { formatUkDate, formatUkTime, formatUkTimeRange, toUkDateKey } from "@utils/ukTime";
 import type { BookingState, RawAvailability } from "./useBookLessonModal";
 
 const REPEAT_CHOICES = [3, 7, 11]; // extra weeks, so 4/8/12 in total
@@ -50,7 +50,7 @@ const BookingSummary = ({ booking }: { booking: BookingState }) => {
         <div className="flex items-center gap-2">
           <Receipt size={14} className="text-blue-600 dark:text-blue-400" />
           <div>
-            <span className="block text-xs font-bold text-slate-900 dark:text-slate-100">Booking Summary</span>
+            <span className="block text-xs font-bold text-slate-900 dark:text-slate-100">Booking summary</span>
             {teacherName && (
               <span className="block text-[11px] text-slate-500 dark:text-slate-400">with {teacherName}</span>
             )}
@@ -98,7 +98,7 @@ const BookingSummary = ({ booking }: { booking: BookingState }) => {
                             className="flex cursor-pointer items-center gap-1.5 text-left font-semibold text-slate-800 dark:text-slate-200"
                           >
                             <Clock size={12} className="text-slate-400" />
-                            {formatUkTime(new Date(slot.startTime))} – {formatUkTime(new Date(slot.endTime))}
+                            {formatUkTimeRange(new Date(slot.startTime), new Date(slot.endTime))}
                             <span className="font-normal text-slate-400">· {formatDuration(slotMinutes(slot))}</span>
                           </button>
                           <div className="flex items-center gap-2">

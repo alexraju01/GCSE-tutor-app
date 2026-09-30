@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { buttonClass } from "@components/ui/styles";
 
 const Error = ({
   error,
@@ -21,7 +22,7 @@ const Error = ({
       </p>
       <button
         onClick={() => reset()}
-        className="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500"
+        className={buttonClass("primary", "md", "mt-4")}
       >
         Try again
       </button>

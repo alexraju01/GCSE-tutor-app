@@ -2,8 +2,8 @@
 
 import { CalendarPlus } from "lucide-react";
 
-import { cn } from "@utils/cn";
 import { downloadIcs, type CalendarEvent } from "@utils/calendarInvite";
+import { buttonClass } from "@components/ui/styles";
 
 interface AddToCalendarButtonProps {
   events: CalendarEvent[];
@@ -27,10 +27,7 @@ const AddToCalendarButton = ({
         filename,
       )
     }
-    className={cn(
-      "inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-100 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800",
-      className,
-    )}
+    className={buttonClass("secondary", "sm", className)}
   >
     <CalendarPlus size={14} /> {label}
   </button>

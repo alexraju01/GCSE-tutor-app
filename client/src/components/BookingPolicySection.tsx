@@ -8,6 +8,7 @@ import { Select } from "@/components/ui/select";
 import type { BookingPolicy } from "@/types/teacher";
 import { updateBookingPolicyAction } from "@utils/actions/lesson.action";
 import { formatHours } from "@utils/format";
+import { buttonClass, labelClass } from "@components/ui/styles";
 
 interface BookingPolicySectionProps {
   policy: BookingPolicy;
@@ -71,7 +72,7 @@ export const BookingPolicySection = ({ policy: initialPolicy }: BookingPolicySec
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
-            <label htmlFor="policy-notice" className="mb-1.5 block text-xs font-medium text-slate-600">
+            <label htmlFor="policy-notice" className={labelClass}>
               Minimum notice
             </label>
             <Select
@@ -86,7 +87,7 @@ export const BookingPolicySection = ({ policy: initialPolicy }: BookingPolicySec
           </div>
 
           <div>
-            <label htmlFor="policy-advance" className="mb-1.5 block text-xs font-medium text-slate-600">
+            <label htmlFor="policy-advance" className={labelClass}>
               Book up to
             </label>
             <Select
@@ -101,7 +102,7 @@ export const BookingPolicySection = ({ policy: initialPolicy }: BookingPolicySec
           </div>
 
           <div>
-            <label htmlFor="policy-cutoff" className="mb-1.5 block text-xs font-medium text-slate-600">
+            <label htmlFor="policy-cutoff" className={labelClass}>
               Free cancellation until
             </label>
             <Select
@@ -121,7 +122,7 @@ export const BookingPolicySection = ({ policy: initialPolicy }: BookingPolicySec
             type="button"
             onClick={handleSave}
             disabled={!isDirty || isPending}
-            className="cursor-pointer rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+            className={buttonClass("primary")}
           >
             {isPending ? "Saving..." : "Save booking rules"}
           </button>

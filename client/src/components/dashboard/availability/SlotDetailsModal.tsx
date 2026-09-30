@@ -8,7 +8,8 @@ import StatusBadge from "@components/dashboard/StatusBadge";
 import { Modal } from "@components/ui/modal";
 import type { OwnAvailabilitySlot } from "@utils/api";
 import { formatSubject } from "@utils/format";
-import { formatUkDate, formatUkTime } from "@utils/ukTime";
+import { formatUkDate, formatUkTimeRange } from "@utils/ukTime";
+import { buttonClass } from "@components/ui/styles";
 
 interface SlotDetailsModalProps {
   slot: OwnAvailabilitySlot | null;
@@ -18,9 +19,6 @@ interface SlotDetailsModalProps {
   onDeleteSeries: (seriesId: string) => void;
   onRespond: (lessonId: string, decision: "approve" | "decline") => void;
 }
-
-const actionButton =
-  "inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50";
 
 const SlotDetailsModal = ({
   slot,
@@ -44,7 +42,7 @@ const SlotDetailsModal = ({
       title={lesson ? "Booked slot" : "Open slot"}
       description={
         start && end
-          ? `${formatUkDate(start, { weekday: "long", day: "numeric", month: "long" })} · ${formatUkTime(start)}–${formatUkTime(end)} (UK)`
+          ? `${formatUkDate(start, { weekday: "long", day: "numeric", month: "long" })} · ${formatUkTimeRange(start, end)} (UK)`
           : undefined
       }
     >
@@ -91,7 +89,7 @@ const SlotDetailsModal = ({
                   type="button"
                   disabled={busy}
                   onClick={() => onRespond(lesson.id, "approve")}
-                  className={`${actionButton} bg-emerald-600 text-white hover:bg-emerald-700`}
+                  className={buttonClass("success", "md", "w-full py-2.5")}
                 >
                   <Check size={14} /> Accept request
                 </button>
@@ -99,7 +97,7 @@ const SlotDetailsModal = ({
                   type="button"
                   disabled={busy}
                   onClick={() => onRespond(lesson.id, "decline")}
-                  className={`${actionButton} border border-slate-200 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800`}
+                  className={buttonClass("secondary", "md", "w-full py-2.5")}
                 >
                   <X size={14} /> Decline
                 </button>
@@ -109,7 +107,7 @@ const SlotDetailsModal = ({
             {lesson && (
               <Link
                 href={"/dashboard/schedule?filter=all" as Route}
-                className={`${actionButton} border border-slate-200 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800`}
+                className={buttonClass("secondary", "md", "w-full py-2.5")}
               >
                 <CalendarClock size={14} /> Manage this lesson in your schedule
               </Link>
@@ -120,7 +118,7 @@ const SlotDetailsModal = ({
                 type="button"
                 disabled={busy}
                 onClick={() => onDeleteSlot(slot)}
-                className={`${actionButton} bg-red-600 text-white hover:bg-red-700`}
+                className={buttonClass("danger", "md", "w-full py-2.5")}
               >
                 <Trash2 size={14} /> Remove this slot
               </button>
@@ -131,7 +129,7 @@ const SlotDetailsModal = ({
                 type="button"
                 disabled={busy}
                 onClick={() => onDeleteSeries(slot.seriesId!)}
-                className={`${actionButton} border border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/30`}
+                className={buttonClass("secondary", "md", "w-full py-2.5 border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/30")}
               >
                 <Trash2 size={14} /> Remove all upcoming open slots in this series
               </button>

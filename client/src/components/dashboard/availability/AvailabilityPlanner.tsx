@@ -30,6 +30,7 @@ import {
 } from "@utils/ukTime";
 import SlotDetailsModal from "./SlotDetailsModal";
 import WeekGrid, { weekRange, type CreateRange } from "./WeekGrid";
+import { buttonClass } from "@components/ui/styles";
 
 interface AvailabilityPlannerProps {
   initialWeekStartKey: string;
@@ -240,8 +241,7 @@ const AvailabilityPlanner = ({ initialWeekStartKey, initialSlots }: Availability
 
   const navButton =
     "rounded-lg border border-slate-200 p-1.5 text-slate-600 transition-colors hover:bg-slate-100 disabled:opacity-40 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800";
-  const toolButton =
-    "inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800";
+  const toolButton = buttonClass("secondary", "sm");
 
   return (
     <div className="space-y-4">
@@ -292,7 +292,7 @@ const AvailabilityPlanner = ({ initialWeekStartKey, initialSlots }: Availability
               setFormKey((key) => key + 1);
               setIsAddOpen(true);
             }}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-blue-500"
+            className={buttonClass("primary", "sm")}
           >
             <CalendarPlus size={14} /> Add availability
           </button>
@@ -378,7 +378,7 @@ const AvailabilityPlanner = ({ initialWeekStartKey, initialSlots }: Availability
               type="button"
               onClick={() => setConfirmClear(false)}
               disabled={isPending}
-              className="cursor-pointer rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+              className={buttonClass("ghost", "sm")}
             >
               Keep them
             </button>
@@ -386,7 +386,7 @@ const AvailabilityPlanner = ({ initialWeekStartKey, initialSlots }: Availability
               type="button"
               disabled={isPending}
               onClick={() => deleteSlots(clearableSlots, `Cleared ${pluralise(clearableSlots.length, "slot")}.`)}
-              className="cursor-pointer rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+              className={buttonClass("danger", "sm")}
             >
               {isPending ? "Clearing..." : "Clear slots"}
             </button>
