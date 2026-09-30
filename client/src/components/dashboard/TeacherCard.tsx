@@ -29,6 +29,7 @@ const TeacherCard = ({ teacher }: TeacherCardProps) => {
 					<div className='flex gap-4 items-start'>
 						<div className='relative h-16 w-16 shrink-0 rounded-xl overflow-hidden ring-2 ring-slate-100 group-hover:ring-blue-100 transition-all'>
 							<Image
+								referrerPolicy="no-referrer"
 								src={teacher.image || ""}
 								alt={teacher.name || "Teacher Image"}
 								fill

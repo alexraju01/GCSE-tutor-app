@@ -152,6 +152,7 @@ const LessonDetailsPage = async ({ params }: LessonDetailsPageProps) => {
             <div className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400">
               {otherPerson?.image ? (
                 <Image
+                  referrerPolicy="no-referrer"
                   src={otherPerson.image}
                   alt={otherPersonName}
                   fill

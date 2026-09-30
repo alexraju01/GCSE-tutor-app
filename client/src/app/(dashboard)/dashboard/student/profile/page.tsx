@@ -34,6 +34,7 @@ const StudentProfilePage = async () => {
         <div className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400">
           {user.image ? (
             <Image
+              referrerPolicy="no-referrer"
               src={user.image}
               alt={user.name || "Profile photo"}
               fill

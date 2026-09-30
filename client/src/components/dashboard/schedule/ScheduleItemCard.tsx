@@ -64,6 +64,7 @@ const ScheduleItemCard = ({ lesson, isTeacher }: ScheduleItemCardProps) => {
 			<div className='flex items-center gap-3.5 md:w-1/3'>
 				{personImage ? (
 					<Image
+						referrerPolicy="no-referrer"
 						src={personImage}
 						alt={personName}
 						width={40}

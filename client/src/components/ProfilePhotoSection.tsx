@@ -14,6 +14,7 @@ export const ProfilePhotoSection = ({ image }: ProfilePhotoSectionProps) => {
 
       <div className="relative inline-block mb-4">
         <Image
+          referrerPolicy="no-referrer"
           src={image || "/default-profile.png"}
           alt="Profile Preview"
           width={144}

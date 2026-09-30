@@ -38,6 +38,7 @@ const UserMenu = ({ user }: UserMenuProps) => {
         <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-transparent bg-blue-600 transition-all group-hover:border-custom-accent">
           {user.image ? (
             <Image
+              referrerPolicy="no-referrer"
               src={user.image}
               width={40}
               height={40}

@@ -71,6 +71,7 @@ const UpcomingSessions = ({
                   <div className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-100 text-slate-400 dark:border-slate-800 dark:bg-slate-800 dark:text-slate-500">
                     {participantImage ? (
                       <Image
+                        referrerPolicy="no-referrer"
                         src={participantImage}
                         alt={participantName}
                         fill
