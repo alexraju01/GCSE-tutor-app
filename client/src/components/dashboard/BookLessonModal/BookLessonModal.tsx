@@ -1,10 +1,10 @@
 "use client";
 
-import { AlertCircle, Info, Zap } from "lucide-react";
+import { AlertCircle, Clock, Info, Zap } from "lucide-react";
 import type { SessionData } from "@/types/auth";
 import type { Teacher } from "@/types/teacher";
 import { Modal } from "@components/ui/modal";
-import { formatUkDate, formatUkTime } from "@utils/ukTime";
+import { addDaysToKey, formatUkDate, formatUkTime, toUkDateKey } from "@utils/ukTime";
 import BookingCalendar from "./BookingCalendar";
 import BookingSummary from "./BookingSummary";
 import LessonDetailsForm from "./LessonDetailsForm";
@@ -18,6 +18,17 @@ interface BookLessonModalProps {
   teacher: Teacher;
   session: SessionData | null;
 }
+
+// "today at 21:35" / "tomorrow at 09:00" / "Fri 2 Oct at 09:00" (UK time)
+const earliestBookable = (minNoticeHours: number) => {
+  const earliest = new Date(Date.now() + minNoticeHours * 3_600_000);
+  const todayKey = toUkDateKey(new Date());
+  const dayKey = toUkDateKey(earliest);
+  const time = formatUkTime(earliest);
+  if (dayKey === todayKey) return `today at ${time}`;
+  if (dayKey === addDaysToKey(todayKey, 1)) return `tomorrow at ${time}`;
+  return `${formatUkDate(earliest, { weekday: "short", day: "numeric", month: "short" })} at ${time}`;
+};
 
 const BookLessonModal = ({ isOpen, onClose, teacher, session }: BookLessonModalProps) => {
   const booking = useBookLessonModal({ isOpen, teacher, session });
@@ -138,6 +149,17 @@ const BookLessonModal = ({ isOpen, onClose, teacher, session }: BookLessonModalP
 
       {showBooking && (
         <div className="space-y-6">
+          {/* explain why earlier slots (e.g. later today) aren't shown */}
+          {policy && policy.minNoticeHours > 0 && (
+            <p className="flex items-start gap-2 rounded-xl border border-blue-100 bg-blue-50 px-3.5 py-2.5 text-xs text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-200">
+              <Clock size={14} className="mt-0.5 shrink-0" />
+              <span>
+                {teacher.name ?? "This tutor"} needs at least {policy.minNoticeHours} hours&apos; notice, so the
+                earliest you can book is <strong>{earliestBookable(policy.minNoticeHours)}</strong>.
+              </span>
+            </p>
+          )}
+
           {/* quick picks for the next free slots */}
           <div>
             <span className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-400">
@@ -173,17 +195,17 @@ const BookLessonModal = ({ isOpen, onClose, teacher, session }: BookLessonModalP
 
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
             <BookingCalendar
-              currentMonth={booking.currentMonth}
+              windowStartKey={booking.windowStartKey}
               calendarDays={booking.calendarDays}
               groupedSlots={booking.groupedSlots}
               selectedDateKey={booking.selectedDateKey}
               onSelectDate={booking.setSelectedDateKey}
               selectedCountByDate={booking.selectedCountByDate}
               todayKey={booking.todayKey}
-              canGoPrevMonth={booking.canGoPrevMonth}
-              canGoNextMonth={booking.canGoNextMonth}
-              onPrevMonth={booking.handlePrevMonth}
-              onNextMonth={booking.handleNextMonth}
+              canGoPrev={booking.canGoPrev}
+              canGoNext={booking.canGoNext}
+              onPrev={booking.handlePrev}
+              onNext={booking.handleNext}
             />
 
             <div className="flex flex-col space-y-5 lg:col-span-5">

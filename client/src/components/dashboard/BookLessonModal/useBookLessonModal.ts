@@ -4,12 +4,7 @@ import type { BookingPolicy, Teacher } from "@/types/teacher";
 import { isAllowedLessonDuration } from "@constants/index";
 import { api, type BookingConflict, type TeacherAvailabilitySlot } from "@utils/api";
 import { ApiError } from "@utils/fetchData";
-import {
-  addDaysToKey,
-  getUkDateParts,
-  toUkDateKey,
-  ukMinutesOfDay,
-} from "@utils/ukTime";
+import { addDaysToKey, toUkDateKey, ukMinutesOfDay, ukWeekStartKey } from "@utils/ukTime";
 
 export type RawAvailability = TeacherAvailabilitySlot;
 
@@ -19,6 +14,10 @@ export const MAX_BATCH_SIZE = 20;
 const FETCH_WINDOW_DAYS = 120;
 const DAY_MS = 86_400_000;
 const NEXT_AVAILABLE_COUNT = 4;
+// calendar shows a rolling 6 weeks instead of a calendar month, so the end
+// of one month and the start of the next are always visible together
+const CALENDAR_WEEKS = 6;
+const CALENDAR_DAYS = CALENDAR_WEEKS * 7;
 
 export interface LessonDetails {
   subject: string;
@@ -71,7 +70,8 @@ export const useBookLessonModal = ({ isOpen, teacher, session }: UseBookLessonMo
   const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
   const [selectedSlots, setSelectedSlots] = useState<RawAvailability[]>([]);
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
-  const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
+  // monday (UK) the calendar window starts on - always this week or later
+  const [windowStartKey, setWindowStartKey] = useState<string>(() => ukWeekStartKey(new Date()));
 
   // subject/topic/notes per selected lesson, the form edits the active one
   const [details, setDetails] = useState<Record<string, LessonDetails>>({});
@@ -84,11 +84,17 @@ export const useBookLessonModal = ({ isOpen, teacher, session }: UseBookLessonMo
 
   const token = session?.backendToken;
 
+  // select the slot's day and move the window only if the day isn't already in view
   const selectSlotView = (slot: RawAvailability) => {
-    const start = new Date(slot.startTime);
-    setSelectedDateKey(toUkDateKey(start));
-    const { year, month } = getUkDateParts(start);
-    setCurrentMonth(new Date(year, month - 1, 1));
+    const dayKey = toUkDateKey(new Date(slot.startTime));
+    setSelectedDateKey(dayKey);
+    setWindowStartKey((current) => {
+      const inView = dayKey >= current && dayKey < addDaysToKey(current, CALENDAR_DAYS);
+      if (inView) return current;
+      const thisWeek = ukWeekStartKey(new Date());
+      const slotWeek = ukWeekStartKey(new Date(slot.startTime));
+      return slotWeek < thisWeek ? thisWeek : slotWeek;
+    });
   };
 
   useEffect(() => {
@@ -108,6 +114,7 @@ export const useBookLessonModal = ({ isOpen, teacher, session }: UseBookLessonMo
       setActiveSlotId(null);
       setTemplate({ subject: defaultSubject, topic: "", notes: "" });
       setBookedLessons(null);
+      setWindowStartKey(ukWeekStartKey(new Date()));
       try {
         const now = new Date();
         const response = await api.teacher.getBookableAvailabilities(teacherId, {
@@ -167,39 +174,17 @@ export const useBookLessonModal = ({ isOpen, teacher, session }: UseBookLessonMo
 
   const todayKey = toUkDateKey(new Date());
 
-  const calendarDays = useMemo(() => {
-    const year = currentMonth.getFullYear();
-    const month = currentMonth.getMonth();
+  // UK day keys for the visible 6 weeks
+  const calendarDays = useMemo(
+    () => Array.from({ length: CALENDAR_DAYS }, (_, i) => addDaysToKey(windowStartKey, i)),
+    [windowStartKey],
+  );
 
-    let startDayIndex = new Date(year, month, 1).getDay() - 1;
-    if (startDayIndex === -1) startDayIndex = 6;
-
-    const totalDays = new Date(year, month + 1, 0).getDate();
-    const daysArr: (Date | null)[] = [];
-
-    for (let i = 0; i < startDayIndex; i++) daysArr.push(null);
-    for (let day = 1; day <= totalDays; day++) daysArr.push(new Date(year, month, day));
-
-    // Always pad to a fixed 6 rows (42 cells) so the grid is the same
-    // height every month and nothing below it shifts.
-    while (daysArr.length < 42) daysArr.push(null);
-
-    return daysArr;
-  }, [currentMonth]);
-
-  // Bound month navigation to where real availability actually is.
-  const monthBounds = useMemo(() => {
-    if (slots.length === 0) return null;
-    const earliest = getUkDateParts(new Date(slots[0].startTime));
-    const latest = getUkDateParts(new Date(slots[slots.length - 1].startTime));
-    return {
-      min: new Date(earliest.year, earliest.month - 1, 1),
-      max: new Date(latest.year, latest.month - 1, 1),
-    };
-  }, [slots]);
-
-  const canGoPrevMonth = monthBounds ? currentMonth > monthBounds.min : false;
-  const canGoNextMonth = monthBounds ? currentMonth < monthBounds.max : false;
+  const thisWeekKey = ukWeekStartKey(new Date());
+  const lastSlotKey = slots.length > 0 ? toUkDateKey(new Date(slots[slots.length - 1].startTime)) : null;
+  // can't go back before this week, or forward past the last bookable slot
+  const canGoPrev = windowStartKey > thisWeekKey;
+  const canGoNext = lastSlotKey !== null && lastSlotKey >= addDaysToKey(windowStartKey, CALENDAR_DAYS);
 
   const nextAvailable = useMemo(() => slots.slice(0, NEXT_AVAILABLE_COUNT), [slots]);
 
@@ -324,14 +309,20 @@ export const useBookLessonModal = ({ isOpen, teacher, session }: UseBookLessonMo
     return `Confirm ${noun}${selectedSlots.length > 1 ? "Bookings" : "Booking"}`;
   };
 
-  const handlePrevMonth = () => {
-    if (!canGoPrevMonth) return;
-    setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+  // page by 4 weeks so the last 2 weeks stay on screen for context
+  const PAGE_DAYS = 28;
+
+  const handlePrev = () => {
+    if (!canGoPrev) return;
+    setWindowStartKey((prev) => {
+      const next = addDaysToKey(prev, -PAGE_DAYS);
+      return next < thisWeekKey ? thisWeekKey : next;
+    });
   };
 
-  const handleNextMonth = () => {
-    if (!canGoNextMonth) return;
-    setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+  const handleNext = () => {
+    if (!canGoNext) return;
+    setWindowStartKey((prev) => addDaysToKey(prev, PAGE_DAYS));
   };
 
   // drop just the slots that failed and keep the rest selected
@@ -438,7 +429,7 @@ export const useBookLessonModal = ({ isOpen, teacher, session }: UseBookLessonMo
     selectedSlots,
     selectedDateKey,
     setSelectedDateKey,
-    currentMonth,
+    windowStartKey,
     activeSlotId,
     setActiveSlotId,
     activeDetails,
@@ -449,8 +440,8 @@ export const useBookLessonModal = ({ isOpen, teacher, session }: UseBookLessonMo
     groupedSlots,
     todayKey,
     calendarDays,
-    canGoPrevMonth,
-    canGoNextMonth,
+    canGoPrev,
+    canGoNext,
     nextAvailable,
     pickSlot,
     repeatWeekly,
@@ -462,8 +453,8 @@ export const useBookLessonModal = ({ isOpen, teacher, session }: UseBookLessonMo
     toggleSlot,
     getConfirmHint,
     getConfirmButtonLabel,
-    handlePrevMonth,
-    handleNextMonth,
+    handlePrev,
+    handleNext,
     handleConfirmBooking,
     resetAfterSuccess,
     retry,
