@@ -1,7 +1,7 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@utils/cn";
 import { addDaysToKey, formatDayKey } from "@utils/ukTime";
-import type { RawAvailability } from "./useBookLessonModal";
+import type { BookingState } from "./useBookLessonModal";
 
 // same faded diagonal lines the teacher's week grid uses for past time
 const PAST_STRIPES =
@@ -20,36 +20,23 @@ const getDayCellClasses = (isPast: boolean, hasAvailability: boolean, isSelected
   return "cursor-pointer border border-blue-100/50 bg-blue-50/80 font-semibold text-blue-900 hover:bg-blue-100 dark:border-blue-900/30 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-900/60";
 };
 
-interface BookingCalendarProps {
-  windowStartKey: string;
-  calendarDays: string[];
-  groupedSlots: Record<string, RawAvailability[]>;
-  selectedDateKey: string | null;
-  onSelectDate: (dateKey: string) => void;
-  selectedCountByDate: Record<string, number>;
-  todayKey: string;
-  canGoPrev: boolean;
-  canGoNext: boolean;
-  onPrev: () => void;
-  onNext: () => void;
-}
-
 const navButton =
   "cursor-pointer rounded-lg border border-slate-200 p-1.5 text-slate-600 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800";
 
-const BookingCalendar = ({
-  windowStartKey,
-  calendarDays,
-  groupedSlots,
-  selectedDateKey,
-  onSelectDate,
-  selectedCountByDate,
-  todayKey,
-  canGoPrev,
-  canGoNext,
-  onPrev,
-  onNext,
-}: BookingCalendarProps) => {
+const BookingCalendar = ({ booking }: { booking: BookingState }) => {
+  const {
+    windowStartKey,
+    calendarDays,
+    groupedSlots,
+    selectedDateKey,
+    setSelectedDateKey: onSelectDate,
+    selectedCountByDate,
+    todayKey,
+    canGoPrev,
+    canGoNext,
+    handlePrev: onPrev,
+    handleNext: onNext,
+  } = booking;
   const windowEndKey = addDaysToKey(windowStartKey, calendarDays.length - 1);
   const rangeLabel = `${formatDayKey(windowStartKey, { day: "numeric", month: "short" })} – ${formatDayKey(
     windowEndKey,

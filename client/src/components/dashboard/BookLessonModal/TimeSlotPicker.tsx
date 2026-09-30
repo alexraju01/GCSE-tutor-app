@@ -1,26 +1,15 @@
 import { Check, Clock } from "lucide-react";
 import { useSyncExternalStore } from "react";
 import { formatUkTime, viewerIsOutsideUk } from "@utils/ukTime";
+import type { BookingState } from "./useBookLessonModal";
 
 const subscribeNever = () => () => {};
 
 const localTime = (date: Date) =>
   date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", timeZoneName: "short" });
-import type { RawAvailability } from "./useBookLessonModal";
 
-interface TimeSlotPickerProps {
-  selectedDateKey: string | null;
-  groupedSlots: Record<string, RawAvailability[]>;
-  selectedIds: Set<string>;
-  onToggleSlot: (slot: RawAvailability) => void;
-}
-
-const TimeSlotPicker = ({
-  selectedDateKey,
-  groupedSlots,
-  selectedIds,
-  onToggleSlot,
-}: TimeSlotPickerProps) => {
+const TimeSlotPicker = ({ booking }: { booking: BookingState }) => {
+  const { selectedDateKey, groupedSlots, selectedIds, toggleSlot: onToggleSlot } = booking;
   const slotsForDate = selectedDateKey ? groupedSlots[selectedDateKey] : null;
   // timezone is only known in the browser, false on the server avoids a hydration mismatch
   const showLocal = useSyncExternalStore(subscribeNever, viewerIsOutsideUk, () => false);

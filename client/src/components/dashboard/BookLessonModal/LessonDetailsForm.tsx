@@ -1,29 +1,25 @@
 import type { ChangeEvent } from "react";
 import { BookOpen } from "lucide-react";
 import { Select } from "@components/ui/select";
-import type { LessonDetails } from "./useBookLessonModal";
-
-interface LessonDetailsFormProps {
-  subjects: string[];
-  details: LessonDetails;
-  onChange: (patch: Partial<LessonDetails>) => void;
-  // true when editing a selected lesson, false when setting defaults for the next pick
-  hasActiveLesson: boolean;
-  selectedCount: number;
-  onApplyToAll: () => void;
-}
+import type { BookingState } from "./useBookLessonModal";
 
 const inputClass =
   "w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs text-slate-900 focus:border-blue-600 focus:bg-white focus:outline-hidden dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-blue-600";
 
-const LessonDetailsForm = ({
-  subjects,
-  details,
-  onChange,
-  hasActiveLesson,
-  selectedCount,
-  onApplyToAll,
-}: LessonDetailsFormProps) => (
+const LessonDetailsForm = ({ booking }: { booking: BookingState }) => {
+  const {
+    availableSubjects: subjects,
+    activeDetails: details,
+    updateActiveDetails: onChange,
+    activeSlotId,
+    selectedSlots,
+    applyDetailsToAll: onApplyToAll,
+  } = booking;
+  // true when editing a selected lesson, false when setting defaults for the next pick
+  const hasActiveLesson = activeSlotId !== null;
+  const selectedCount = selectedSlots.length;
+
+  return (
   <div className="space-y-3 border-t border-slate-100 pt-4 dark:border-slate-800">
     <div className="flex items-center justify-between gap-2">
       <span className="block text-xs font-semibold uppercase tracking-wider text-slate-400">
@@ -89,6 +85,7 @@ const LessonDetailsForm = ({
       />
     </div>
   </div>
-);
+  );
+};
 
 export default LessonDetailsForm;

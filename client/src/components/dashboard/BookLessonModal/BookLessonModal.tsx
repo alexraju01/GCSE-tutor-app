@@ -1,11 +1,11 @@
 "use client";
 
-import { AlertCircle, Clock, Info, Zap } from "lucide-react";
+import { AlertCircle, Info } from "lucide-react";
 import type { SessionData } from "@/types/auth";
 import type { Teacher } from "@/types/teacher";
 import { Modal } from "@components/ui/modal";
-import { addDaysToKey, formatUkDate, formatUkTime, toUkDateKey } from "@utils/ukTime";
 import BookingCalendar from "./BookingCalendar";
+import { MinimumNoticeNote, NextAvailable } from "./BookingHints";
 import BookingSummary from "./BookingSummary";
 import LessonDetailsForm from "./LessonDetailsForm";
 import { EmptyState, ErrorState, LoadingState, SuccessState } from "./ModalStates";
@@ -18,17 +18,6 @@ interface BookLessonModalProps {
   teacher: Teacher;
   session: SessionData | null;
 }
-
-// "today at 21:35" / "tomorrow at 09:00" / "Fri 2 Oct at 09:00" (UK time)
-const earliestBookable = (minNoticeHours: number) => {
-  const earliest = new Date(Date.now() + minNoticeHours * 3_600_000);
-  const todayKey = toUkDateKey(new Date());
-  const dayKey = toUkDateKey(earliest);
-  const time = formatUkTime(earliest);
-  if (dayKey === todayKey) return `today at ${time}`;
-  if (dayKey === addDaysToKey(todayKey, 1)) return `tomorrow at ${time}`;
-  return `${formatUkDate(earliest, { weekday: "short", day: "numeric", month: "short" })} at ${time}`;
-};
 
 const BookLessonModal = ({ isOpen, onClose, teacher, session }: BookLessonModalProps) => {
   const booking = useBookLessonModal({ isOpen, teacher, session });
@@ -44,9 +33,6 @@ const BookLessonModal = ({ isOpen, onClose, teacher, session }: BookLessonModalP
     errorMessage,
     noticeMessage,
     selectedSlots,
-    nextAvailable,
-    pickSlot,
-    selectedIds,
   } = booking;
 
   const handleClose = () => {
@@ -149,98 +135,18 @@ const BookLessonModal = ({ isOpen, onClose, teacher, session }: BookLessonModalP
 
       {showBooking && (
         <div className="space-y-6">
-          {/* explain why earlier slots (e.g. later today) aren't shown */}
-          {policy && policy.minNoticeHours > 0 && (
-            <p className="flex items-start gap-2 rounded-xl border border-blue-100 bg-blue-50 px-3.5 py-2.5 text-xs text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-200">
-              <Clock size={14} className="mt-0.5 shrink-0" />
-              <span>
-                {teacher.name ?? "This tutor"} needs at least {policy.minNoticeHours} hours&apos; notice, so the
-                earliest you can book is <strong>{earliestBookable(policy.minNoticeHours)}</strong>.
-              </span>
-            </p>
-          )}
-
-          {/* quick picks for the next free slots */}
-          <div>
-            <span className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-400">
-              <Zap size={12} /> Next available
-            </span>
-            <div className="flex flex-wrap gap-2">
-              {nextAvailable.map((slot) => {
-                const start = new Date(slot.startTime);
-                const isSelected = selectedIds.has(slot.id);
-                return (
-                  <button
-                    key={slot.id}
-                    type="button"
-                    aria-pressed={isSelected}
-                    onClick={() => pickSlot(slot)}
-                    className={`cursor-pointer rounded-xl border px-3 py-2 text-left text-xs transition-colors ${
-                      isSelected
-                        ? "border-blue-600 bg-blue-600 text-white"
-                        : "border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:bg-blue-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-                    }`}
-                  >
-                    <span className="block font-semibold">
-                      {formatUkDate(start, { weekday: "short", day: "numeric", month: "short" })}
-                    </span>
-                    <span className={isSelected ? "text-blue-100" : "text-slate-500 dark:text-slate-400"}>
-                      {formatUkTime(start)} – {formatUkTime(new Date(slot.endTime))}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          <MinimumNoticeNote booking={booking} />
+          <NextAvailable booking={booking} />
 
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-            <BookingCalendar
-              windowStartKey={booking.windowStartKey}
-              calendarDays={booking.calendarDays}
-              groupedSlots={booking.groupedSlots}
-              selectedDateKey={booking.selectedDateKey}
-              onSelectDate={booking.setSelectedDateKey}
-              selectedCountByDate={booking.selectedCountByDate}
-              todayKey={booking.todayKey}
-              canGoPrev={booking.canGoPrev}
-              canGoNext={booking.canGoNext}
-              onPrev={booking.handlePrev}
-              onNext={booking.handleNext}
-            />
+            <BookingCalendar booking={booking} />
 
             <div className="flex flex-col space-y-5 lg:col-span-5">
-              <TimeSlotPicker
-                selectedDateKey={booking.selectedDateKey}
-                groupedSlots={booking.groupedSlots}
-                selectedIds={selectedIds}
-                onToggleSlot={booking.toggleSlot}
-              />
+              <TimeSlotPicker booking={booking} />
 
-              <LessonDetailsForm
-                subjects={availableSubjects}
-                details={booking.activeDetails}
-                onChange={booking.updateActiveDetails}
-                hasActiveLesson={booking.activeSlotId !== null}
-                selectedCount={selectedSlots.length}
-                onApplyToAll={booking.applyDetailsToAll}
-              />
+              <LessonDetailsForm booking={booking} />
 
-              <BookingSummary
-                selectedSlots={booking.sortedSelectedSlots}
-                activeSlotId={booking.activeSlotId}
-                onActivate={booking.setActiveSlotId}
-                subjects={availableSubjects}
-                getDetails={booking.getDetails}
-                onSlotSubjectChange={booking.setSlotSubject}
-                onRepeatWeekly={booking.repeatWeekly}
-                teacherName={teacher.name}
-                hourlyRate={teacher.hourlyRate}
-                totalMinutes={booking.totalMinutes}
-                estimatedCost={booking.estimatedCost}
-                onRemoveSlot={booking.toggleSlot}
-                policy={policy}
-                requiresApproval={requiresApproval}
-              />
+              <BookingSummary booking={booking} />
             </div>
           </div>
         </div>

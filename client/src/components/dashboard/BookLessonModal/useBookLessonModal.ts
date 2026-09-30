@@ -416,6 +416,7 @@ export const useBookLessonModal = ({ isOpen, teacher, session }: UseBookLessonMo
   const retry = () => setReloadKey((key) => key + 1);
 
   return {
+    teacher,
     slots,
     policy,
     requiresApproval,
@@ -460,3 +461,6 @@ export const useBookLessonModal = ({ isOpen, teacher, session }: UseBookLessonMo
     retry,
   };
 };
+
+// everything the booking sections read, passed down as a single prop
+export type BookingState = ReturnType<typeof useBookLessonModal>;

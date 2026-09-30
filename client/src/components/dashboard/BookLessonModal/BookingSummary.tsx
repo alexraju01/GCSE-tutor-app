@@ -1,25 +1,7 @@
 import { CalendarDays, Clock, Receipt, Repeat, ShieldCheck, X } from "lucide-react";
-import type { BookingPolicy } from "@/types/teacher";
 import { Select } from "@components/ui/select";
 import { formatUkDate, formatUkTime, toUkDateKey } from "@utils/ukTime";
-import type { LessonDetails, RawAvailability } from "./useBookLessonModal";
-
-interface BookingSummaryProps {
-  selectedSlots: RawAvailability[];
-  activeSlotId: string | null;
-  onActivate: (slotId: string) => void;
-  subjects: string[];
-  getDetails: (slotId: string) => LessonDetails;
-  onSlotSubjectChange: (slotId: string, subject: string) => void;
-  onRepeatWeekly: (slot: RawAvailability, weeks: number) => void;
-  teacherName: string | null;
-  hourlyRate: number;
-  totalMinutes: number;
-  estimatedCost: number;
-  onRemoveSlot: (slot: RawAvailability) => void;
-  policy: BookingPolicy | null;
-  requiresApproval: boolean;
-}
+import type { BookingState, RawAvailability } from "./useBookLessonModal";
 
 const gbp = new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" });
 const REPEAT_CHOICES = [3, 7, 11]; // extra weeks, so 4/8/12 in total
@@ -39,22 +21,24 @@ const displaySubject = (subject: string) => subject.replace(/_/g, " ");
 const hoursLabel = (hours: number) =>
   hours % 24 === 0 && hours > 0 ? `${hours / 24} day${hours === 24 ? "" : "s"}` : `${hours} hours`;
 
-const BookingSummary = ({
-  selectedSlots,
-  activeSlotId,
-  onActivate,
-  subjects,
-  getDetails,
-  onSlotSubjectChange,
-  onRepeatWeekly,
-  teacherName,
-  hourlyRate,
-  totalMinutes,
-  estimatedCost,
-  onRemoveSlot,
-  policy,
-  requiresApproval,
-}: BookingSummaryProps) => {
+const BookingSummary = ({ booking }: { booking: BookingState }) => {
+  const {
+    sortedSelectedSlots: selectedSlots,
+    activeSlotId,
+    setActiveSlotId: onActivate,
+    availableSubjects: subjects,
+    getDetails,
+    setSlotSubject: onSlotSubjectChange,
+    repeatWeekly: onRepeatWeekly,
+    teacher,
+    totalMinutes,
+    estimatedCost,
+    toggleSlot: onRemoveSlot,
+    policy,
+    requiresApproval,
+  } = booking;
+  const teacherName = teacher.name;
+  const hourlyRate = teacher.hourlyRate;
   const lessonPrice = (slot: RawAvailability) => (hourlyRate * slotMinutes(slot)) / 60;
 
   // selectedSlots arrive sorted, so grouping preserves chronological order.
