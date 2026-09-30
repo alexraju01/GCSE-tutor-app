@@ -1,6 +1,7 @@
 import type { ChangeEvent } from "react";
 import { BookOpen } from "lucide-react";
 import { Select } from "@components/ui/select";
+import { formatSubject } from "@utils/format";
 import type { BookingState } from "./useBookLessonModal";
 
 const inputClass =
@@ -50,7 +51,7 @@ const LessonDetailsForm = ({ booking }: { booking: BookingState }) => {
         icon={<BookOpen size={15} />}
         value={details.subject}
         onChange={(subject) => onChange({ subject })}
-        options={subjects.map((subject) => ({ value: subject, label: subject.replace(/_/g, " ") }))}
+        options={subjects.map((subject) => ({ value: subject, label: formatSubject(subject) }))}
         disabled={subjects.length === 0}
       />
     </div>

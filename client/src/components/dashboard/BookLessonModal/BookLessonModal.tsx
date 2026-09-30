@@ -1,7 +1,6 @@
 "use client";
 
 import { AlertCircle, Info } from "lucide-react";
-import type { SessionData } from "@/types/auth";
 import type { Teacher } from "@/types/teacher";
 import { Modal } from "@components/ui/modal";
 import BookingCalendar from "./BookingCalendar";
@@ -16,11 +15,10 @@ interface BookLessonModalProps {
   isOpen: boolean;
   onClose: () => void;
   teacher: Teacher;
-  session: SessionData | null;
 }
 
-const BookLessonModal = ({ isOpen, onClose, teacher, session }: BookLessonModalProps) => {
-  const booking = useBookLessonModal({ isOpen, teacher, session });
+const BookLessonModal = ({ isOpen, onClose, teacher }: BookLessonModalProps) => {
+  const booking = useBookLessonModal({ isOpen, teacher });
   const {
     slots,
     policy,

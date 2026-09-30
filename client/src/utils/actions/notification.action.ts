@@ -1,17 +1,19 @@
 "use server";
 
-import { auth } from "@auth";
 import { api, type AppNotification } from "@utils/api";
 import { actionError, type ActionResult } from "./result";
+import { getBackendSession } from "./session";
+
+const SIGNED_OUT = { ok: false as const, error: "Not signed in." };
 
 export async function getNotificationsAction(): Promise<
   ActionResult<{ notifications: AppNotification[]; unreadCount: number }>
 > {
-  const session = await auth();
-  if (!session?.backendToken) return { ok: false, error: "Not signed in." };
+  const session = await getBackendSession();
+  if (!session) return SIGNED_OUT;
 
   try {
-    const response = await api.notifications.getMine(session.backendToken);
+    const response = await api.notifications.getMine(session.token);
     return {
       ok: true,
       data: { notifications: response.data ?? [], unreadCount: response.unreadCount ?? 0 },
@@ -22,11 +24,11 @@ export async function getNotificationsAction(): Promise<
 }
 
 export async function markNotificationReadAction(id: string): Promise<ActionResult> {
-  const session = await auth();
-  if (!session?.backendToken) return { ok: false, error: "Not signed in." };
+  const session = await getBackendSession();
+  if (!session) return SIGNED_OUT;
 
   try {
-    await api.notifications.markRead(id, session.backendToken);
+    await api.notifications.markRead(id, session.token);
     return { ok: true, data: undefined };
   } catch (error) {
     return actionError(error, "Couldn't update the notification.");
@@ -34,11 +36,11 @@ export async function markNotificationReadAction(id: string): Promise<ActionResu
 }
 
 export async function markAllNotificationsReadAction(): Promise<ActionResult> {
-  const session = await auth();
-  if (!session?.backendToken) return { ok: false, error: "Not signed in." };
+  const session = await getBackendSession();
+  if (!session) return SIGNED_OUT;
 
   try {
-    await api.notifications.markAllRead(session.backendToken);
+    await api.notifications.markAllRead(session.token);
     return { ok: true, data: undefined };
   } catch (error) {
     return actionError(error, "Couldn't update notifications.");

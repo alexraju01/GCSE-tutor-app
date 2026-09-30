@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
 import type { BookingPolicy } from "@/types/teacher";
 import { updateBookingPolicyAction } from "@utils/actions/lesson.action";
+import { formatHours } from "@utils/format";
 
 interface BookingPolicySectionProps {
   policy: BookingPolicy;
@@ -17,11 +18,7 @@ const NOTICE_OPTIONS = [0, 2, 6, 12, 24, 48];
 const ADVANCE_OPTIONS = [14, 30, 60, 90, 180];
 const CUTOFF_OPTIONS = [0, 12, 24, 48];
 
-const hoursOption = (hours: number) => {
-  if (hours === 0) return "No minimum";
-  if (hours % 24 === 0) return `${hours / 24} day${hours === 24 ? "" : "s"}`;
-  return `${hours} hours`;
-};
+const hoursOption = (hours: number) => (hours === 0 ? "No minimum" : formatHours(hours));
 
 // include the current value in case it was set outside these presets
 const withCurrent = (presets: number[], current: number) =>

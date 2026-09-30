@@ -3,6 +3,7 @@ import type { Route } from "next";
 import Link from "next/link";
 import type { BookingPolicy } from "@/types/teacher";
 import AddToCalendarButton from "@components/dashboard/schedule/AddToCalendarButton";
+import { formatSubject } from "@utils/format";
 
 export const LoadingState = () => (
   <div role="status" className="py-20 text-center text-sm text-slate-500 dark:text-slate-400">
@@ -97,7 +98,7 @@ export const SuccessState = ({
   onDone: () => void;
 }) => {
   const count = lessons.length;
-  const subjects = joinSubjects(Array.from(new Set(lessons.map((l) => l.subject.replace(/_/g, " ")))));
+  const subjects = joinSubjects(Array.from(new Set(lessons.map((l) => formatSubject(l.subject)))));
   const tutor = teacherName ?? "your tutor";
   const lessonWord = count === 1 ? "lesson" : "lessons";
 
@@ -120,7 +121,7 @@ export const SuccessState = ({
           <AddToCalendarButton
             events={lessons.map((lesson) => ({
               id: lesson.id,
-              title: `${lesson.subject.replace(/_/g, " ")} lesson with ${tutor}`,
+              title: `${formatSubject(lesson.subject)} lesson with ${tutor}`,
               start: new Date(lesson.startTime),
               durationMinutes: lesson.duration,
               description: lesson.topic ?? undefined,

@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { SessionData } from "@/types/auth";
 import type { BookingPolicy, Teacher } from "@/types/teacher";
 import { isAllowedLessonDuration } from "@constants/index";
+import { bookLessonsAction } from "@utils/actions/lesson.action";
 import { api, type BookingConflict, type TeacherAvailabilitySlot } from "@utils/api";
-import { ApiError } from "@utils/fetchData";
+import { slotMinutes } from "@utils/date";
 import { addDaysToKey, toUkDateKey, ukMinutesOfDay, ukWeekStartKey } from "@utils/ukTime";
 
 export type RawAvailability = TeacherAvailabilitySlot;
@@ -28,16 +28,12 @@ export interface LessonDetails {
 interface UseBookLessonModalParams {
   isOpen: boolean;
   teacher: Teacher;
-  session: SessionData | null;
 }
 
 // A teacher can teach the same subject at multiple levels (e.g. Maths at
 // both GCSE and A-Level) — dedupe so the subject picker doesn't list it twice.
 const getUniqueSubjects = (teacher: Teacher): string[] =>
   Array.from(new Set(teacher.teaches?.map((t) => t.subject) ?? []));
-
-const slotMinutes = (slot: RawAvailability) =>
-  Math.round((new Date(slot.endTime).getTime() - new Date(slot.startTime).getTime()) / 60_000);
 
 // server already enforces this, just never show a non-standard slot
 const bookableSlots = (slots: RawAvailability[]) =>
@@ -53,7 +49,7 @@ const newIdempotencyKey = () =>
 
 // Owns every piece of state, fetching, and derived data for the booking
 // modal, so the component tree underneath is pure presentation.
-export const useBookLessonModal = ({ isOpen, teacher, session }: UseBookLessonModalParams) => {
+export const useBookLessonModal = ({ isOpen, teacher }: UseBookLessonModalParams) => {
   const teacherId = teacher.id;
   const hourlyRate = teacher.hourlyRate;
   const availableSubjects = useMemo(() => getUniqueSubjects(teacher), [teacher]);
@@ -82,7 +78,6 @@ export const useBookLessonModal = ({ isOpen, teacher, session }: UseBookLessonMo
   // same key while the booking is unchanged so retries can't double-book
   const idempotencyRef = useRef<{ signature: string; key: string } | null>(null);
 
-  const token = session?.backendToken;
 
   // select the slot's day and move the window only if the day isn't already in view
   const selectSlotView = (slot: RawAvailability) => {
@@ -352,11 +347,6 @@ export const useBookLessonModal = ({ isOpen, teacher, session }: UseBookLessonMo
   const handleConfirmBooking = async (): Promise<boolean> => {
     if (selectedSlots.length === 0) return false;
 
-    if (!token) {
-      setErrorMessage("You must be logged in to book a lesson.");
-      return false;
-    }
-
     const payload = sortedSelectedSlots.map((slot) => {
       const d = getDetails(slot.id);
       return {
@@ -381,29 +371,29 @@ export const useBookLessonModal = ({ isOpen, teacher, session }: UseBookLessonMo
     setIsSubmitting(true);
     clearMessages();
 
-    try {
-      const response = await api.lesson.create(payload, token, idempotencyRef.current.key);
-      const lessons = response.data ?? [];
+    // server action - the backend token stays on the server
+    const result = await bookLessonsAction(payload, idempotencyRef.current.key);
+    setIsSubmitting(false);
+
+    if (result.ok) {
       const bookedIds = new Set(selectedSlots.map((s) => s.id));
       setSlots((prev) => prev.filter((s) => !bookedIds.has(s.id)));
-      setBookedLessons(lessons);
+      setBookedLessons(result.data);
       idempotencyRef.current = null;
       return true;
-    } catch (err: unknown) {
-      const conflicts = err instanceof ApiError ? (err.details?.conflicts as BookingConflict[] | undefined) : undefined;
-      if (conflicts && conflicts.length > 0) {
-        recoverFromConflicts(conflicts, err instanceof Error ? err.message : "");
-      } else if (err instanceof ApiError && err.status === 409) {
-        // db caught a race, don't know which slot - just refresh
-        setErrorMessage(err.message);
-        void refreshSlots();
-      } else {
-        setErrorMessage(err instanceof Error ? err.message : "Something went wrong while booking.");
-      }
-      return false;
-    } finally {
-      setIsSubmitting(false);
     }
+
+    const conflicts = result.details?.conflicts as BookingConflict[] | undefined;
+    if (conflicts && conflicts.length > 0) {
+      recoverFromConflicts(conflicts, result.error);
+    } else if (result.status === 409) {
+      // db caught a race, don't know which slot - just refresh
+      setErrorMessage(result.error);
+      void refreshSlots();
+    } else {
+      setErrorMessage(result.error);
+    }
+    return false;
   };
 
   const resetAfterSuccess = () => {

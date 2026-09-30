@@ -11,6 +11,7 @@ import {
   getMyAvailabilityAction,
 } from "@utils/actions/availability";
 import { cn } from "@utils/cn";
+import { pluralise } from "@utils/format";
 import {
   addDaysToKey,
   dayIndexOfKey,
@@ -98,7 +99,6 @@ const buildSlots = ({ date, from, to, lessonLength, weeks }: FormState): Slot[] 
 };
 
 const lengthLabel = (minutes: number) => (minutes === 90 ? "1.5h" : `${minutes / 60}h`);
-const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;
 
 const inputClass =
   "h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 shadow-xs transition-colors hover:border-slate-300 focus:border-blue-500 focus:outline-none focus:ring-3 focus:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200";
@@ -216,7 +216,7 @@ const SetAvailabilityModal = ({ open, onClose, draft, onSaved }: SetAvailability
             className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-linear-to-r from-blue-600 to-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:from-blue-700 hover:to-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <CalendarPlus size={14} />
-            {isPending ? "Saving..." : `Add ${plural(newSlots.length, "slot")}`}
+            {isPending ? "Saving..." : `Add ${pluralise(newSlots.length, "slot")}`}
           </button>
         </div>
       }
@@ -315,11 +315,11 @@ const SetAvailabilityModal = ({ open, onClose, draft, onSaved }: SetAvailability
           {error ?? problem ?? (
             <>
               <p className="font-semibold">
-                {plural(lessonsPerDay, `${lengthLabel(form.lessonLength)} lesson`)}: {firstDayTimes.join(", ")}
+                {pluralise(lessonsPerDay, `${lengthLabel(form.lessonLength)} lesson`)}: {firstDayTimes.join(", ")}
               </p>
               <p className="mt-0.5 opacity-80">
                 {form.weeks > 1
-                  ? `Every ${weekday} for ${form.weeks} weeks · ${plural(newSlots.length, "slot")} in total`
+                  ? `Every ${weekday} for ${form.weeks} weeks · ${pluralise(newSlots.length, "slot")} in total`
                   : formatDayKey(form.date, { weekday: "long", day: "numeric", month: "long" })}
                 {clashes.length > 0 && ` · ${clashes.length} already set, skipped`}
                 {leftover > 0 && ` · last ${leftover} min not used`}

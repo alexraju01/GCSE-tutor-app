@@ -11,6 +11,7 @@ import StatsGrid, {
 import UpcomingSessions from "@components/dashboard/UpcomingSessions";
 import WelcomeBanner from "@components/dashboard/WelcomeBanner";
 import { api } from "@utils/api";
+import { formatMoney } from "@utils/format";
 
 // days ahead shown on the availability card
 const AVAILABILITY_LOOKAHEAD_DAYS = 14;
@@ -50,11 +51,8 @@ const TeacherDashboardPage = async () => {
   const teacherSubjects = dashboardData?.teaches ?? [];
 
   const formattedEarnings = dashboardData?.totalEarnings
-    ? new Intl.NumberFormat("en-GB", {
-        style: "currency",
-        currency: dashboardData.totalEarnings.currency || "GBP",
-      }).format(dashboardData.totalEarnings.amount)
-    : "£0.00";
+    ? formatMoney(dashboardData.totalEarnings.amount, dashboardData.totalEarnings.currency || "GBP")
+    : formatMoney(0);
 
   const stats: StatItem[] = [
     {

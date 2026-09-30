@@ -1,6 +1,5 @@
 "use server";
 
-import { auth } from "@auth";
 import { revalidatePath } from "next/cache";
 import {
   api,
@@ -10,14 +9,12 @@ import {
   type TeacherAvailabilitySlot,
 } from "@utils/api";
 import { actionError, type ActionResult } from "./result";
+import { getBackendSession } from "./session";
 
 // server actions so the backend token stays on the server
 
-const getTeacherToken = async (): Promise<string | null> => {
-  const session = await auth();
-  if (session?.user?.role !== "Teacher" || !session.backendToken) return null;
-  return session.backendToken;
-};
+const getTeacherToken = async (): Promise<string | null> =>
+  (await getBackendSession("Teacher"))?.token ?? null;
 
 const UNAUTHORIZED = { ok: false as const, error: "Only signed-in tutors can manage availability." };
 

@@ -1,25 +1,11 @@
 import { CalendarDays, Clock, Receipt, Repeat, ShieldCheck, X } from "lucide-react";
 import { Select } from "@components/ui/select";
+import { slotMinutes } from "@utils/date";
+import { formatDuration, formatHours, formatMoney, formatSubject } from "@utils/format";
 import { formatUkDate, formatUkTime, toUkDateKey } from "@utils/ukTime";
 import type { BookingState, RawAvailability } from "./useBookLessonModal";
 
-const gbp = new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" });
 const REPEAT_CHOICES = [3, 7, 11]; // extra weeks, so 4/8/12 in total
-
-const slotMinutes = (slot: RawAvailability) =>
-  Math.round((new Date(slot.endTime).getTime() - new Date(slot.startTime).getTime()) / 60000);
-
-const formatDuration = (minutes: number) => {
-  const hours = Math.floor(minutes / 60);
-  const rest = minutes % 60;
-  if (hours === 0) return `${rest}m`;
-  return rest === 0 ? `${hours}h` : `${hours}h ${rest}m`;
-};
-
-const displaySubject = (subject: string) => subject.replace(/_/g, " ");
-
-const hoursLabel = (hours: number) =>
-  hours % 24 === 0 && hours > 0 ? `${hours / 24} day${hours === 24 ? "" : "s"}` : `${hours} hours`;
 
 const BookingSummary = ({ booking }: { booking: BookingState }) => {
   const {
@@ -117,7 +103,7 @@ const BookingSummary = ({ booking }: { booking: BookingState }) => {
                           </button>
                           <div className="flex items-center gap-2">
                             <span className="font-semibold text-slate-700 dark:text-slate-300">
-                              {gbp.format(lessonPrice(slot))}
+                              {formatMoney(lessonPrice(slot))}
                             </span>
                             <button
                               type="button"
@@ -137,12 +123,12 @@ const BookingSummary = ({ booking }: { booking: BookingState }) => {
                               ariaLabel="Subject for this lesson"
                               value={lessonDetails.subject}
                               onChange={(subject) => onSlotSubjectChange(slot.id, subject)}
-                              options={subjects.map((sub) => ({ value: sub, label: displaySubject(sub) }))}
+                              options={subjects.map((sub) => ({ value: sub, label: formatSubject(sub) }))}
                               className="w-auto min-w-36"
                             />
                           ) : (
                             <span className="rounded-md bg-blue-50 px-1.5 py-0.5 text-[11px] font-semibold text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
-                              {displaySubject(lessonDetails.subject)}
+                              {formatSubject(lessonDetails.subject)}
                             </span>
                           )}
                           {lessonDetails.topic && (
@@ -182,20 +168,20 @@ const BookingSummary = ({ booking }: { booking: BookingState }) => {
             {[...subjectTotals.entries()].map(([subject, { count, cost }]) => (
               <div key={subject} className="flex items-center justify-between">
                 <span className="text-slate-500 dark:text-slate-400">
-                  {displaySubject(subject)} × {count}
+                  {formatSubject(subject)} × {count}
                 </span>
-                <span className="text-slate-700 dark:text-slate-300">{gbp.format(cost)}</span>
+                <span className="text-slate-700 dark:text-slate-300">{formatMoney(cost)}</span>
               </div>
             ))}
             <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
               <span>Total time</span>
               <span>
-                {formatDuration(totalMinutes)} at {gbp.format(hourlyRate)}/hr
+                {formatDuration(totalMinutes)} at {formatMoney(hourlyRate)}/hr
               </span>
             </div>
             <div className="mt-1 flex items-center justify-between border-t border-slate-200 pt-2 dark:border-slate-700">
               <span className="font-semibold text-slate-800 dark:text-slate-200">Estimated total</span>
-              <span className="text-base font-bold text-blue-600 dark:text-blue-400">{gbp.format(estimatedCost)}</span>
+              <span className="text-base font-bold text-blue-600 dark:text-blue-400">{formatMoney(estimatedCost)}</span>
             </div>
           </div>
 
@@ -209,7 +195,7 @@ const BookingSummary = ({ booking }: { booking: BookingState }) => {
                   : "Your lessons are confirmed straight away. "}
                 {policy.cancellationCutoffHours === 0
                   ? "Free cancellation any time before each lesson."
-                  : `Free cancellation until ${hoursLabel(policy.cancellationCutoffHours)} before each lesson.`}{" "}
+                  : `Free cancellation until ${formatHours(policy.cancellationCutoffHours)} before each lesson.`}{" "}
                 Times are UK time.
               </p>
             </div>

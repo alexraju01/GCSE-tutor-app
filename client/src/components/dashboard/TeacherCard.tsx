@@ -5,16 +5,15 @@ import Link from "next/link";
 import Image from "next/image";
 import type { Route } from "next";
 import { GraduationCap } from "lucide-react";
+import { formatSubject } from "@utils/format";
 import BookLessonModal from "./BookLessonModal/BookLessonModal";
 import type { Teacher, TeachesSubject } from "@/types/teacher";
-import type { SessionData } from "@/types/auth";
 
 interface TeacherCardProps {
 	teacher: Teacher;
-	session: SessionData | null;
 }
 
-const TeacherCard = ({ teacher, session }: TeacherCardProps) => {
+const TeacherCard = ({ teacher }: TeacherCardProps) => {
 	const [isModalOpen, setIsModalOpen] = useState(false);
 
 	const groupedTeaches = teacher.teaches
@@ -62,7 +61,7 @@ const TeacherCard = ({ teacher, session }: TeacherCardProps) => {
 											<span
 												key={index}
 												className='text-xs bg-white text-slate-700 font-medium px-2.5 py-0.5 rounded-md border border-slate-200 shadow-2xs capitalize'>
-												{item.subject.replaceAll("_", " ").toLowerCase()}
+												{formatSubject(item.subject).toLowerCase()}
 											</span>
 										))}
 									</div>
@@ -92,7 +91,6 @@ const TeacherCard = ({ teacher, session }: TeacherCardProps) => {
 				isOpen={isModalOpen}
 				onClose={() => setIsModalOpen(false)}
 				teacher={teacher}
-				session={session}
 			/>
 		</>
 	);

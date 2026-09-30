@@ -3,6 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Clock, Info, Video } from "lucide-react";
 import { formatScheduleDate, formatTimeRange } from "@utils/date";
+import { formatMoney, formatSubject } from "@utils/format";
 import StatusBadge from "@components/dashboard/StatusBadge";
 import AddToCalendarButton from "./AddToCalendarButton";
 import CancelLessonButton from "./CancelLessonButton";
@@ -13,12 +14,10 @@ interface ScheduleItemCardProps {
 	isTeacher: boolean;
 }
 
-const gbp = new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" });
-
 const ScheduleItemCard = ({ lesson, isTeacher }: ScheduleItemCardProps) => {
 	const { startDate, formattedDate } = formatScheduleDate(lesson.startTime);
 	const timeRange = formatTimeRange(startDate, lesson.duration);
-	const subject = lesson.subject.replace(/_/g, " ");
+	const subject = formatSubject(lesson.subject);
 
 	const isBooked = lesson.status === "Upcoming" || lesson.status === "Confirmed";
 	const isRequest = lesson.status === "Pending";
@@ -53,7 +52,7 @@ const ScheduleItemCard = ({ lesson, isTeacher }: ScheduleItemCardProps) => {
 					<p className='text-sm font-bold text-slate-900 dark:text-slate-100'>{formattedDate}</p>
 					<p className='text-xs font-medium text-slate-500 dark:text-slate-400'>
 						{timeRange} ({lesson.duration} mins)
-						{lesson.priceAtBooking !== null && ` · ${gbp.format(lesson.priceAtBooking)}`}
+						{lesson.priceAtBooking !== null && ` · ${formatMoney(lesson.priceAtBooking)}`}
 					</p>
 					<StatusBadge status={lesson.status} className='mt-2' />
 				</div>

@@ -17,6 +17,8 @@ import {
 } from "@utils/actions/availability";
 import { respondToLessonAction } from "@utils/actions/lesson.action";
 import type { AvailabilityPayloadItem, OwnAvailabilitySlot } from "@utils/api";
+import { slotMinutes } from "@utils/date";
+import { pluralise } from "@utils/format";
 import {
   addDaysToKey,
   formatDayKey,
@@ -33,11 +35,6 @@ interface AvailabilityPlannerProps {
   initialWeekStartKey: string;
   initialSlots: OwnAvailabilitySlot[];
 }
-
-const pluralise = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;
-
-const slotMinutes = (slot: { startTime: string; endTime: string }) =>
-  Math.round((new Date(slot.endTime).getTime() - new Date(slot.startTime).getTime()) / 60_000);
 
 // used by undo to recreate a deleted slot
 const toPayload = (slot: OwnAvailabilitySlot): AvailabilityPayloadItem => ({

@@ -1,11 +1,8 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { pastTimeStripes } from "@constants/index";
 import { cn } from "@utils/cn";
 import { addDaysToKey, formatDayKey } from "@utils/ukTime";
 import type { BookingState } from "./useBookLessonModal";
-
-// same faded diagonal lines the teacher's week grid uses for past time
-const PAST_STRIPES =
-  "repeating-linear-gradient(135deg, rgb(148 163 184 / 0.22) 0 1px, transparent 1px 7px)";
 
 const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -89,7 +86,7 @@ const BookingCalendar = ({ booking }: { booking: BookingState }) => {
               aria-label={`${formatDayKey(dateKey, { weekday: "long", day: "numeric", month: "long" })}${
                 hasAvailability ? `, ${slotCount} ${slotCount === 1 ? "slot" : "slots"}` : ", no slots"
               }`}
-              style={isPast ? { backgroundImage: PAST_STRIPES } : undefined}
+              style={isPast ? { backgroundImage: pastTimeStripes(7) } : undefined}
               className={cn(
                 "relative flex h-12 w-full flex-col items-center justify-center rounded-xl text-xs transition-all",
                 isToday && "ring-2 ring-blue-400 ring-offset-1 dark:ring-offset-slate-900",

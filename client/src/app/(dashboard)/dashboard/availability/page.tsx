@@ -6,13 +6,10 @@ import { redirect } from "next/navigation";
 
 import AvailabilityPlanner from "@components/dashboard/availability/AvailabilityPlanner";
 import { api, type OwnAvailabilitySlot } from "@utils/api";
+import { formatHours } from "@utils/format";
 import { addDaysToKey, ukInstant, ukWeekStartKey } from "@utils/ukTime";
 
-const hoursLabel = (hours: number) => {
-  if (hours === 0) return "any time";
-  if (hours % 24 === 0) return `${hours / 24} day${hours === 24 ? "" : "s"}`;
-  return `${hours} hours`;
-};
+const hoursLabel = (hours: number) => (hours === 0 ? "any time" : formatHours(hours));
 
 const AvailabilityPage = async () => {
   const session = await auth();

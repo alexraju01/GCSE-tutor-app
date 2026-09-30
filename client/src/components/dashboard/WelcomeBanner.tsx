@@ -1,5 +1,5 @@
 // WelcomeBanner.tsx
-import { formatString } from "@utils/stringFormat";
+import { formatString } from "@utils/format";
 import { ArrowRight, GraduationCap, Sparkles } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";

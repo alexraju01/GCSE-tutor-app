@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 
 import type { OwnAvailabilitySlot } from "@utils/api";
+import { pastTimeStripes } from "@constants/index";
 import { cn } from "@utils/cn";
+import { slotMinutes } from "@utils/date";
 import {
   addDaysToKey,
   formatDayKey,
@@ -40,9 +42,6 @@ interface DragState {
   current: number;
 }
 
-const slotMinutes = (slot: OwnAvailabilitySlot) =>
-  Math.round((new Date(slot.endTime).getTime() - new Date(slot.startTime).getTime()) / 60_000);
-
 const slotTone = (slot: OwnAvailabilitySlot, isPast: boolean) => {
   if (isPast) {
     // faded so it reads as history on top of the stripes
@@ -64,10 +63,6 @@ const slotLabel = (slot: OwnAvailabilitySlot) => {
   const name = slot.lesson.studentName ?? "Student";
   return slot.lesson.status === "Pending" ? `Request · ${name}` : name;
 };
-
-// faded diagonal lines over time that's already gone
-const PAST_STRIPES =
-  "repeating-linear-gradient(135deg, rgb(148 163 184 / 0.22) 0 1px, transparent 1px 9px)";
 
 const snap = (minutes: number) =>
   Math.max(0, Math.min(ROWS - 1, Math.floor(minutes / ROW_MINUTES))) * ROW_MINUTES;
@@ -218,7 +213,7 @@ const WeekGrid = ({ weekStartKey, slots, now, onSlotClick, onCreateRange }: Week
                         className="pointer-events-none absolute inset-x-0 top-0 bg-slate-50/80 dark:bg-slate-950/50"
                         style={{
                           height: (pastMinutes / ROW_MINUTES) * ROW_HEIGHT,
-                          backgroundImage: PAST_STRIPES,
+                          backgroundImage: pastTimeStripes(),
                         }}
                       />
                     )}

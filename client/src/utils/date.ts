@@ -2,10 +2,18 @@
 
 import { UK_TIME_ZONE } from "@utils/ukTime";
 
+// "4:00 PM" in UK time - used by the schedule cards
+const ukTime12h = (date: Date) =>
+  date.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: UK_TIME_ZONE,
+  });
+
 // Lesson times are real server instants, always displayed as UK time.
 export const formatScheduleDate = (dateInput: string | Date) => {
-  const startDate =
-    typeof dateInput === "string" ? new Date(dateInput) : dateInput;
+  const startDate = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
 
   const formattedDate = startDate.toLocaleDateString("en-US", {
     month: "short",
@@ -14,35 +22,17 @@ export const formatScheduleDate = (dateInput: string | Date) => {
     timeZone: UK_TIME_ZONE,
   });
 
-  const startTimeStr = startDate.toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-    timeZone: UK_TIME_ZONE,
-  });
-
-  return { startDate, formattedDate, startTimeStr };
+  return { startDate, formattedDate, startTimeStr: ukTime12h(startDate) };
 };
 
 export const formatTimeRange = (startDate: Date, durationMinutes: number) => {
   const endDate = new Date(startDate.getTime() + durationMinutes * 60000);
-
-  const startTimeStr = startDate.toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-    timeZone: UK_TIME_ZONE,
-  });
-
-  const endTimeStr = endDate.toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-    timeZone: UK_TIME_ZONE,
-  });
-
-  return `${startTimeStr} - ${endTimeStr}`;
+  return `${ukTime12h(startDate)} - ${ukTime12h(endDate)}`;
 };
+
+// length of a slot/lesson in whole minutes
+export const slotMinutes = (slot: { startTime: string | Date; endTime: string | Date }): number =>
+  Math.round((new Date(slot.endTime).getTime() - new Date(slot.startTime).getTime()) / 60_000);
 
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",

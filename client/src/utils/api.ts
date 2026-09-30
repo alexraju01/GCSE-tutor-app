@@ -169,36 +169,25 @@ export const api = {
       ),
     getMyProfile: (token: string) =>
       fetchData<APIResponse<Teacher>>("/teachers/me", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }),
-    updateOne: (id: string, data: Partial<Teacher>) =>
-      fetchData<APIResponse<Teacher>>(`/teachers/${encodeURIComponent(id)}`, {
-        method: "PATCH",
-        body: data,
+        headers: authHeaders(token),
       }),
     updateMyBookingPolicy: (data: Partial<BookingPolicy>, token: string) =>
       fetchData<APIResponse<Teacher>>("/teachers/me", {
         method: "PATCH",
         body: data,
-        headers: { Authorization: `Bearer ${token}` },
+        headers: authHeaders(token),
       }),
   },
 
   dashboard: {
     teacherDashboard: (token: string) =>
       fetchData<APIResponse<TeacherDashboardData>>("/dashboard/teacher", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: authHeaders(token),
       }),
 
     studentDashboard: (token: string) =>
       fetchData<APIResponse<StudentDashboardData>>("/dashboard/student", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: authHeaders(token),
       }),
   },
 
@@ -258,7 +247,7 @@ export const api = {
         method: "POST",
         body: items,
         headers: {
-          Authorization: `Bearer ${token}`,
+          ...authHeaders(token),
           ...(idempotencyKey && { "Idempotency-Key": idempotencyKey }),
         },
       }),
@@ -271,7 +260,7 @@ export const api = {
       fetchData<void>(`/lessons/${encodeURIComponent(lessonId)}`, {
         method: "DELETE",
         body: options,
-        headers: { Authorization: `Bearer ${token}` },
+        headers: authHeaders(token),
       }),
 
     respond: (
@@ -283,7 +272,7 @@ export const api = {
       fetchData<void>(`/lessons/${encodeURIComponent(lessonId)}/respond`, {
         method: "PATCH",
         body: { decision, ...(reason && { reason }) },
-        headers: { Authorization: `Bearer ${token}` },
+        headers: authHeaders(token),
       }),
 
     getAll: (token: string, params?: GetLessonsParams) => {
@@ -299,7 +288,7 @@ export const api = {
       }
 
       return fetchData<APIResponse<Lesson[]>>(`/lessons?${query.toString()}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: authHeaders(token),
       });
     },
   },
@@ -308,19 +297,19 @@ export const api = {
     getMine: (token: string) =>
       fetchData<APIResponse<AppNotification[]> & { unreadCount: number }>(
         "/notifications/me",
-        { headers: { Authorization: `Bearer ${token}` } },
+        { headers: authHeaders(token) },
       ),
 
     markRead: (id: string, token: string) =>
       fetchData<void>(`/notifications/${encodeURIComponent(id)}/read`, {
         method: "PATCH",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: authHeaders(token),
       }),
 
     markAllRead: (token: string) =>
       fetchData<void>("/notifications/read-all", {
         method: "PATCH",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: authHeaders(token),
       }),
   },
 };

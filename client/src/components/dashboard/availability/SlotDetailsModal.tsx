@@ -7,6 +7,7 @@ import Link from "next/link";
 import StatusBadge from "@components/dashboard/StatusBadge";
 import { Modal } from "@components/ui/modal";
 import type { OwnAvailabilitySlot } from "@utils/api";
+import { formatSubject } from "@utils/format";
 import { formatUkDate, formatUkTime } from "@utils/ukTime";
 
 interface SlotDetailsModalProps {
@@ -61,7 +62,7 @@ const SlotDetailsModal = ({
                       {lesson.studentName ?? "Student"}
                     </p>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                      {lesson.subject.replace(/_/g, " ")}
+                      {formatSubject(lesson.subject)}
                       {lesson.topic ? ` · ${lesson.topic}` : ""}
                     </p>
                   </div>

@@ -1,11 +1,9 @@
 import TeacherCard from "@components/dashboard/TeacherCard";
 import { api } from "@utils/api";
 import { BookOpen, Search } from "lucide-react";
-import { auth } from "@auth";
 
 const TeachersPage = async () => {
 	const { data: teachers, results } = await api.teacher.getAll();
-	const session = await auth();
 
 	return (
 		<div className='min-h-screen bg-slate-50 pb-16'>
@@ -34,7 +32,7 @@ const TeachersPage = async () => {
 			<main className='max-w-6xl mx-auto px-6 mt-12'>
 				<div className='grid grid-cols-1 md:grid-cols-2 gap-8'>
 					{teachers?.map((teacher) => (
-						<TeacherCard key={teacher.id} teacher={teacher} session={session} />
+						<TeacherCard key={teacher.id} teacher={teacher} />
 					))}
 				</div>
 
