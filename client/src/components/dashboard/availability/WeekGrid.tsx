@@ -45,7 +45,8 @@ const slotMinutes = (slot: OwnAvailabilitySlot) =>
 
 const slotTone = (slot: OwnAvailabilitySlot, isPast: boolean) => {
   if (isPast) {
-    return "border-slate-300 bg-slate-100 text-slate-500 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-400";
+    // faded so it reads as history on top of the stripes
+    return "border-dashed border-slate-300 bg-white/70 text-slate-400 opacity-70 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-500";
   }
   switch (slot.lesson?.status) {
     case "Pending":
@@ -63,6 +64,10 @@ const slotLabel = (slot: OwnAvailabilitySlot) => {
   const name = slot.lesson.studentName ?? "Student";
   return slot.lesson.status === "Pending" ? `Request · ${name}` : name;
 };
+
+// faded diagonal lines over time that's already gone
+const PAST_STRIPES =
+  "repeating-linear-gradient(135deg, rgb(148 163 184 / 0.22) 0 1px, transparent 1px 9px)";
 
 const snap = (minutes: number) =>
   Math.max(0, Math.min(ROWS - 1, Math.floor(minutes / ROW_MINUTES))) * ROW_MINUTES;
@@ -210,8 +215,11 @@ const WeekGrid = ({ weekStartKey, slots, now, onSlotClick, onCreateRange }: Week
                     {/* Past shading */}
                     {pastMinutes > 0 && (
                       <div
-                        className="pointer-events-none absolute inset-x-0 top-0 bg-slate-100/70 dark:bg-slate-950/40"
-                        style={{ height: (pastMinutes / ROW_MINUTES) * ROW_HEIGHT }}
+                        className="pointer-events-none absolute inset-x-0 top-0 bg-slate-50/80 dark:bg-slate-950/50"
+                        style={{
+                          height: (pastMinutes / ROW_MINUTES) * ROW_HEIGHT,
+                          backgroundImage: PAST_STRIPES,
+                        }}
                       />
                     )}
 

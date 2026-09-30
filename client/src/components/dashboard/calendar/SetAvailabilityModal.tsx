@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { CalendarPlus } from "lucide-react";
 
 import { Modal } from "@components/ui/modal";
+import { Select } from "@components/ui/select";
 import { LESSON_DURATIONS } from "@constants/index";
 import {
   createRecurringAvailabilityAction,
@@ -100,7 +101,7 @@ const lengthLabel = (minutes: number) => (minutes === 90 ? "1.5h" : `${minutes /
 const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;
 
 const inputClass =
-  "w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:border-blue-500 focus:outline-none dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200";
+  "h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 shadow-xs transition-colors hover:border-slate-300 focus:border-blue-500 focus:outline-none focus:ring-3 focus:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200";
 const labelClass = "mb-1.5 block text-xs font-medium text-slate-600 dark:text-slate-400";
 
 const SetAvailabilityModal = ({ open, onClose, draft, onSaved }: SetAvailabilityModalProps) => {
@@ -290,18 +291,15 @@ const SetAvailabilityModal = ({ open, onClose, draft, onSaved }: SetAvailability
           <label htmlFor="availability-repeat" className={labelClass}>
             Repeat
           </label>
-          <select
+          <Select
             id="availability-repeat"
             value={form.weeks}
-            onChange={(e) => update({ weeks: Number(e.target.value) })}
-            className={cn(inputClass, "cursor-pointer")}
-          >
-            {REPEAT_OPTIONS.map((option) => (
-              <option key={option.weeks} value={option.weeks}>
-                {option.weeks === 1 ? option.label : `${option.label} (${weekday}s)`}
-              </option>
-            ))}
-          </select>
+            onChange={(weeks) => update({ weeks })}
+            options={REPEAT_OPTIONS.map((option) => ({
+              value: option.weeks,
+              label: option.weeks === 1 ? option.label : `${option.label} (${weekday}s)`,
+            }))}
+          />
         </div>
 
         {/* one-line summary of what gets created */}

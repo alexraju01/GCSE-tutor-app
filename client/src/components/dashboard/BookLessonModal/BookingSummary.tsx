@@ -1,5 +1,6 @@
 import { CalendarDays, Clock, Receipt, Repeat, ShieldCheck, X } from "lucide-react";
 import type { BookingPolicy } from "@/types/teacher";
+import { Select } from "@components/ui/select";
 import { formatUkDate, formatUkTime, toUkDateKey } from "@utils/ukTime";
 import type { LessonDetails, RawAvailability } from "./useBookLessonModal";
 
@@ -147,18 +148,14 @@ const BookingSummary = ({
 
                         <div className="mt-1.5 flex flex-wrap items-center gap-2">
                           {subjects.length > 1 ? (
-                            <select
+                            <Select
+                              size="sm"
+                              ariaLabel="Subject for this lesson"
                               value={lessonDetails.subject}
-                              onChange={(e) => onSlotSubjectChange(slot.id, e.target.value)}
-                              aria-label="Subject for this lesson"
-                              className="cursor-pointer rounded-md border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[11px] font-semibold text-blue-700 focus:border-blue-500 focus:outline-hidden dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-300"
-                            >
-                              {subjects.map((sub) => (
-                                <option key={sub} value={sub}>
-                                  {displaySubject(sub)}
-                                </option>
-                              ))}
-                            </select>
+                              onChange={(subject) => onSlotSubjectChange(slot.id, subject)}
+                              options={subjects.map((sub) => ({ value: sub, label: displaySubject(sub) }))}
+                              className="w-auto min-w-36"
+                            />
                           ) : (
                             <span className="rounded-md bg-blue-50 px-1.5 py-0.5 text-[11px] font-semibold text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
                               {displaySubject(lessonDetails.subject)}

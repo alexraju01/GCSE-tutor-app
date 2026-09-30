@@ -13,11 +13,15 @@ export const ToastIcon = ({ className, children }: { className: string; children
   </span>
 );
 
+// every toast closes after 5s - keep in sync with the timer bar animation below
+export const TOAST_DURATION_MS = 5_000;
+
 // GCSE Ace branded toasts - used for every toast in the app
 const Toaster = (props: ToasterProps) => (
   <Sonner
     position="top-right"
     closeButton
+    duration={TOAST_DURATION_MS}
     gap={10}
     icons={{
       success: (
@@ -51,7 +55,7 @@ const Toaster = (props: ToasterProps) => (
       classNames: {
         // brand gradient bar on the left, swapped for the type colour below
         toast:
-          "group relative flex w-[360px] max-w-[calc(100vw-2rem)] items-start gap-3 overflow-hidden rounded-2xl border border-slate-200 bg-white py-3.5 pl-5 pr-9 font-sans shadow-xl shadow-blue-900/10 before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-linear-to-b before:from-blue-600 before:to-indigo-600 data-[type=success]:before:from-emerald-500 data-[type=success]:before:to-emerald-500 data-[type=error]:before:from-rose-500 data-[type=error]:before:to-rose-500 data-[type=warning]:before:from-amber-500 data-[type=warning]:before:to-amber-500",
+          "group relative flex w-[360px] max-w-[calc(100vw-2rem)] items-start gap-3 overflow-hidden rounded-2xl border border-slate-200 bg-white py-3.5 pl-5 pr-9 font-sans shadow-xl shadow-blue-900/10 before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-linear-to-b before:from-blue-600 before:to-indigo-600 data-[type=success]:before:from-emerald-500 data-[type=success]:before:to-emerald-500 data-[type=error]:before:from-rose-500 data-[type=error]:before:to-rose-500 data-[type=warning]:before:from-amber-500 data-[type=warning]:before:to-amber-500 after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:origin-left after:bg-blue-500/40 after:animate-[toast-timer_5s_linear_forwards] hover:after:[animation-play-state:paused] data-[type=success]:after:bg-emerald-500/40 data-[type=error]:after:bg-rose-500/40 data-[type=warning]:after:bg-amber-500/40",
         icon: "mt-0.5 shrink-0",
         content: "min-w-0 flex-1",
         title: "text-sm font-semibold text-slate-900",

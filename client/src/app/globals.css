@@ -63,3 +63,13 @@ body {
     @apply text-dark-200;
   }
 }
+
+/* countdown bar on toasts (see components/ui/sonner.tsx) */
+@keyframes toast-timer {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}

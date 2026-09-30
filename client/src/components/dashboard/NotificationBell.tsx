@@ -20,9 +20,7 @@ import { NOTIFICATION_STYLES, notificationHref, timeAgo } from "./notifications/
 const POLL_MS = 15_000;
 // cap toasts if a bunch arrive at once
 const MAX_TOASTS = 3;
-// cancellations stay up longer so they're hard to miss
-const TOAST_MS = 8_000;
-const CANCELLED_TOAST_MS = 20_000;
+
 
 // toast variant per type, sets the coloured edge on the branded toast
 const TOAST_BY_TYPE: Record<AppNotification["type"], typeof toast.info> = {
@@ -85,7 +83,6 @@ const NotificationBell = () => {
               router.push(notificationHref(notification));
             },
           },
-          duration: notification.type === "LessonCancelled" ? CANCELLED_TOAST_MS : TOAST_MS,
         },
       );
     };

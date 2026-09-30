@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select } from "@/components/ui/select";
 import type { BookingPolicy } from "@/types/teacher";
 import { updateBookingPolicyAction } from "@utils/actions/lesson.action";
 
@@ -22,8 +23,9 @@ const hoursOption = (hours: number) => {
   return `${hours} hours`;
 };
 
-const selectClass =
-  "w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:border-blue-500 focus:outline-none";
+// include the current value in case it was set outside these presets
+const withCurrent = (presets: number[], current: number) =>
+  [...new Set([...presets, current])].sort((a, b) => a - b);
 
 export const BookingPolicySection = ({ policy: initialPolicy }: BookingPolicySectionProps) => {
   const [policy, setPolicy] = useState(initialPolicy);
@@ -75,54 +77,45 @@ export const BookingPolicySection = ({ policy: initialPolicy }: BookingPolicySec
             <label htmlFor="policy-notice" className="mb-1.5 block text-xs font-medium text-slate-600">
               Minimum notice
             </label>
-            <select
+            <Select
               id="policy-notice"
               value={policy.minNoticeHours}
-              onChange={(e) => update({ minNoticeHours: Number(e.target.value) })}
-              className={selectClass}
-            >
-              {[...new Set([...NOTICE_OPTIONS, policy.minNoticeHours])].sort((a, b) => a - b).map((h) => (
-                <option key={h} value={h}>
-                  {hoursOption(h)}
-                </option>
-              ))}
-            </select>
+              onChange={(minNoticeHours) => update({ minNoticeHours })}
+              options={withCurrent(NOTICE_OPTIONS, policy.minNoticeHours).map((h) => ({
+                value: h,
+                label: hoursOption(h),
+              }))}
+            />
           </div>
 
           <div>
             <label htmlFor="policy-advance" className="mb-1.5 block text-xs font-medium text-slate-600">
               Book up to
             </label>
-            <select
+            <Select
               id="policy-advance"
               value={policy.maxAdvanceDays}
-              onChange={(e) => update({ maxAdvanceDays: Number(e.target.value) })}
-              className={selectClass}
-            >
-              {[...new Set([...ADVANCE_OPTIONS, policy.maxAdvanceDays])].sort((a, b) => a - b).map((d) => (
-                <option key={d} value={d}>
-                  {d} days ahead
-                </option>
-              ))}
-            </select>
+              onChange={(maxAdvanceDays) => update({ maxAdvanceDays })}
+              options={withCurrent(ADVANCE_OPTIONS, policy.maxAdvanceDays).map((d) => ({
+                value: d,
+                label: `${d} days ahead`,
+              }))}
+            />
           </div>
 
           <div>
             <label htmlFor="policy-cutoff" className="mb-1.5 block text-xs font-medium text-slate-600">
               Free cancellation until
             </label>
-            <select
+            <Select
               id="policy-cutoff"
               value={policy.cancellationCutoffHours}
-              onChange={(e) => update({ cancellationCutoffHours: Number(e.target.value) })}
-              className={selectClass}
-            >
-              {[...new Set([...CUTOFF_OPTIONS, policy.cancellationCutoffHours])].sort((a, b) => a - b).map((h) => (
-                <option key={h} value={h}>
-                  {h === 0 ? "The lesson starts" : `${hoursOption(h)} before`}
-                </option>
-              ))}
-            </select>
+              onChange={(cancellationCutoffHours) => update({ cancellationCutoffHours })}
+              options={withCurrent(CUTOFF_OPTIONS, policy.cancellationCutoffHours).map((h) => ({
+                value: h,
+                label: h === 0 ? "The lesson starts" : `${hoursOption(h)} before`,
+              }))}
+            />
           </div>
         </div>
 

@@ -1,5 +1,6 @@
 import type { ChangeEvent } from "react";
-import SubjectDropdown from "./SubjectDropdown";
+import { BookOpen } from "lucide-react";
+import { Select } from "@components/ui/select";
 import type { LessonDetails } from "./useBookLessonModal";
 
 interface LessonDetailsFormProps {
@@ -45,8 +46,17 @@ const LessonDetailsForm = ({
     </p>
 
     <div>
-      <span className="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">Subject</span>
-      <SubjectDropdown subjects={subjects} value={details.subject} onChange={(subject) => onChange({ subject })} />
+      <label htmlFor="lesson-subject" className="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">
+        Subject
+      </label>
+      <Select
+        id="lesson-subject"
+        icon={<BookOpen size={15} />}
+        value={details.subject}
+        onChange={(subject) => onChange({ subject })}
+        options={subjects.map((subject) => ({ value: subject, label: subject.replace(/_/g, " ") }))}
+        disabled={subjects.length === 0}
+      />
     </div>
 
     <div>
