@@ -3,6 +3,7 @@ import { LayoutDashboard } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 
+import { dashboardHomeFor, ROUTES } from "@/constants/routes";
 import ActiveLink from "./ActiveLink";
 import Logo from "./Logo";
 import UserMenu from "./UserMenu";
@@ -11,8 +12,8 @@ const Navbar = async () => {
   const session = await auth();
   const user = session?.user;
 
-  const dashboardHref: Route =
-    user?.role === "Teacher" ? "/dashboard/teacher" : "/dashboard/student";
+  const dashboardHref = (dashboardHomeFor(user?.role) ??
+    ROUTES.DASHBOARD.ROOT) as Route;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-slate-200/80 bg-white/80 backdrop-blur-md transition-colors duration-300 dark:border-slate-800/80 dark:bg-[#0b0f19]/80">

@@ -44,6 +44,19 @@ export const getAllLessons = async (req: Request, res: Response) => {
   });
 };
 
+export const getLesson = async (req: Request<{ lessonId: string }>, res: Response) => {
+  const { id: userId, role } = req.user;
+
+  // Role is already enforced by authorize(Role.Student, Role.Teacher) on this route.
+  const lesson = await lessonService.findLessonForUser(
+    req.params.lessonId,
+    userId,
+    role as typeof Role.Student | typeof Role.Teacher,
+  );
+
+  return res.status(200).json({ status: "success", data: lesson });
+};
+
 export const cancelLesson = async (req: Request<{ lessonId: string }>, res: Response) => {
   const { id: userId, role } = req.user;
   const { reason, reopenSlot } = (req.body ?? {}) as CancelLessonInput;

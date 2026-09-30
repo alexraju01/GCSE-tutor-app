@@ -321,7 +321,6 @@ const createLesson = async (
       startTime: slot.startTime,
       duration,
       status,
-      meetingRoomId,
       priceAtBooking: priceFor(Number(teacher.hourlyRate), duration),
       respondedAt,
       ...(status === LessonStatus.Declined && {

@@ -1,4 +1,5 @@
-import { auth } from "@auth";
+import { UserRole } from "@/types/role";
+import { requireRole } from "@utils/actions/session";
 import { ProfileHeader } from "@components/ProfileHeader";
 import { ProfilePhotoSection } from "@components/ProfilePhotoSection";
 import { PersonalInfoSection } from "@components/PersonalInfoSection";
@@ -7,15 +8,9 @@ import { BookingPolicySection } from "@components/BookingPolicySection";
 import { api } from "@utils/api";
 
 const TeacherProfilePage = async () => {
-  const session = await auth();
+  const { token } = await requireRole(UserRole.Teacher);
 
-  if (!session || !session.backendToken) {
-    return <div>Please sign in to view your profile.</div>;
-  }
-
-  const { data: teacher } = await api.teacher.getMyProfile(
-    session.backendToken,
-  );
+  const { data: teacher } = await api.teacher.getMyProfile(token);
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] antialiased">

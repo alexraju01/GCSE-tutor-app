@@ -1,234 +1,201 @@
-import { auth } from "@auth";
 import {
+  ArrowRight,
+  BookOpen,
+  ChevronLeft,
+  ChevronRight,
   Clock,
-  Download,
-  ExternalLink,
-  FileText,
-  PlayCircle,
-  Search,
-  Video,
 } from "lucide-react";
-import Link from "next/link";
 import type { Route } from "next";
-import { UserRole } from "@/types/role";
+import Link from "next/link";
 
-interface Lesson {
-  id: string;
-  title: string;
-  subject: string;
-  tutorOrStudent: string;
-  date: string;
-  duration: string;
-  status: "Live Now" | "Upcoming" | "Completed";
-  hasRecording?: boolean;
-  resourcesCount: number;
+import { lessonRoute, ROUTES } from "@/constants/routes";
+import StatusBadge from "@components/dashboard/StatusBadge";
+import { buttonClass } from "@components/ui/styles";
+import { requireSession } from "@utils/actions/session";
+import { api, type GetLessonsParams } from "@utils/api";
+import { formatScheduleDate, formatTimeRange } from "@utils/date";
+import { formatSubject } from "@utils/format";
+
+const PAGE_SIZE = 10;
+
+const TABS = {
+  upcoming: {
+    label: "Upcoming",
+    query: { scope: "upcoming", sort: "asc" },
+    empty: "No upcoming lessons yet.",
+  },
+  completed: {
+    label: "Completed",
+    query: { status: "Completed", sort: "desc" },
+    empty: "No completed lessons yet.",
+  },
+} satisfies Record<
+  string,
+  { label: string; query: GetLessonsParams; empty: string }
+>;
+
+type Tab = keyof typeof TABS;
+
+interface LessonsPageProps {
+  searchParams: Promise<{ tab?: string; page?: string }>;
 }
 
-const renderStatusBadge = (lesson: Lesson) => {
-  if (lesson.status === "Live Now") {
-    return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-        <span className="h-2 w-2 animate-ping rounded-full bg-emerald-500" />
-        Live Now
-      </span>
-    );
-  }
+const lessonsHref = (tab: Tab, page = 1) =>
+  `${ROUTES.DASHBOARD.LESSONS}?tab=${tab}${page > 1 ? `&page=${page}` : ""}` as Route;
+
+const LessonsPage = async ({ searchParams }: LessonsPageProps) => {
+  const params = await searchParams;
+  const activeTab: Tab = params.tab === "completed" ? "completed" : "upcoming";
+  const currentPage = Math.max(1, parseInt(params.page ?? "1", 10) || 1);
+
+  const { token, isTeacher } = await requireSession();
+
+  const response = await api.lesson.getAll(token, {
+    ...TABS[activeTab].query,
+    page: currentPage,
+    limit: PAGE_SIZE,
+  });
+
+  const lessons = response?.data ?? [];
+  const totalPages = response?.pagination?.totalPages ?? 1;
 
   return (
-    <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-      {lesson.date}
-    </span>
+    <div className="mx-auto max-w-6xl space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl dark:text-slate-100">
+            My Lessons
+          </h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            Open a lesson to see its details and join the classroom.
+          </p>
+        </div>
+
+        {/* TABS */}
+        <div
+          role="tablist"
+          className="flex items-center gap-1 self-start rounded-xl border border-slate-200/80 bg-white p-1 text-xs font-semibold text-slate-600 dark:border-slate-800 dark:bg-slate-900/50 dark:text-slate-400"
+        >
+          {(Object.keys(TABS) as Tab[]).map((tab) => (
+            <Link
+              key={tab}
+              href={lessonsHref(tab)}
+              role="tab"
+              aria-selected={tab === activeTab}
+              className={
+                tab === activeTab
+                  ? "rounded-lg bg-blue-600 px-3 py-1.5 text-white"
+                  : "rounded-lg px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800"
+              }
+            >
+              {TABS[tab].label}
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {lessons.length === 0 ? (
+        <div className="flex flex-col items-center rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-12 text-center dark:border-slate-800 dark:bg-slate-900/50">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400">
+            <BookOpen size={18} />
+          </div>
+          <p className="mt-3 text-sm font-medium text-slate-500 dark:text-slate-400">
+            {TABS[activeTab].empty}
+          </p>
+          {!isTeacher && activeTab === "upcoming" && (
+            <Link
+              href={ROUTES.TEACHERS as Route}
+              className={buttonClass("primary", "md", "mt-4")}
+            >
+              Find a tutor
+            </Link>
+          )}
+        </div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2">
+          {lessons.map((lesson) => (
+            <LessonCard key={lesson.id} lesson={lesson} isTeacher={isTeacher} />
+          ))}
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <nav
+          aria-label="Pagination"
+          className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400"
+        >
+          {currentPage > 1 ? (
+            <Link
+              href={lessonsHref(activeTab, currentPage - 1)}
+              className={buttonClass("secondary", "sm")}
+            >
+              <ChevronLeft size={14} /> Previous
+            </Link>
+          ) : (
+            <span />
+          )}
+          <span>
+            Page {currentPage} of {totalPages}
+          </span>
+          {currentPage < totalPages ? (
+            <Link
+              href={lessonsHref(activeTab, currentPage + 1)}
+              className={buttonClass("secondary", "sm")}
+            >
+              Next <ChevronRight size={14} />
+            </Link>
+          ) : (
+            <span />
+          )}
+        </nav>
+      )}
+    </div>
   );
 };
 
-const renderActions = (lesson: Lesson) => {
-  if (lesson.status === "Live Now") {
-    return (
-      <Link
-        href={`/dashboard/lessons/${lesson.id}` as Route}
-        className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition-all hover:bg-blue-500 active:scale-[0.98]"
-      >
-        <Video size={14} /> Join Now
-      </Link>
-    );
-  }
-
-  if (lesson.status === "Completed") {
-    return (
-      <div className="flex items-center gap-2">
-        {lesson.hasRecording && (
-          <button className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800">
-            <PlayCircle size={14} className="text-blue-500" /> Watch
-          </button>
-        )}
-        <button className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 p-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800">
-          <Download size={14} />
-        </button>
-      </div>
-    );
-  }
+const LessonCard = ({
+  lesson,
+  isTeacher,
+}: {
+  lesson: Lesson;
+  isTeacher: boolean;
+}) => {
+  const { startDate, formattedDate } = formatScheduleDate(lesson.startTime);
+  const otherPerson = isTeacher ? lesson.student : lesson.teacher;
 
   return (
     <Link
-      href={`/dashboard/lessons/${lesson.id}` as Route}
-      className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-500 dark:text-blue-400"
+      href={lessonRoute(lesson.id) as Route}
+      className="group flex flex-col justify-between gap-4 rounded-2xl border border-slate-200/80 bg-white p-5 transition-all hover:border-blue-300 hover:shadow-sm dark:border-slate-800/80 dark:bg-slate-900/50 dark:hover:border-blue-500/40"
     >
-      Classroom Details <ExternalLink size={14} />
+      <div className="space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <span className="rounded-md bg-blue-500/10 px-2.5 py-1 text-xs font-semibold text-blue-600 dark:text-blue-400">
+            {formatSubject(lesson.subject)}
+          </span>
+          <StatusBadge status={lesson.status} />
+        </div>
+        <h3 className="font-bold text-slate-900 transition-colors group-hover:text-blue-600 dark:text-slate-100 dark:group-hover:text-blue-400">
+          {lesson.topic || "General session"}
+        </h3>
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          {isTeacher ? "Student" : "Tutor"}:{" "}
+          <span className="font-semibold text-slate-700 dark:text-slate-300">
+            {otherPerson?.name || "Unknown"}
+          </span>
+        </p>
+      </div>
+
+      <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-slate-500 dark:border-slate-800/60 dark:text-slate-400">
+        <span className="flex items-center gap-1.5">
+          <Clock size={14} /> {formattedDate},{" "}
+          {formatTimeRange(startDate, lesson.duration)}
+        </span>
+        <span className="inline-flex items-center gap-1 font-semibold text-blue-600 dark:text-blue-400">
+          Details <ArrowRight size={14} />
+        </span>
+      </div>
     </Link>
-  );
-};
-
-const LessonsPage = async () => {
-  const session = await auth();
-  const isTeacher = session?.user?.role === UserRole.Teacher;
-
-  const lessons: Lesson[] = [
-    {
-      id: "1",
-      title: "Quadratic Equations & Calculus Intro",
-      subject: "GCSE Mathematics",
-      tutorOrStudent: isTeacher ? "Alex Morgan" : "Dr. Aris Thorne",
-      date: "Today, Aug 8 • 4:00 PM",
-      duration: "60 mins",
-      status: "Live Now",
-      resourcesCount: 3,
-    },
-    {
-      id: "2",
-      title: "Electromagnetism & Wave Phenomena",
-      subject: "GCSE Physics",
-      tutorOrStudent: isTeacher ? "Liam Davies" : "Sarah Jenkins",
-      date: "Tomorrow, Aug 9 • 5:30 PM",
-      duration: "60 mins",
-      status: "Upcoming",
-      resourcesCount: 2,
-    },
-    {
-      id: "3",
-      title: "Cellular Biology & Genetics",
-      subject: "GCSE Biology",
-      tutorOrStudent: isTeacher ? "Sophia Lin" : "Dr. Rosalind Franklin",
-      date: "Aug 6, 2026",
-      duration: "60 mins",
-      status: "Completed",
-      hasRecording: true,
-      resourcesCount: 4,
-    },
-    {
-      id: "4",
-      title: "Stoichiometry & Chemical Calculations",
-      subject: "GCSE Chemistry",
-      tutorOrStudent: isTeacher ? "Emma Watson" : "Prof. Michael Faraday",
-      date: "Aug 3, 2026",
-      duration: "60 mins",
-      status: "Completed",
-      hasRecording: true,
-      resourcesCount: 1,
-    },
-  ];
-
-  return (
-    <div className="mx-auto max-w-6xl space-y-8">
-      {/* HEADER SECTION */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 sm:text-3xl">
-            My Lessons & Canvases
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Access live classrooms, view past recordings, and download study
-            notes.
-          </p>
-        </div>
-      </div>
-
-      {/* CONTROLS & SEARCH */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        {/* Search Bar */}
-        <div className="relative flex-1 max-w-md">
-          <Search
-            size={16}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-          />
-          <input
-            type="text"
-            placeholder="Search by topic, subject, or tutor..."
-            className="w-full rounded-xl border border-slate-200/80 bg-white pl-9 pr-4 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-800 dark:bg-slate-900/50 dark:text-slate-100 dark:placeholder:text-slate-500"
-          />
-        </div>
-
-        {/* Tab Filters */}
-        <div className="flex items-center gap-1 rounded-xl border border-slate-200/80 bg-white p-1 text-xs font-semibold text-slate-600 dark:border-slate-800 dark:bg-slate-900/50 dark:text-slate-400">
-          <button className="rounded-lg bg-blue-600 px-3 py-1.5 text-white">
-            All Lessons
-          </button>
-          <button className="rounded-lg px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800">
-            Recordings
-          </button>
-          <button className="rounded-lg px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800">
-            Notes & PDF
-          </button>
-        </div>
-      </div>
-
-      {/* LESSON CARDS GRID */}
-      <div className="grid gap-6 md:grid-cols-2">
-        {lessons.map((lesson) => {
-          const isLive = lesson.status === "Live Now";
-
-          return (
-            <div
-              key={lesson.id}
-              className={`group flex flex-col justify-between rounded-2xl border p-6 transition-all ${
-                isLive
-                  ? "border-blue-500/50 bg-blue-500/5 shadow-md dark:border-blue-500/40 dark:bg-blue-950/20"
-                  : "border-slate-200/80 bg-white hover:border-slate-300 dark:border-slate-800/80 dark:bg-slate-900/50 dark:hover:border-slate-700"
-              }`}
-            >
-              {/* TOP INFO */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="rounded-md bg-blue-500/10 px-2.5 py-1 text-xs font-semibold text-blue-600 dark:text-blue-400">
-                    {lesson.subject}
-                  </span>
-
-                  {renderStatusBadge(lesson)}
-                </div>
-
-                <h3 className="text-lg font-bold text-slate-900 transition-colors group-hover:text-blue-600 dark:text-slate-100 dark:group-hover:text-blue-400">
-                  {lesson.title}
-                </h3>
-
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  {isTeacher ? "Student" : "Tutor"}:{" "}
-                  <span className="font-semibold text-slate-700 dark:text-slate-300">
-                    {lesson.tutorOrStudent}
-                  </span>
-                </p>
-              </div>
-
-              {/* BOTTOM ACTIONS */}
-              <div className="mt-6 border-t border-slate-100 pt-4 dark:border-slate-800/60">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
-                    <span className="flex items-center gap-1">
-                      <Clock size={14} /> {lesson.duration}
-                    </span>
-                    <span>•</span>
-                    <span className="flex items-center gap-1">
-                      <FileText size={14} /> {lesson.resourcesCount} Files
-                    </span>
-                  </div>
-
-                  {/* Dynamic CTA depending on Status */}
-                  {renderActions(lesson)}
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
   );
 };
 

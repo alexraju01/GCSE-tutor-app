@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Route } from "next";
 import { Compass, Video, BookOpen } from "lucide-react";
+import { ROUTES } from "@/constants/routes";
 
 interface QuickToolItem {
   label: string;
@@ -26,7 +27,7 @@ const quickTools: QuickToolItem[] = [
   },
   {
     label: "My Learning Material",
-    href: "/dashboard/lessons" as Route,
+    href: ROUTES.DASHBOARD.LESSONS as Route,
     icon: <BookOpen size={14} />,
     chipClassName:
       "bg-emerald-100/80 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400",

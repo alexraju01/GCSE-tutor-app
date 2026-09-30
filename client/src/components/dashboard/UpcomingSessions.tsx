@@ -4,6 +4,7 @@ import type { Route } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import StatusBadge from "@components/dashboard/StatusBadge";
+import { lessonRoute, ROUTES } from "@/constants/routes";
 
 interface UpcomingSessionsProps {
   isTeacher: boolean;
@@ -25,7 +26,7 @@ const UpcomingSessions = ({
           {title}
         </h2>
         <Link
-          href={"/dashboard/schedule" as Route}
+          href={ROUTES.DASHBOARD.SCHEDULE as Route}
           className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-500 dark:text-blue-400"
         >
           Full Calendar <ArrowUpRight size={14} />
@@ -110,10 +111,10 @@ const UpcomingSessions = ({
                 </div>
 
                 <Link
-                  href={`/dashboard/lessons/${sessionItem.id}` as Route}
+                  href={lessonRoute(sessionItem.id) as Route}
                   className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-linear-to-r from-blue-600 to-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition-all hover:from-blue-700 hover:to-indigo-700 active:scale-[0.98]"
                 >
-                  <Video size={14} /> Launch Classroom
+                  <Video size={14} /> Open lesson
                 </Link>
               </div>
             );

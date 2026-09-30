@@ -69,6 +69,10 @@ export const createLessonSchema = z.union([
     }),
 ]);
 
+export const lessonIdParamSchema = z.object({
+  lessonId: z.uuid({ message: "Invalid lesson id format" }),
+});
+
 // body is optional, a plain DELETE still works
 export const cancelLessonSchema = z
   .object({

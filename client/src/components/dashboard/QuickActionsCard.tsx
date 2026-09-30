@@ -2,6 +2,7 @@ import { BookOpen, CalendarRange, Inbox, Plus, Video } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { buttonClass } from "@components/ui/styles";
+import { ROUTES } from "@/constants/routes";
 
 interface QuickActionsCardProps {
   openSlots: number;
@@ -17,7 +18,7 @@ const QuickActionsCard = ({ openSlots, bookedSlots, pendingRequests, lookaheadDa
   <div className="flex flex-col gap-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
     {pendingRequests > 0 && (
       <Link
-        href={"/dashboard/schedule?filter=Pending" as Route}
+        href={`${ROUTES.DASHBOARD.SCHEDULE}?filter=Pending` as Route}
         className="flex items-center gap-3 rounded-xl border border-amber-300/60 bg-amber-50 p-3.5 text-xs text-amber-800 transition-colors hover:bg-amber-100 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200"
       >
         <Inbox size={18} className="shrink-0" />
@@ -55,7 +56,7 @@ const QuickActionsCard = ({ openSlots, bookedSlots, pendingRequests, lookaheadDa
       </p>
 
       <Link
-        href={"/dashboard/availability" as Route}
+        href={ROUTES.DASHBOARD.AVAILABILITY as Route}
         className={buttonClass("primary", "md", "w-full py-2.5")}
       >
         <Plus size={15} />
@@ -81,7 +82,7 @@ const QuickActionsCard = ({ openSlots, bookedSlots, pendingRequests, lookaheadDa
           </div>
         </Link>
 
-        <Link href={"/dashboard/teacher/profile" as Route} className={toolLinkClass}>
+        <Link href={ROUTES.DASHBOARD.TEACHER_PROFILE as Route} className={toolLinkClass}>
           <div className="flex items-center gap-2.5">
             <div className="rounded-lg bg-emerald-100/80 p-1.5 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400">
               <BookOpen size={14} />

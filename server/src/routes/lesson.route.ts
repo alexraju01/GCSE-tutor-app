@@ -1,5 +1,6 @@
 import {
   getAllLessons,
+  getLesson,
   createLesson,
   cancelLesson,
   respondToLesson,
@@ -11,6 +12,7 @@ import {
   getLessonsQuerySchema,
   createLessonSchema,
   cancelLessonSchema,
+  lessonIdParamSchema,
   respondToLessonSchema,
 } from "../schemas/lesson.schema.js";
 
@@ -26,6 +28,7 @@ lessonRouter
 
 lessonRouter
   .route("/:lessonId")
+  .get(authorize(Role.Student, Role.Teacher), validate(lessonIdParamSchema, "params"), getLesson)
   .delete(authorize(Role.Student, Role.Teacher), validate(cancelLessonSchema), cancelLesson);
 
 // teacher accepts/declines a pending request

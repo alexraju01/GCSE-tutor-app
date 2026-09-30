@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import {
   BookOpen,
   Calendar,
@@ -8,8 +7,9 @@ import {
   UserCheck,
 } from "lucide-react";
 
-import { auth } from "@auth";
+import { ROUTES } from "@/constants/routes";
 import { api } from "@utils/api";
+import { requireRole } from "@utils/actions/session";
 import { UserRole } from "@/types/role";
 import QuickToolsList from "@components/QuickToolsList";
 import StatsGrid, {
@@ -21,22 +21,10 @@ import { WelcomeBanner } from "@components";
 import Link from "next/link";
 
 const StudentDashboardPage = async () => {
-  const session = await auth();
+  const { user, token } = await requireRole(UserRole.Student);
 
-  if (!session?.user) {
-    redirect("/sign-up");
-  }
-
-  // Layout only checks a session exists, not the role vs. this route.
-  if (session.user.role !== UserRole.Student) {
-    redirect("/dashboard/teacher");
-  }
-
-  const { data: studentDashboard } = await api.dashboard.studentDashboard(
-    session?.backendToken || "",
-  );
-
-  const { user } = session;
+  const { data: studentDashboard } =
+    await api.dashboard.studentDashboard(token);
 
   const upcomingLessons = studentDashboard?.upcomingLessons ?? [];
 
@@ -91,7 +79,7 @@ const StudentDashboardPage = async () => {
         upcomingCount={upcomingLessons.length}
         subjects={studentDashboard?.subjects}
         ctaLabel="Find a Tutor"
-        ctaHref="/teachers"
+        ctaHref={ROUTES.TEACHERS}
       />
 
       {/* METRICS GRID */}
@@ -117,7 +105,7 @@ const StudentDashboardPage = async () => {
               Find qualified GCSE tutors and schedule 1-on-1 live sessions.
             </p>
             <Link
-              href="/teachers"
+              href={ROUTES.TEACHERS}
               className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition-all hover:from-blue-700 hover:to-indigo-700 active:scale-[0.98]"
             >
               <Plus size={14} />

@@ -9,6 +9,7 @@ import AddToCalendarButton from "./AddToCalendarButton";
 import CancelLessonButton from "./CancelLessonButton";
 import LessonRequestActions from "./LessonRequestActions";
 import { buttonClass } from "@components/ui/styles";
+import { lessonRoute } from "@/constants/routes";
 
 interface ScheduleItemCardProps {
 	lesson: Lesson;
@@ -29,7 +30,7 @@ const ScheduleItemCard = ({ lesson, isTeacher }: ScheduleItemCardProps) => {
 	const personName = targetPerson?.name || "Unknown";
 	const personImage = targetPerson?.image;
 	const roleLabel = isTeacher ? "Student" : "Tutor";
-	const meetingUrl = isBooked ? (`/dashboard/lessons/${lesson.id}` as Route) : undefined;
+	const meetingUrl = isBooked ? (lessonRoute(lesson.id) as Route) : undefined;
 	const lessonLabel = `${subject} · ${formattedDate}, ${timeRange} (UK)`;
 
 	// too close to the start to cancel - show a hint instead of just hiding the button
@@ -117,7 +118,7 @@ const ScheduleItemCard = ({ lesson, isTeacher }: ScheduleItemCardProps) => {
 					<Link
 						href={meetingUrl}
 						className={buttonClass("primary")}>
-						<Video size={14} /> Enter classroom
+						<Video size={14} /> Open lesson
 					</Link>
 				)}
 

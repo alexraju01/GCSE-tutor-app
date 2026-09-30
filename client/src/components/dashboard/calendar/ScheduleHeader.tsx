@@ -3,6 +3,7 @@ import type { Route } from "next";
 import Link from "next/link";
 
 import { buttonClass } from "@components/ui/styles";
+import { ROUTES } from "@/constants/routes";
 
 interface ScheduleHeaderProps {
   isTeacher: boolean;
@@ -23,7 +24,7 @@ const ScheduleHeader = ({ isTeacher }: ScheduleHeaderProps) => (
     <div className="flex items-center gap-3">
       {isTeacher ? (
         <Link
-          href={"/dashboard/availability" as Route}
+          href={ROUTES.DASHBOARD.AVAILABILITY as Route}
           className={buttonClass("primary")}
         >
           <CalendarRange size={16} />

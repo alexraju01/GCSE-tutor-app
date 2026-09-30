@@ -1,6 +1,7 @@
 import { CalendarCheck, CalendarX, CircleCheck, CircleX, Inbox, type LucideIcon } from "lucide-react";
 import type { Route } from "next";
 
+import { lessonRoute, ROUTES } from "@/constants/routes";
 import type { AppNotification } from "@utils/api";
 
 interface NotificationStyle {
@@ -46,11 +47,12 @@ export const NOTIFICATION_STYLES: Record<AppNotification["type"], NotificationSt
   },
 };
 
-// page to open when a notification is clicked
+// page to open when a notification is clicked - the lesson itself (which has
+// accept/decline/cancel), or the schedule if the lesson is gone
 export const notificationHref = (notification: AppNotification) =>
-  (notification.type === "LessonRequested"
-    ? "/dashboard/schedule?filter=Pending"
-    : "/dashboard/schedule?filter=all") as Route;
+  (notification.lessonId
+    ? lessonRoute(notification.lessonId)
+    : `${ROUTES.DASHBOARD.SCHEDULE}?filter=all`) as Route;
 
 export const timeAgo = (iso: string) => {
   const minutes = Math.round((Date.now() - new Date(iso).getTime()) / 60_000);

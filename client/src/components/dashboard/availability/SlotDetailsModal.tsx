@@ -10,6 +10,7 @@ import type { OwnAvailabilitySlot } from "@utils/api";
 import { formatSubject } from "@utils/format";
 import { formatUkDate, formatUkTimeRange } from "@utils/ukTime";
 import { buttonClass } from "@components/ui/styles";
+import { ROUTES } from "@/constants/routes";
 
 interface SlotDetailsModalProps {
   slot: OwnAvailabilitySlot | null;
@@ -106,7 +107,7 @@ const SlotDetailsModal = ({
 
             {lesson && (
               <Link
-                href={"/dashboard/schedule?filter=all" as Route}
+                href={`${ROUTES.DASHBOARD.SCHEDULE}?filter=all` as Route}
                 className={buttonClass("secondary", "md", "w-full py-2.5")}
               >
                 <CalendarClock size={14} /> Manage this lesson in your schedule

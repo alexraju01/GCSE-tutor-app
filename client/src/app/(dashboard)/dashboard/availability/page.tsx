@@ -1,9 +1,10 @@
-import { auth } from "@auth";
 import { Settings2 } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 
+import { ROUTES } from "@/constants/routes";
+import { UserRole } from "@/types/role";
+import { requireRole } from "@utils/actions/session";
 import AvailabilityPlanner from "@components/dashboard/availability/AvailabilityPlanner";
 import { api, type OwnAvailabilitySlot } from "@utils/api";
 import { formatHours } from "@utils/format";
@@ -12,13 +13,7 @@ import { addDaysToKey, ukInstant, ukWeekStartKey } from "@utils/ukTime";
 const hoursLabel = (hours: number) => (hours === 0 ? "any time" : formatHours(hours));
 
 const AvailabilityPage = async () => {
-  const session = await auth();
-
-  if (session?.user?.role !== "Teacher" || !session.backendToken) {
-    redirect("/dashboard");
-  }
-
-  const token = session.backendToken;
+  const { token } = await requireRole(UserRole.Teacher);
   const weekStartKey = ukWeekStartKey(new Date());
 
   const [slotsResponse, profileResponse] = await Promise.all([
@@ -55,7 +50,7 @@ const AvailabilityPage = async () => {
               </p>
             </div>
             <Link
-              href={"/dashboard/teacher/profile#booking-policy" as Route}
+              href={`${ROUTES.DASHBOARD.TEACHER_PROFILE}#booking-policy` as Route}
               className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
             >
               <Settings2 size={13} /> Booking rules

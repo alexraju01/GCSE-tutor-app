@@ -27,7 +27,6 @@ const BASE_LESSON_SELECT = {
   id: true,
   subject: true,
   topic: true,
-  meetingRoomId: true,
   startTime: true,
   duration: true,
   status: true,
@@ -231,6 +230,36 @@ export const findLessonsByRole = async ({
   }));
 
   return { lessons, totalResults };
+};
+
+// one lesson, only if the user is its student or teacher. 404 (not 403) for
+// someone else's lesson so ids can't be probed
+export const findLessonForUser = async (
+  lessonId: string,
+  userId: string,
+  role: LessonActorRole,
+) => {
+  const isStudent = role === Role.Student;
+  const lesson = await prisma.lesson.findFirst({
+    where: {
+      id: lessonId,
+      ...(isStudent ? { student: { userId } } : { teacher: { userId } }),
+    },
+    select: {
+      ...BASE_LESSON_SELECT,
+      teacher: { select: { cancellationCutoffHours: true, user: { select: USER_SELECT } } },
+      student: { select: { user: { select: USER_SELECT } } },
+    },
+  });
+
+  if (!lesson) throw new AppError("Lesson not found.", 404);
+
+  const { teacher, student, ...rest } = lesson;
+  return {
+    ...serializeLesson(rest, role, teacher.cancellationCutoffHours, new Date()),
+    teacher: teacher.user,
+    student: student.user,
+  };
 };
 
 // ---------------------------------------------------------------------------

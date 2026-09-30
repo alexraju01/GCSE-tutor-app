@@ -8,6 +8,7 @@ import action from "@utils/actions/action";
 import { api } from "@utils/api";
 import { getAuthErrorMessage } from "@utils/authError";
 import { type AuthCredentials, SignInSchema, SignUpSchema } from "@utils/validation";
+import { ROUTES } from "@/constants/routes";
 
 export async function signUpWithCredentials(params: AuthCredentials): Promise<APIResponse> {
 	const validationResult = await action({ params, schema: SignUpSchema });
@@ -114,7 +115,7 @@ export async function signInWithCredentials(
 		};
 	}
 
-	if (isSuccess) redirect("/dashboard");
+	if (isSuccess) redirect(ROUTES.DASHBOARD.ROOT);
 
 	return {
 		status: "error",

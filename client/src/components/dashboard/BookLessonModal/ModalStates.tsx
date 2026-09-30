@@ -5,6 +5,7 @@ import type { BookingPolicy } from "@/types/teacher";
 import AddToCalendarButton from "@components/dashboard/schedule/AddToCalendarButton";
 import { formatSubject } from "@utils/format";
 import { buttonClass } from "@components/ui/styles";
+import { ROUTES } from "@/constants/routes";
 
 export const LoadingState = () => (
   <div role="status" className="py-20 text-center text-sm text-slate-500 dark:text-slate-400">
@@ -133,7 +134,7 @@ export const SuccessState = ({
           />
         )}
         <Link
-          href={"/dashboard/schedule" as Route}
+          href={ROUTES.DASHBOARD.SCHEDULE as Route}
           onClick={onDone}
           className={buttonClass("primary")}
         >

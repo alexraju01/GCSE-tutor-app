@@ -10,7 +10,6 @@ interface Lesson {
   id: string;
   subject: string;
   topic: string | null;
-  meetingRoomId: string | null;
   startTime: string;
   duration: number;
   status: LessonStatus;

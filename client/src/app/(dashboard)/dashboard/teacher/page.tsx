@@ -1,8 +1,8 @@
 // TeacherDashboardPage.tsx
 import { Clock, PoundSterling, Star, Users } from "lucide-react";
-import { redirect } from "next/navigation";
-import { auth } from "@auth";
+import { ROUTES } from "@/constants/routes";
 import { UserRole } from "@/types/role";
+import { requireRole } from "@utils/actions/session";
 import QuickActionsCard from "@components/dashboard/QuickActionsCard";
 import StatsGrid, {
   STAT_ACCENTS,
@@ -17,19 +17,9 @@ import { formatMoney } from "@utils/format";
 const AVAILABILITY_LOOKAHEAD_DAYS = 14;
 
 const TeacherDashboardPage = async () => {
-  const session = await auth();
+  const { user, token: backendToken } = await requireRole(UserRole.Teacher);
 
-  if (!session?.user) {
-    redirect("/sign-up");
-  }
-
-  // Mirrors the guard on the student dashboard.
-  if (session.user.role !== UserRole.Teacher) {
-    redirect("/dashboard/student");
-  }
-
-  const teacherName = session.user.name || "Teacher";
-  const backendToken = session.backendToken || "";
+  const teacherName = user.name || "Teacher";
 
   const now = new Date();
   const lookaheadEnd = new Date(now.getTime() + AVAILABILITY_LOOKAHEAD_DAYS * 86_400_000);
@@ -100,7 +90,7 @@ const TeacherDashboardPage = async () => {
         upcomingCount={upcomingBookings.length}
         subjects={teacherSubjects}
         ctaLabel="View Full Schedule"
-        ctaHref="/dashboard/schedule"
+        ctaHref={ROUTES.DASHBOARD.SCHEDULE}
       />
 
       <StatsGrid stats={stats} />

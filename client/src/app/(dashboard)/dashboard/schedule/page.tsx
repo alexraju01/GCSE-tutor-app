@@ -1,4 +1,4 @@
-import { auth } from "@auth";
+import { requireSession } from "@utils/actions/session";
 import ScheduleHeader from "@components/dashboard/calendar/ScheduleHeader";
 import ScheduleFilters, { FILTER_OPTIONS } from "@components/dashboard/schedule/ScheduleFilters";
 import ScheduleItemCard from "@components/dashboard/schedule/ScheduleItemCard";
@@ -60,9 +60,7 @@ const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
 		month: selectedMonth,
 	};
 
-	const session = await auth();
-	const isTeacher = session?.user?.role === "Teacher";
-	const token = session?.backendToken ?? "";
+	const { isTeacher, token } = await requireSession();
 
 	const isUpcomingView = activeFilter === "upcoming";
 	const lessonStatus = activeFilter !== "all" && !isUpcomingView ? activeFilter : undefined;

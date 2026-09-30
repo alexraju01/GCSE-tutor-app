@@ -5,12 +5,15 @@ import { api, type LessonBookingPayloadItem } from "@utils/api";
 import type { BookingPolicy } from "@/types/teacher";
 import { actionError, type ActionResult } from "./result";
 import { getBackendSession } from "./session";
+import { ROUTES } from "@/constants/routes";
 
 const revalidateLessonPages = () => {
-  revalidatePath("/dashboard/schedule");
-  revalidatePath("/dashboard/teacher");
-  revalidatePath("/dashboard/student");
-  revalidatePath("/dashboard/availability");
+  revalidatePath(ROUTES.DASHBOARD.SCHEDULE);
+  revalidatePath(ROUTES.DASHBOARD.TEACHER);
+  revalidatePath(ROUTES.DASHBOARD.STUDENT);
+  revalidatePath(ROUTES.DASHBOARD.AVAILABILITY);
+  // lessons list + every lesson details page
+  revalidatePath(ROUTES.DASHBOARD.LESSONS, "layout");
 };
 
 // booking goes through here so the backend token never reaches the browser
@@ -76,7 +79,7 @@ export async function updateBookingPolicyAction(
   try {
     const response = await api.teacher.updateMyBookingPolicy(policy, session.token);
     const teacher = response.data;
-    revalidatePath("/dashboard/teacher/profile");
+    revalidatePath(ROUTES.DASHBOARD.TEACHER_PROFILE);
     return {
       ok: true,
       data: {

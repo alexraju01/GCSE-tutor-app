@@ -15,6 +15,8 @@ import {
 import { cn } from "@utils/cn";
 import { ToastIcon } from "@components/ui/sonner";
 import { NOTIFICATION_STYLES, notificationHref, timeAgo } from "./notifications/notificationStyle";
+import type { Route } from "next";
+import { ROUTES } from "@/constants/routes";
 
 // polling + a check on tab focus - good enough for now, could move to SSE later
 const POLL_MS = 15_000;
@@ -271,7 +273,7 @@ const NotificationBell = () => {
 
           <div className="border-t border-slate-100 bg-slate-50/70 px-4 py-2.5 text-center dark:border-slate-800 dark:bg-slate-900/60">
             <Link
-              href="/dashboard/schedule?filter=all"
+              href={`${ROUTES.DASHBOARD.SCHEDULE}?filter=all` as Route}
               onClick={() => setIsOpen(false)}
               className="text-xs font-semibold text-blue-600 hover:underline dark:text-blue-400"
             >

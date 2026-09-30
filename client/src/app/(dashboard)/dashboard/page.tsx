@@ -1,19 +1,13 @@
-import { auth } from "@auth";
-import { UserRole } from "@/types/role";
+import type { Route } from "next";
 import { redirect } from "next/navigation";
 
+import { dashboardHomeFor } from "@/constants/routes";
+import { requireSession } from "@utils/actions/session";
+
 const DashboardGatewayPage = async () => {
-  const session = await auth();
+  const { role } = await requireSession();
 
-  if (!session?.user) redirect("/sign-in");
-
-  const { role } = session.user;
-
-  if (role === UserRole.Teacher) {
-    redirect("/dashboard/teacher");
-  } else {
-    redirect("/dashboard/student");
-  }
+  redirect(dashboardHomeFor(role) as Route);
 };
 
 export default DashboardGatewayPage;

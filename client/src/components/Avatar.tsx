@@ -5,6 +5,8 @@ import type { Route } from "next";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
 
+import { dashboardHomeFor, profileRouteFor, ROUTES } from "@/constants/routes";
+
 interface User {
   name?: string | null;
   email?: string | null;
@@ -20,12 +22,9 @@ const Avatar = ({ user, setIsOpen }: AvatarProps) => {
   const formattedRole =
     user?.role === "Teacher" ? "Teacher Account" : "Student Account";
 
-  const dashboardLink: Route =
-    user?.role === "Teacher" ? "/dashboard/teacher" : "/dashboard/student";
-  const profileLink: Route =
-    user?.role === "Teacher"
-      ? "/dashboard/teacher/profile"
-      : "/dashboard/student/profile";
+  const dashboardLink = (dashboardHomeFor(user?.role) ??
+    ROUTES.DASHBOARD.ROOT) as Route;
+  const profileLink = profileRouteFor(user?.role) as Route;
 
   return (
     <>

@@ -158,7 +158,7 @@ model Lesson {
 
   subject        Subject
   topic          String?      @db.VarChar(255)
-  meetingRoomId  String?      @db.Uuid
+  // meeting room lives on Classroom (one per lesson), not here
   startTime      DateTime
   duration       Int          @default(60)
   status         LessonStatus @default(Upcoming)

@@ -10,6 +10,7 @@ import {
 } from "@utils/api";
 import { actionError, type ActionResult } from "./result";
 import { getBackendSession } from "./session";
+import { ROUTES } from "@/constants/routes";
 
 // server actions so the backend token stays on the server
 
@@ -19,9 +20,9 @@ const getTeacherToken = async (): Promise<string | null> =>
 const UNAUTHORIZED = { ok: false as const, error: "Only signed-in tutors can manage availability." };
 
 const revalidateSchedulePages = () => {
-  revalidatePath("/dashboard/availability");
-  revalidatePath("/dashboard/teacher");
-  revalidatePath("/dashboard/schedule");
+  revalidatePath(ROUTES.DASHBOARD.AVAILABILITY);
+  revalidatePath(ROUTES.DASHBOARD.TEACHER);
+  revalidatePath(ROUTES.DASHBOARD.SCHEDULE);
 };
 
 export async function getMyAvailabilityAction(

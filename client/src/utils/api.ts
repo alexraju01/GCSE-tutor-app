@@ -275,6 +275,13 @@ export const api = {
         headers: authHeaders(token),
       }),
 
+    // 404s for a lesson the user isn't part of
+    getOne: (lessonId: string, token: string) =>
+      fetchData<APIResponse<Lesson>>(
+        `/lessons/${encodeURIComponent(lessonId)}`,
+        { headers: authHeaders(token) },
+      ),
+
     getAll: (token: string, params?: GetLessonsParams) => {
       const page = params?.page ?? 1;
       const query = new URLSearchParams({ page: String(page) });

@@ -9,6 +9,7 @@ import {
   ArrowUpNarrowWide,
 } from "lucide-react";
 import StatusFilterSelect from "./StatusFilterSelect";
+import { ROUTES } from "@/constants/routes";
 
 interface ScheduleFiltersProps {
   query: ScheduleQueryState;
@@ -55,7 +56,7 @@ const ScheduleFilters = ({
     params.set("filter", filter);
     params.set("sort", sort);
     params.set("page", "1");
-    return `/dashboard/schedule?${params.toString()}` as Route;
+    return `${ROUTES.DASHBOARD.SCHEDULE}?${params.toString()}` as Route;
   };
 
   const prevUrl = isMonthlyView

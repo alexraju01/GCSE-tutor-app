@@ -4,11 +4,12 @@ import Image from "next/image";
 import { toast } from "sonner";
 
 import { Button } from "../ui/button";
+import { ROUTES } from "@/constants/routes";
 
 const handleSignIn = async (provider: "google" | "github") => {
   try {
     await signIn(provider, {
-      redirectTo: "/dashboard", // Redirect to dashboard after successful sign-in
+      redirectTo: ROUTES.DASHBOARD.ROOT, // Redirect to dashboard after successful sign-in
       redirect: true,
     });
   } catch (error) {

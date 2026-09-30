@@ -1,35 +1,36 @@
 import { auth } from "@auth";
-import { UserRole } from "./types/role";
 import { NextResponse } from "next/server";
-// import { UserRole } from "./types/role"; // Real JS object imported at runtime
 
+import { dashboardHomeFor, ROUTES } from "./constants/routes";
+import { UserRole } from "./types/role";
+
+// optimistic check only - pages still call requireRole/requireSession
 const PROTECTED_ROUTES: Record<string, UserRole[]> = {
-  "/dashboard/teacher": [UserRole.Teacher],
-  "/dashboard/student": [UserRole.Student],
+  [ROUTES.DASHBOARD.TEACHER]: [UserRole.Teacher],
+  [ROUTES.DASHBOARD.STUDENT]: [UserRole.Student],
+  [ROUTES.DASHBOARD.AVAILABILITY]: [UserRole.Teacher],
 };
 
 export default auth((req) => {
   const { nextUrl } = req;
-  const isAuthenticated = !!req.auth;
   const userRole = req.auth?.user?.role;
+  const home = dashboardHomeFor(userRole);
 
-  const matchedPath = Object.keys(PROTECTED_ROUTES).find((path) =>
-    nextUrl.pathname.startsWith(path),
+  // every dashboard page needs a signed-in user with a known role
+  if (!req.auth || !home) {
+    return NextResponse.redirect(new URL(ROUTES.SIGN_IN, nextUrl));
+  }
+
+  const matchedPath = Object.keys(PROTECTED_ROUTES).find(
+    (path) =>
+      nextUrl.pathname === path || nextUrl.pathname.startsWith(`${path}/`),
   );
 
-  if (matchedPath) {
-    if (!isAuthenticated) {
-      return NextResponse.redirect(new URL("/sign-in", nextUrl));
-    }
-
-    const allowedRoles = PROTECTED_ROUTES[matchedPath];
-    if (!userRole || !allowedRoles.includes(userRole as UserRole)) {
-      const fallbackRoute =
-        userRole === UserRole.Teacher
-          ? "/dashboard/teacher"
-          : "/dashboard/student";
-      return NextResponse.redirect(new URL(fallbackRoute, nextUrl));
-    }
+  if (
+    matchedPath &&
+    !PROTECTED_ROUTES[matchedPath].includes(userRole as UserRole)
+  ) {
+    return NextResponse.redirect(new URL(home, nextUrl));
   }
 
   return NextResponse.next();

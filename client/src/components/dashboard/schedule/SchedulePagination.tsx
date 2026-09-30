@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Route } from "next";
+import { ROUTES } from "@/constants/routes";
 
 interface SchedulePaginationProps {
   query: ScheduleQueryState;
@@ -23,7 +24,7 @@ const SchedulePagination = ({
     params.set("filter", activeFilter);
     params.set("sort", activeSort);
     params.set("page", String(page));
-    return `/dashboard/schedule?${params.toString()}` as Route;
+    return `${ROUTES.DASHBOARD.SCHEDULE}?${params.toString()}` as Route;
   };
 
   const pages = Array.from({ length: totalPages }, (_, i) => i + 1)
