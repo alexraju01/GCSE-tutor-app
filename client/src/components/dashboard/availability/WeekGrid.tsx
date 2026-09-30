@@ -4,7 +4,14 @@ import { useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 
 import type { OwnAvailabilitySlot } from "@utils/api";
-import { pastTimeStripes } from "@constants/index";
+import {
+  LESSON_DURATIONS,
+  lessonLengthForWindow,
+  lessonLengthLabel,
+  pastTimeStripes,
+  snapWindowDown,
+  snapWindowUp,
+} from "@constants/index";
 import { cn } from "@utils/cn";
 import { slotMinutes } from "@utils/date";
 import {
@@ -67,19 +74,28 @@ const slotLabel = (slot: OwnAvailabilitySlot) => {
 const snap = (minutes: number) =>
   Math.max(0, Math.min(ROWS - 1, Math.floor(minutes / ROW_MINUTES))) * ROW_MINUTES;
 
-// drags start on any half hour but always cover whole hours (min 1h), so
-// the default 1h lessons fill the box exactly - no 30 min leftovers
-const DRAG_STEP_MINUTES = 60;
+// drags snap up to a length that fits whole lessons exactly (1h, 1.5h, 2h, 3h,
+// 4h...), so there's never spare time left over - e.g. dragging 2.5h gives 3h
 const DAY_MINUTES = 24 * 60;
 
 const rangeFromDrag = (anchor: number, current: number) => {
   const start = Math.min(anchor, current);
-  const span = Math.max(anchor, current) + ROW_MINUTES - start;
-  const length = Math.max(DRAG_STEP_MINUTES, Math.ceil(span / DRAG_STEP_MINUTES) * DRAG_STEP_MINUTES);
-  const to = Math.min(start + length, DAY_MINUTES);
-  // keep at least one whole lesson if we hit midnight
-  const from = Math.min(start, to - DRAG_STEP_MINUTES);
-  return { from, to };
+  const span = snapWindowUp(Math.max(anchor, current) + ROW_MINUTES - start);
+  // near midnight shrink to the biggest window that still fits whole lessons.
+  // times are "HH:mm" so the latest end is 23:59, not 24:00
+  const latestEnd = DAY_MINUTES - 1;
+  const length = Math.min(span, snapWindowDown(latestEnd - start)) || LESSON_DURATIONS[0];
+  // if even one lesson doesn't fit after the start, pull the start back (on the half hour)
+  const from = start + length <= latestEnd ? start : Math.floor((latestEnd - length) / 30) * 30;
+  return { from, to: from + length };
+};
+
+// what the dragged box will turn into, e.g. "1 × 2h lesson" or "2 × 1.5h lessons"
+const dragSummary = ({ from, to }: { from: number; to: number }) => {
+  const minutes = to - from;
+  const length = lessonLengthForWindow(minutes);
+  const count = minutes / length;
+  return `${count} × ${lessonLengthLabel(length)} lesson${count === 1 ? "" : "s"}`;
 };
 
 const WeekGrid = ({ weekStartKey, slots, now, onSlotClick, onCreateRange }: WeekGridProps) => {
@@ -265,7 +281,7 @@ const WeekGrid = ({ weekStartKey, slots, now, onSlotClick, onCreateRange }: Week
                       >
                         {minutesToHHMM(dragRange.from)}–{minutesToHHMM(dragRange.to)}
                         <span className="block font-medium">
-                          {(dragRange.to - dragRange.from) / 60} × 1h lesson{dragRange.to - dragRange.from > 60 ? "s" : ""}
+                          {dragSummary(dragRange)}
                         </span>
                       </div>
                     )}

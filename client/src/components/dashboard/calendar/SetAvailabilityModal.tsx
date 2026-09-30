@@ -5,7 +5,7 @@ import { CalendarPlus } from "lucide-react";
 
 import { Modal } from "@components/ui/modal";
 import { Select } from "@components/ui/select";
-import { LESSON_DURATIONS } from "@constants/index";
+import { LESSON_DURATIONS, lessonLengthForWindow, lessonLengthLabel } from "@constants/index";
 import {
   createRecurringAvailabilityAction,
   getMyAvailabilityAction,
@@ -78,8 +78,37 @@ const defaultForm = (): FormState => {
   };
 };
 
+// lesson length matches the dragged box (2h drag = one 2h lesson)
 const formFromDraft = (draft?: AvailabilityDraft | null): FormState =>
-  draft ? { ...draft, lessonLength: 60, weeks: 1 } : defaultForm();
+  draft
+    ? {
+        ...draft,
+        lessonLength: lessonLengthForWindow(hhmmToMinutes(draft.to) - hhmmToMinutes(draft.from)),
+        weeks: 1,
+      }
+    : defaultForm();
+
+const DAY_MINUTES = 24 * 60;
+
+// changing the start moves the whole window, keeping its length
+const moveStart = (form: FormState, from: string): Partial<FormState> => {
+  if (!from || !form.from || !form.to) return { from };
+  const length = Math.max(hhmmToMinutes(form.to) - hhmmToMinutes(form.from), form.lessonLength);
+  const start = hhmmToMinutes(from);
+  return { from, to: minutesToHHMM(Math.min(start + length, DAY_MINUTES - 1)) };
+};
+
+// changing the lesson length keeps the same number of lessons, so To follows
+// (e.g. 16:00–17:00 at 1h -> 2h gives 16:00–18:00), trimmed to fit before midnight
+const changeLength = (form: FormState, lessonLength: number): Partial<FormState> => {
+  if (!form.from || !form.to) return { lessonLength };
+  const start = hhmmToMinutes(form.from);
+  const windowMinutes = hhmmToMinutes(form.to) - start;
+  const wanted = Math.max(1, Math.floor(windowMinutes / form.lessonLength));
+  const fits = Math.max(1, Math.floor((DAY_MINUTES - 1 - start) / lessonLength));
+  const count = Math.min(wanted, fits);
+  return { lessonLength, to: minutesToHHMM(Math.min(start + count * lessonLength, DAY_MINUTES - 1)) };
+};
 
 // every lesson the form would create, back to back inside from–to, repeated weekly
 const buildSlots = ({ date, from, to, lessonLength, weeks }: FormState): Slot[] => {
@@ -100,7 +129,6 @@ const buildSlots = ({ date, from, to, lessonLength, weeks }: FormState): Slot[] 
   return slots;
 };
 
-const lengthLabel = (minutes: number) => (minutes === 90 ? "1.5h" : `${minutes / 60}h`);
 
 
 const SetAvailabilityModal = ({ open, onClose, draft, onSaved }: SetAvailabilityModalProps) => {
@@ -155,7 +183,15 @@ const SetAvailabilityModal = ({ open, onClose, draft, onSaved }: SetAvailability
   const problem = (() => {
     if (!form.date || !form.from || !form.to) return "Pick a date and times.";
     if (windowMinutes <= 0) return "The end time must be after the start time.";
-    if (lessonsPerDay === 0) return `That's shorter than a ${lengthLabel(form.lessonLength)} lesson.`;
+    if (lessonsPerDay === 0) return `That's shorter than a ${lessonLengthLabel(form.lessonLength)} lesson.`;
+    // no spare time allowed - suggest the nearest end times that fit whole lessons
+    if (leftover > 0) {
+      const start = hhmmToMinutes(form.from);
+      const earlier = minutesToHHMM(start + lessonsPerDay * form.lessonLength);
+      const later = start + (lessonsPerDay + 1) * form.lessonLength;
+      const laterText = later < DAY_MINUTES ? ` or ${minutesToHHMM(later)}` : "";
+      return `${form.from}–${form.to} doesn't fit whole ${lessonLengthLabel(form.lessonLength)} lessons. End at ${earlier}${laterText} instead.`;
+    }
     if (allSlots.length === 0) return "These times have already passed.";
     if (newSlots.length === 0) return "You already have availability at all of these times.";
     return null;
@@ -244,7 +280,7 @@ const SetAvailabilityModal = ({ open, onClose, draft, onSaved }: SetAvailability
               type="time"
               step={1800}
               value={form.from}
-              onChange={(e) => update({ from: e.target.value })}
+              onChange={(e) => update(moveStart(form, e.target.value))}
               className={inputClass}
             />
           </div>
@@ -272,7 +308,7 @@ const SetAvailabilityModal = ({ open, onClose, draft, onSaved }: SetAvailability
                 type="button"
                 role="radio"
                 aria-checked={form.lessonLength === minutes}
-                onClick={() => update({ lessonLength: minutes })}
+                onClick={() => update(changeLength(form, minutes))}
                 className={cn(
                   "cursor-pointer rounded-lg py-1.5 text-xs font-semibold transition-colors",
                   form.lessonLength === minutes
@@ -280,7 +316,7 @@ const SetAvailabilityModal = ({ open, onClose, draft, onSaved }: SetAvailability
                     : "text-slate-500 hover:text-slate-700 dark:text-slate-400",
                 )}
               >
-                {lengthLabel(minutes)}
+                {lessonLengthLabel(minutes)}
               </button>
             ))}
           </div>
@@ -314,14 +350,13 @@ const SetAvailabilityModal = ({ open, onClose, draft, onSaved }: SetAvailability
           {error ?? problem ?? (
             <>
               <p className="font-semibold">
-                {pluralise(lessonsPerDay, `${lengthLabel(form.lessonLength)} lesson`)}: {firstDayTimes.join(", ")}
+                {pluralise(lessonsPerDay, `${lessonLengthLabel(form.lessonLength)} lesson`)}: {firstDayTimes.join(", ")}
               </p>
               <p className="mt-0.5 opacity-80">
                 {form.weeks > 1
                   ? `Every ${weekday} for ${form.weeks} weeks · ${pluralise(newSlots.length, "slot")} in total`
                   : formatDayKey(form.date, { weekday: "long", day: "numeric", month: "long" })}
                 {clashes.length > 0 && ` · ${clashes.length} already set, skipped`}
-                {leftover > 0 && ` · last ${leftover} min not used`}
               </p>
             </>
           )}
