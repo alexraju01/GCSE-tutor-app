@@ -1,8 +1,9 @@
 "use client";
 
+import type { ReactNode } from "react";
+
 import { Dialog } from "@base-ui/react/dialog";
 import { X } from "lucide-react";
-import type { ReactNode } from "react";
 
 import { cn } from "@utils/cn";
 
@@ -43,7 +44,7 @@ export const Modal = ({
       <Dialog.Backdrop className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs transition-opacity data-ending-style:opacity-0 data-starting-style:opacity-0" />
       <Dialog.Popup
         className={cn(
-          "fixed left-1/2 top-1/2 z-50 flex max-h-[92vh] w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl outline-none transition-all data-ending-style:scale-95 data-ending-style:opacity-0 data-starting-style:scale-95 data-starting-style:opacity-0 dark:border-slate-800 dark:bg-slate-900",
+          "fixed top-1/2 left-1/2 z-50 flex max-h-[92vh] w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl transition-all outline-none data-ending-style:scale-95 data-ending-style:opacity-0 data-starting-style:scale-95 data-starting-style:opacity-0 dark:border-slate-800 dark:bg-slate-900",
           size,
         )}
       >

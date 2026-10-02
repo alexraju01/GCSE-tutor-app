@@ -2,6 +2,7 @@ import type { Route } from "next";
 import { redirect } from "next/navigation";
 
 import { dashboardHomeFor } from "@/constants/routes";
+
 import { requireSession } from "@utils/actions/session";
 
 const DashboardGatewayPage = async () => {

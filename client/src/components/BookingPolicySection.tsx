@@ -1,14 +1,16 @@
 "use client";
 
 import { useState, useTransition } from "react";
+
 import { toast } from "sonner";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
 import type { BookingPolicy } from "@/types/teacher";
+
+import { buttonClass, labelClass } from "@components/ui/styles";
 import { updateBookingPolicyAction } from "@utils/actions/lesson.action";
 import { formatHours } from "@utils/format";
-import { buttonClass, labelClass } from "@components/ui/styles";
 
 interface BookingPolicySectionProps {
   policy: BookingPolicy;
@@ -47,7 +49,10 @@ export const BookingPolicySection = ({ policy: initialPolicy }: BookingPolicySec
   };
 
   return (
-    <Card id="booking-policy" className="scroll-mt-24 rounded-2xl border-slate-100 bg-white shadow-sm">
+    <Card
+      id="booking-policy"
+      className="scroll-mt-24 rounded-2xl border-slate-100 bg-white shadow-sm"
+    >
       <CardHeader className="pb-3">
         <CardTitle className="text-base font-semibold text-slate-900">Booking rules</CardTitle>
         <p className="text-xs text-slate-500">
@@ -65,7 +70,8 @@ export const BookingPolicySection = ({ policy: initialPolicy }: BookingPolicySec
           <span className="text-sm text-slate-700">
             <span className="block font-medium text-slate-900">Approve each booking myself</span>
             <span className="text-xs text-slate-500">
-              Bookings arrive as requests you accept or decline. Unanswered requests expire at the lesson time.
+              Bookings arrive as requests you accept or decline. Unanswered requests expire at the
+              lesson time.
             </span>
           </span>
         </label>

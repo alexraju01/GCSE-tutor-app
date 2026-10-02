@@ -1,12 +1,7 @@
 export interface TeachesSubject {
   id: string;
   subject:
-    | "MATHEMATICS"
-    | "PHYSICS"
-    | "CHEMISTRY"
-    | "BIOLOGY"
-    | "ENGLISH_LITERATURE"
-    | "COMPUTER_SCIENCE";
+    "MATHEMATICS" | "PHYSICS" | "CHEMISTRY" | "BIOLOGY" | "ENGLISH_LITERATURE" | "COMPUTER_SCIENCE";
   level: "GCSE" | "A_LEVEL";
 }
 

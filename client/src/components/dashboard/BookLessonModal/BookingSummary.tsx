@@ -1,8 +1,10 @@
 import { CalendarDays, Clock, Receipt, Repeat, ShieldCheck, X } from "lucide-react";
+
 import { Select } from "@components/ui/select";
 import { slotMinutes } from "@utils/date";
 import { formatDuration, formatHours, formatMoney, formatSubject } from "@utils/format";
 import { formatUkDate, formatUkTime, formatUkTimeRange, toUkDateKey } from "@utils/ukTime";
+
 import type { BookingState, RawAvailability } from "./useBookLessonModal";
 
 const REPEAT_CHOICES = [3, 7, 11]; // extra weeks, so 4/8/12 in total
@@ -39,7 +41,10 @@ const BookingSummary = ({ booking }: { booking: BookingState }) => {
   for (const slot of selectedSlots) {
     const subject = getDetails(slot.id).subject;
     const current = subjectTotals.get(subject) ?? { count: 0, cost: 0 };
-    subjectTotals.set(subject, { count: current.count + 1, cost: current.cost + lessonPrice(slot) });
+    subjectTotals.set(subject, {
+      count: current.count + 1,
+      cost: current.cost + lessonPrice(slot),
+    });
   }
 
   const lessonCount = selectedSlots.length;
@@ -50,9 +55,13 @@ const BookingSummary = ({ booking }: { booking: BookingState }) => {
         <div className="flex items-center gap-2">
           <Receipt size={14} className="text-blue-600 dark:text-blue-400" />
           <div>
-            <span className="block text-xs font-bold text-slate-900 dark:text-slate-100">Booking summary</span>
+            <span className="block text-xs font-bold text-slate-900 dark:text-slate-100">
+              Booking summary
+            </span>
             {teacherName && (
-              <span className="block text-[11px] text-slate-500 dark:text-slate-400">with {teacherName}</span>
+              <span className="block text-[11px] text-slate-500 dark:text-slate-400">
+                with {teacherName}
+              </span>
             )}
           </div>
         </div>
@@ -74,7 +83,11 @@ const BookingSummary = ({ booking }: { booking: BookingState }) => {
               <div key={dateKey}>
                 <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                   <CalendarDays size={12} />
-                  {formatUkDate(new Date(daySlots[0].startTime), { weekday: "long", day: "numeric", month: "long" })}
+                  {formatUkDate(new Date(daySlots[0].startTime), {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "long",
+                  })}
                 </p>
                 <ul className="space-y-1.5">
                   {daySlots.map((slot) => {
@@ -99,7 +112,9 @@ const BookingSummary = ({ booking }: { booking: BookingState }) => {
                           >
                             <Clock size={12} className="text-slate-400" />
                             {formatUkTimeRange(new Date(slot.startTime), new Date(slot.endTime))}
-                            <span className="font-normal text-slate-400">· {formatDuration(slotMinutes(slot))}</span>
+                            <span className="font-normal text-slate-400">
+                              · {formatDuration(slotMinutes(slot))}
+                            </span>
                           </button>
                           <div className="flex items-center gap-2">
                             <span className="font-semibold text-slate-700 dark:text-slate-300">
@@ -123,7 +138,10 @@ const BookingSummary = ({ booking }: { booking: BookingState }) => {
                               ariaLabel="Subject for this lesson"
                               value={lessonDetails.subject}
                               onChange={(subject) => onSlotSubjectChange(slot.id, subject)}
-                              options={subjects.map((sub) => ({ value: sub, label: formatSubject(sub) }))}
+                              options={subjects.map((sub) => ({
+                                value: sub,
+                                label: formatSubject(sub),
+                              }))}
                               className="w-auto min-w-36"
                             />
                           ) : (
@@ -180,15 +198,22 @@ const BookingSummary = ({ booking }: { booking: BookingState }) => {
               </span>
             </div>
             <div className="mt-1 flex items-center justify-between border-t border-slate-200 pt-2 dark:border-slate-700">
-              <span className="font-semibold text-slate-800 dark:text-slate-200">Estimated total</span>
-              <span className="text-base font-bold text-blue-600 dark:text-blue-400">{formatMoney(estimatedCost)}</span>
+              <span className="font-semibold text-slate-800 dark:text-slate-200">
+                Estimated total
+              </span>
+              <span className="text-base font-bold text-blue-600 dark:text-blue-400">
+                {formatMoney(estimatedCost)}
+              </span>
             </div>
           </div>
 
           {/* booking/cancellation policy */}
           {policy && (
             <div className="flex gap-2 border-t border-slate-100 px-4 py-3 text-[11px] text-slate-500 dark:border-slate-800 dark:text-slate-400">
-              <ShieldCheck size={14} className="mt-0.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+              <ShieldCheck
+                size={14}
+                className="mt-0.5 shrink-0 text-emerald-600 dark:text-emerald-400"
+              />
               <p>
                 {requiresApproval
                   ? `${teacherName ?? "Your tutor"} reviews each request — you'll be notified when they accept. `

@@ -1,15 +1,14 @@
 // TeacherDashboardPage.tsx
 import { Clock, PoundSterling, Star, Users } from "lucide-react";
+
 import { ROUTES } from "@/constants/routes";
 import { UserRole } from "@/types/role";
-import { requireRole } from "@utils/actions/session";
+
 import QuickActionsCard from "@components/dashboard/QuickActionsCard";
-import StatsGrid, {
-  STAT_ACCENTS,
-  type StatItem,
-} from "@components/dashboard/StatsGrid";
+import StatsGrid, { STAT_ACCENTS, type StatItem } from "@components/dashboard/StatsGrid";
 import UpcomingSessions from "@components/dashboard/UpcomingSessions";
 import WelcomeBanner from "@components/dashboard/WelcomeBanner";
+import { requireRole } from "@utils/actions/session";
 import { api } from "@utils/api";
 import { formatMoney } from "@utils/format";
 
@@ -27,9 +26,7 @@ const TeacherDashboardPage = async () => {
   // dashboard summary + next 2 weeks of availability
   const [dashboardResponse, availabilityResponse] = await Promise.all([
     api.dashboard.teacherDashboard(backendToken),
-    api.availability
-      .getMine({ from: now, to: lookaheadEnd }, backendToken)
-      .catch(() => null),
+    api.availability.getMine({ from: now, to: lookaheadEnd }, backendToken).catch(() => null),
   ]);
   const dashboardData = dashboardResponse?.data;
 
@@ -56,21 +53,14 @@ const TeacherDashboardPage = async () => {
       label: "Hours Taught",
       value: `${dashboardData?.totalHoursTaught ?? 0} hrs`,
       caption: "Total logged teaching time",
-      icon: (
-        <Clock size={16} className="text-emerald-600 dark:text-emerald-400" />
-      ),
+      icon: <Clock size={16} className="text-emerald-600 dark:text-emerald-400" />,
       ...STAT_ACCENTS.emerald,
     },
     {
       label: "Total Earnings",
       value: formattedEarnings,
       caption: "Lifetime earnings",
-      icon: (
-        <PoundSterling
-          size={16}
-          className="text-indigo-600 dark:text-indigo-400"
-        />
-      ),
+      icon: <PoundSterling size={16} className="text-indigo-600 dark:text-indigo-400" />,
       ...STAT_ACCENTS.indigo,
     },
     {

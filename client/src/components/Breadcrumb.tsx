@@ -31,9 +31,7 @@ const Breadcrumb = () => {
   return (
     <h1 className="truncate text-sm font-medium text-slate-500 dark:text-slate-400">
       <span className="hidden sm:inline">Dashboard / </span>
-      <span className="font-semibold text-slate-900 dark:text-slate-100">
-        {formattedLabel}
-      </span>
+      <span className="font-semibold text-slate-900 dark:text-slate-100">{formattedLabel}</span>
     </h1>
   );
 };

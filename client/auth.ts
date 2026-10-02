@@ -3,9 +3,10 @@ import Credentials from "next-auth/providers/credentials";
 import GitHub from "next-auth/providers/github";
 import Google from "next-auth/providers/google";
 
+import type { UserRole } from "@/types/role";
+
 import { api } from "@utils/api";
 import { SignInSchema } from "@utils/validation";
-import type { UserRole } from "@/types/role";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,

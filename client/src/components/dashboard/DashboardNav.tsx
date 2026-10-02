@@ -1,5 +1,7 @@
 "use client";
 
+import type { Route } from "next";
+
 import {
   BookOpen,
   Calendar,
@@ -8,10 +10,9 @@ import {
   MessageSquare,
   Settings,
 } from "lucide-react";
-import type { Route } from "next";
 
 import ActiveLink from "@/components/ActiveLink";
-import { dashboardHomeFor, ROUTES } from "@/constants/routes";
+import { ROUTES, dashboardHomeFor } from "@/constants/routes";
 import { UserRole } from "@/types/role";
 
 interface NavItem {
@@ -69,12 +70,7 @@ interface DashboardNavProps {
 const DashboardNav = ({ role, onNavigate }: DashboardNavProps) => (
   <nav className="flex flex-1 flex-col gap-1.5 font-medium">
     {buildNavItems(role).map((item) => (
-      <ActiveLink
-        key={item.href}
-        href={item.href}
-        exact={item.exact}
-        onClick={onNavigate}
-      >
+      <ActiveLink key={item.href} href={item.href} exact={item.exact} onClick={onNavigate}>
         <div className="flex items-center gap-3">
           {item.icon}
           <span>{item.label}</span>

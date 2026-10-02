@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState, useTransition } from "react";
+
 import { useRouter } from "next/navigation";
+
 import { CalendarPlus, ChevronLeft, ChevronRight, Copy, Eraser, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -9,6 +11,7 @@ import SetAvailabilityModal, {
   type AvailabilityDraft,
 } from "@components/dashboard/calendar/SetAvailabilityModal";
 import { Modal } from "@components/ui/modal";
+import { buttonClass } from "@components/ui/styles";
 import {
   createAvailabilityAction,
   getMyAvailabilityAction,
@@ -28,9 +31,9 @@ import {
   ukMinutesOfDay,
   ukWeekStartKey,
 } from "@utils/ukTime";
+
 import SlotDetailsModal from "./SlotDetailsModal";
-import WeekGrid, { weekRange, type CreateRange } from "./WeekGrid";
-import { buttonClass } from "@components/ui/styles";
+import WeekGrid, { type CreateRange, weekRange } from "./WeekGrid";
 
 interface AvailabilityPlannerProps {
   initialWeekStartKey: string;
@@ -126,7 +129,10 @@ const AvailabilityPlanner = ({ initialWeekStartKey, initialSlots }: Availability
       }
       const future = toDelete.filter((s) => new Date(s.startTime) > new Date());
       toast.success(successMessage, {
-        action: future.length > 0 ? { label: "Undo", onClick: () => restoreSlots(future.map(toPayload)) } : undefined,
+        action:
+          future.length > 0
+            ? { label: "Undo", onClick: () => restoreSlots(future.map(toPayload)) }
+            : undefined,
       });
       setSelectedSlot(null);
       setConfirmClear(false);
@@ -158,7 +164,11 @@ const AvailabilityPlanner = ({ initialWeekStartKey, initialSlots }: Availability
         toast.error(result.error);
         return;
       }
-      toast.success(decision === "approve" ? "Lesson confirmed — the student has been notified." : "Request declined.");
+      toast.success(
+        decision === "approve"
+          ? "Lesson confirmed — the student has been notified."
+          : "Request declined.",
+      );
       setSelectedSlot(null);
       refresh();
     });
@@ -185,7 +195,11 @@ const AvailabilityPlanner = ({ initialWeekStartKey, initialSlots }: Availability
         );
         const shiftedStart = ukInstant(dateKey, ukMinutesOfDay(start));
         const duration = slotMinutes(slot);
-        return { start: shiftedStart, end: new Date(shiftedStart.getTime() + duration * 60_000), duration };
+        return {
+          start: shiftedStart,
+          end: new Date(shiftedStart.getTime() + duration * 60_000),
+          duration,
+        };
       });
 
       const toCreate = candidates.filter(
@@ -246,7 +260,7 @@ const AvailabilityPlanner = ({ initialWeekStartKey, initialSlots }: Availability
   return (
     <div className="space-y-4">
       {/* Toolbar */}
-      <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:flex-row lg:items-center lg:justify-between dark:border-slate-800 dark:bg-slate-900">
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
@@ -269,12 +283,21 @@ const AvailabilityPlanner = ({ initialWeekStartKey, initialSlots }: Availability
               This week
             </button>
           )}
-          <span className="ml-1 text-sm font-bold text-slate-800 dark:text-slate-100">{rangeLabel}</span>
-          {isLoading && <Loader2 size={14} className="animate-spin text-slate-400" aria-label="Loading" />}
+          <span className="ml-1 text-sm font-bold text-slate-800 dark:text-slate-100">
+            {rangeLabel}
+          </span>
+          {isLoading && (
+            <Loader2 size={14} className="animate-spin text-slate-400" aria-label="Loading" />
+          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <button type="button" onClick={handleCopyPreviousWeek} disabled={isPending} className={toolButton}>
+          <button
+            type="button"
+            onClick={handleCopyPreviousWeek}
+            disabled={isPending}
+            className={toolButton}
+          >
             <Copy size={14} /> Copy last week
           </button>
           <button
@@ -302,7 +325,8 @@ const AvailabilityPlanner = ({ initialWeekStartKey, initialSlots }: Availability
       {/* Week summary + legend */}
       <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400">
         <p>
-          This week: <strong className="text-slate-800 dark:text-slate-200">{openCount} open</strong> ·{" "}
+          This week:{" "}
+          <strong className="text-slate-800 dark:text-slate-200">{openCount} open</strong> ·{" "}
           <strong className="text-slate-800 dark:text-slate-200">{bookedCount} booked</strong>
           {pendingCount > 0 && (
             <>
@@ -329,9 +353,16 @@ const AvailabilityPlanner = ({ initialWeekStartKey, initialSlots }: Availability
       </div>
 
       {loadError && (
-        <div role="alert" className="flex items-center justify-between rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+        <div
+          role="alert"
+          className="flex items-center justify-between rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+        >
           <span>{loadError}</span>
-          <button type="button" onClick={() => void loadWeek(weekStartKey)} className="font-semibold underline">
+          <button
+            type="button"
+            onClick={() => void loadWeek(weekStartKey)}
+            className="font-semibold underline"
+          >
             Retry
           </button>
         </div>
@@ -368,10 +399,13 @@ const AvailabilityPlanner = ({ initialWeekStartKey, initialSlots }: Availability
         dismissible={!isPending}
         size="max-w-sm"
         title="Clear this week's open slots?"
-        description={`${pluralise(clearableSlots.length, "open slot")} between ${formatDayKey(weekStartKey, {
-          day: "numeric",
-          month: "short",
-        })} and ${formatDayKey(weekEndKey, { day: "numeric", month: "short" })}. Booked lessons aren't affected.`}
+        description={`${pluralise(clearableSlots.length, "open slot")} between ${formatDayKey(
+          weekStartKey,
+          {
+            day: "numeric",
+            month: "short",
+          },
+        )} and ${formatDayKey(weekEndKey, { day: "numeric", month: "short" })}. Booked lessons aren't affected.`}
         footer={
           <div className="flex justify-end gap-2">
             <button
@@ -385,7 +419,9 @@ const AvailabilityPlanner = ({ initialWeekStartKey, initialSlots }: Availability
             <button
               type="button"
               disabled={isPending}
-              onClick={() => deleteSlots(clearableSlots, `Cleared ${pluralise(clearableSlots.length, "slot")}.`)}
+              onClick={() =>
+                deleteSlots(clearableSlots, `Cleared ${pluralise(clearableSlots.length, "slot")}.`)
+              }
               className={buttonClass("danger", "sm")}
             >
               {isPending ? "Clearing..." : "Clear slots"}
@@ -393,11 +429,12 @@ const AvailabilityPlanner = ({ initialWeekStartKey, initialSlots }: Availability
           </div>
         }
       >
-        <p className="text-xs text-slate-500 dark:text-slate-400">You can undo this straight after.</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          You can undo this straight after.
+        </p>
       </Modal>
     </div>
   );
 };
 
 export default AvailabilityPlanner;
-

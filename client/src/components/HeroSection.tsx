@@ -1,5 +1,6 @@
-import { ArrowRight, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
+
+import { ArrowRight, CheckCircle2 } from "lucide-react";
 
 export const HeroSection = () => {
   return (
@@ -18,9 +19,8 @@ export const HeroSection = () => {
 
         {/* Sub-headline */}
         <p className="animate-fade-in-up mt-8 max-w-2xl text-lg leading-relaxed text-slate-600 opacity-0 [animation-delay:200ms] [animation-fill-mode:forwards] md:text-xl dark:text-slate-400">
-          Personalised 1-on-1 online lessons engineered around your syllabus.
-          Book premium tutors, collaborate on live canvases, and dominate your
-          exams.
+          Personalised 1-on-1 online lessons engineered around your syllabus. Book premium tutors,
+          collaborate on live canvases, and dominate your exams.
         </p>
 
         {/* CTAs */}
@@ -31,10 +31,7 @@ export const HeroSection = () => {
           >
             <div className="group-hover:animate-shine absolute inset-0 h-full w-1/2 -translate-x-full -skew-x-12 bg-linear-to-r from-transparent via-white/10 to-transparent" />
             Book a Free Trial Lesson
-            <ArrowRight
-              size={18}
-              className="transition-transform group-hover:translate-x-1"
-            />
+            <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
           </Link>
 
           <Link
@@ -48,10 +45,7 @@ export const HeroSection = () => {
         {/* Social proof/Micro-copy */}
         <div className="animate-fade-in-up mt-8 flex flex-col items-center gap-4 text-xs text-slate-500 opacity-0 [animation-delay:500ms] [animation-fill-mode:forwards] sm:flex-row sm:gap-6 dark:text-slate-500">
           <span className="flex items-center gap-1">
-            <CheckCircle2
-              size={14}
-              className="text-emerald-600 dark:text-emerald-500/80"
-            />
+            <CheckCircle2 size={14} className="text-emerald-600 dark:text-emerald-500/80" />
             No credit card required
           </span>
         </div>

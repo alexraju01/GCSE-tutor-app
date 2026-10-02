@@ -1,7 +1,8 @@
-import { auth } from "@auth";
 import { NextResponse } from "next/server";
 
-import { dashboardHomeFor, ROUTES } from "./constants/routes";
+import { auth } from "@auth";
+
+import { ROUTES, dashboardHomeFor } from "./constants/routes";
 import { UserRole } from "./types/role";
 
 // optimistic check only - pages still call requireRole/requireSession
@@ -22,14 +23,10 @@ export default auth((req) => {
   }
 
   const matchedPath = Object.keys(PROTECTED_ROUTES).find(
-    (path) =>
-      nextUrl.pathname === path || nextUrl.pathname.startsWith(`${path}/`),
+    (path) => nextUrl.pathname === path || nextUrl.pathname.startsWith(`${path}/`),
   );
 
-  if (
-    matchedPath &&
-    !PROTECTED_ROUTES[matchedPath].includes(userRole as UserRole)
-  ) {
+  if (matchedPath && !PROTECTED_ROUTES[matchedPath].includes(userRole as UserRole)) {
     return NextResponse.redirect(new URL(home, nextUrl));
   }
 

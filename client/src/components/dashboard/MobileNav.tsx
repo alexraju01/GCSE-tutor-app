@@ -1,11 +1,14 @@
 "use client";
 
-import { Menu, X } from "lucide-react";
-import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+
+import { usePathname } from "next/navigation";
+
+import { Menu, X } from "lucide-react";
 
 import Logo from "@/components/Logo";
 import type { UserRole } from "@/types/role";
+
 import DashboardNav from "./DashboardNav";
 
 // the sidebar is hidden below md, so phones get the same links in a drawer

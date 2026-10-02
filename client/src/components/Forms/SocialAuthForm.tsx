@@ -1,10 +1,12 @@
 "use client";
-import { signIn } from "next-auth/react";
 import Image from "next/image";
+
+import { signIn } from "next-auth/react";
 import { toast } from "sonner";
 
-import { Button } from "../ui/button";
 import { ROUTES } from "@/constants/routes";
+
+import { Button } from "../ui/button";
 
 const handleSignIn = async (provider: "google" | "github") => {
   try {
@@ -14,10 +16,7 @@ const handleSignIn = async (provider: "google" | "github") => {
     });
   } catch (error) {
     toast.error("Sign-in Failed", {
-      description:
-        error instanceof Error
-          ? error.message
-          : "An error occured during sign-in",
+      description: error instanceof Error ? error.message : "An error occured during sign-in",
     });
   }
 };
@@ -39,13 +38,7 @@ const SocialAuthForm = () => {
         <span>Sign in with Github</span>
       </Button>
       <Button className={buttonClass} onClick={() => handleSignIn("google")}>
-        <Image
-          src="/icons/google.svg"
-          className=""
-          alt="Google Icon"
-          height={20}
-          width={20}
-        />
+        <Image src="/icons/google.svg" className="" alt="Google Icon" height={20} width={20} />
         <span>Sign in with Google</span>
       </Button>
     </div>

@@ -1,48 +1,49 @@
 import { UserRole } from "@/types/role";
-import { requireRole } from "@utils/actions/session";
+
+import { BookingPolicySection } from "@components/BookingPolicySection";
+import { PersonalInfoSection } from "@components/PersonalInfoSection";
 import { ProfileHeader } from "@components/ProfileHeader";
 import { ProfilePhotoSection } from "@components/ProfilePhotoSection";
-import { PersonalInfoSection } from "@components/PersonalInfoSection";
 import { TeachingInformationSection } from "@components/TeachingInformationSection";
-import { BookingPolicySection } from "@components/BookingPolicySection";
+import { requireRole } from "@utils/actions/session";
 import { api } from "@utils/api";
 
 const TeacherProfilePage = async () => {
-	const { token } = await requireRole(UserRole.Teacher);
+  const { token } = await requireRole(UserRole.Teacher);
 
-	const { data: teacher } = await api.teacher.getMyProfile(token);
+  const { data: teacher } = await api.teacher.getMyProfile(token);
 
-	return (
-		<div className='min-h-screen bg-[#F8FAFC] text-[#0F172A] antialiased'>
-			<ProfileHeader />
+  return (
+    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] antialiased">
+      <ProfileHeader />
 
-			<main className='max-w-6xl mx-auto px-4 pb-24 grid grid-cols-1 lg:grid-cols-3 gap-6 items-start'>
-				<div className='space-y-6 order-first lg:order-2'>
-					<ProfilePhotoSection image={teacher?.user?.image} />
-				</div>
+      <main className="mx-auto grid max-w-6xl grid-cols-1 items-start gap-6 px-4 pb-24 lg:grid-cols-3">
+        <div className="order-first space-y-6 lg:order-2">
+          <ProfilePhotoSection image={teacher?.user?.image} />
+        </div>
 
-				<div className='lg:col-span-2 space-y-6 order-last lg:order-1'>
-					<PersonalInfoSection key={teacher?.user?.name || "loading"} user={teacher?.user} />
+        <div className="order-last space-y-6 lg:order-1 lg:col-span-2">
+          <PersonalInfoSection key={teacher?.user?.name || "loading"} user={teacher?.user} />
 
-					<TeachingInformationSection
-						key={teacher?.id || "teaching-loading"}
-						teaches={teacher?.teaches}
-					/>
+          <TeachingInformationSection
+            key={teacher?.id || "teaching-loading"}
+            teaches={teacher?.teaches}
+          />
 
-					{teacher && (
-						<BookingPolicySection
-							policy={{
-								requireApproval: teacher.requireApproval,
-								minNoticeHours: teacher.minNoticeHours,
-								maxAdvanceDays: teacher.maxAdvanceDays,
-								cancellationCutoffHours: teacher.cancellationCutoffHours,
-							}}
-						/>
-					)}
-				</div>
-			</main>
-		</div>
-	);
+          {teacher && (
+            <BookingPolicySection
+              policy={{
+                requireApproval: teacher.requireApproval,
+                minNoticeHours: teacher.minNoticeHours,
+                maxAdvanceDays: teacher.maxAdvanceDays,
+                cancellationCutoffHours: teacher.cancellationCutoffHours,
+              }}
+            />
+          )}
+        </div>
+      </main>
+    </div>
+  );
 };
 
 export default TeacherProfilePage;

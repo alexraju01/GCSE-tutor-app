@@ -37,6 +37,4 @@ export const dashboardHomeFor = (role?: string) => {
 };
 
 export const profileRouteFor = (role?: string) =>
-  role === UserRole.Teacher
-    ? ROUTES.DASHBOARD.TEACHER_PROFILE
-    : ROUTES.DASHBOARD.STUDENT_PROFILE;
+  role === UserRole.Teacher ? ROUTES.DASHBOARD.TEACHER_PROFILE : ROUTES.DASHBOARD.STUDENT_PROFILE;

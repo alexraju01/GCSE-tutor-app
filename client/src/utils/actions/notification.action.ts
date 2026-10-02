@@ -1,7 +1,8 @@
 "use server";
 
-import { api, type AppNotification } from "@utils/api";
-import { actionError, type ActionResult } from "./result";
+import { type AppNotification, api } from "@utils/api";
+
+import { type ActionResult, actionError } from "./result";
 import { getBackendSession } from "./session";
 
 const SIGNED_OUT = { ok: false as const, error: "Not signed in." };

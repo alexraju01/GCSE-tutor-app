@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 
-import type { OwnAvailabilitySlot } from "@utils/api";
 import {
   LESSON_DURATIONS,
   lessonLengthForWindow,
@@ -12,6 +11,7 @@ import {
   snapWindowDown,
   snapWindowUp,
 } from "@constants/index";
+import type { OwnAvailabilitySlot } from "@utils/api";
 import { cn } from "@utils/cn";
 import { slotMinutes } from "@utils/date";
 import {
@@ -155,7 +155,7 @@ const WeekGrid = ({ weekStartKey, slots, now, onSlotClick, onCreateRange }: Week
         <div className="min-w-190">
           {/* Day headers */}
           <div className="grid grid-cols-[56px_repeat(7,1fr)] border-b border-slate-200/80 bg-slate-50 text-center dark:border-slate-800/80 dark:bg-slate-800/40">
-            <div className="border-r border-slate-200/80 p-2 text-[10px] font-semibold uppercase text-slate-400 dark:border-slate-800/80">
+            <div className="border-r border-slate-200/80 p-2 text-[10px] font-semibold text-slate-400 uppercase dark:border-slate-800/80">
               UK
             </div>
             {days.map((day) => {
@@ -166,15 +166,13 @@ const WeekGrid = ({ weekStartKey, slots, now, onSlotClick, onCreateRange }: Week
                   key={day}
                   className="flex flex-col items-center gap-0.5 border-r border-slate-200/80 p-2 last:border-r-0 dark:border-slate-800/80"
                 >
-                  <span className="text-[11px] font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <span className="text-[11px] font-medium tracking-wider text-slate-500 uppercase dark:text-slate-400">
                     {formatDayKey(day, { weekday: "short" })}
                   </span>
                   <span
                     className={cn(
                       "flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold",
-                      isToday
-                        ? "bg-blue-600 text-white"
-                        : "text-slate-800 dark:text-slate-100",
+                      isToday ? "bg-blue-600 text-white" : "text-slate-800 dark:text-slate-100",
                     )}
                   >
                     {formatDayKey(day, { day: "numeric" })}
@@ -191,7 +189,10 @@ const WeekGrid = ({ weekStartKey, slots, now, onSlotClick, onCreateRange }: Week
           <div ref={scrollRef} className="max-h-140 overflow-y-auto">
             <div className="grid grid-cols-[56px_repeat(7,1fr)]">
               {/* Time gutter */}
-              <div className="relative border-r border-slate-200/80 dark:border-slate-800/80" style={{ height: ROWS * ROW_HEIGHT }}>
+              <div
+                className="relative border-r border-slate-200/80 dark:border-slate-800/80"
+                style={{ height: ROWS * ROW_HEIGHT }}
+              >
                 {Array.from({ length: 24 }, (_, hour) => (
                   <span
                     key={hour}
@@ -217,7 +218,7 @@ const WeekGrid = ({ weekStartKey, slots, now, onSlotClick, onCreateRange }: Week
                     onPointerMove={handlePointerMove}
                     onPointerUp={handlePointerUp}
                     onPointerCancel={() => setDrag(null)}
-                    className="relative cursor-crosshair touch-none select-none border-r border-slate-100 last:border-r-0 dark:border-slate-800/60"
+                    className="relative cursor-crosshair touch-none border-r border-slate-100 select-none last:border-r-0 dark:border-slate-800/60"
                     style={{
                       height: ROWS * ROW_HEIGHT,
                       backgroundImage: `repeating-linear-gradient(to bottom, transparent 0, transparent ${ROW_HEIGHT * 2 - 1}px, rgb(148 163 184 / 0.25) ${ROW_HEIGHT * 2 - 1}px, rgb(148 163 184 / 0.25) ${ROW_HEIGHT * 2}px)`,
@@ -280,9 +281,7 @@ const WeekGrid = ({ weekStartKey, slots, now, onSlotClick, onCreateRange }: Week
                         }}
                       >
                         {minutesToHHMM(dragRange.from)}–{minutesToHHMM(dragRange.to)}
-                        <span className="block font-medium">
-                          {dragSummary(dragRange)}
-                        </span>
+                        <span className="block font-medium">{dragSummary(dragRange)}</span>
                       </div>
                     )}
                   </div>

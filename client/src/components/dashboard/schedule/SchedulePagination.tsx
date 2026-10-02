@@ -1,6 +1,8 @@
-import Link from "next/link";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Route } from "next";
+import Link from "next/link";
+
+import { ChevronLeft, ChevronRight } from "lucide-react";
+
 import { ROUTES } from "@/constants/routes";
 
 interface SchedulePaginationProps {
@@ -18,8 +20,7 @@ const SchedulePagination = ({
 }: SchedulePaginationProps) => {
   const getPaginationUrl = (page: number): Route => {
     const params = new URLSearchParams();
-    if (selectedMonth !== undefined)
-      params.set("month", String(selectedMonth + 1));
+    if (selectedMonth !== undefined) params.set("month", String(selectedMonth + 1));
     params.set("year", String(selectedYear));
     params.set("filter", activeFilter);
     params.set("sort", activeSort);
@@ -28,10 +29,7 @@ const SchedulePagination = ({
   };
 
   const pages = Array.from({ length: totalPages }, (_, i) => i + 1)
-    .filter(
-      (page) =>
-        page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1,
-    )
+    .filter((page) => page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1)
     .reduce<(number | string)[]>((acc, page, i, arr) => {
       if (i > 0 && page - (arr[i - 1] as number) > 1) acc.push("...");
       acc.push(page);
@@ -42,22 +40,13 @@ const SchedulePagination = ({
     <div className="flex flex-col gap-4 border-t border-slate-200 pt-6 sm:flex-row sm:items-center sm:justify-between dark:border-slate-800">
       <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
         Showing page{" "}
-        <strong className="font-semibold text-slate-900 dark:text-slate-100">
-          {currentPage}
-        </strong>{" "}
+        <strong className="font-semibold text-slate-900 dark:text-slate-100">{currentPage}</strong>{" "}
         of{" "}
-        <strong className="font-semibold text-slate-900 dark:text-slate-100">
-          {totalPages}
-        </strong>{" "}
-        <span className="text-slate-400 dark:text-slate-500">
-          ({totalResults} total lessons)
-        </span>
+        <strong className="font-semibold text-slate-900 dark:text-slate-100">{totalPages}</strong>{" "}
+        <span className="text-slate-400 dark:text-slate-500">({totalResults} total lessons)</span>
       </p>
 
-      <nav
-        aria-label="Pagination Navigation"
-        className="flex items-center gap-1.5"
-      >
+      <nav aria-label="Pagination Navigation" className="flex items-center gap-1.5">
         <Link
           href={getPaginationUrl(currentPage - 1)}
           className={`inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-all dark:border-slate-800 dark:text-slate-300 ${
@@ -66,8 +55,7 @@ const SchedulePagination = ({
               : "hover:bg-slate-100 dark:hover:bg-slate-800"
           }`}
         >
-          <ChevronLeft size={14} />{" "}
-          <span className="hidden sm:inline">Previous</span>
+          <ChevronLeft size={14} /> <span className="hidden sm:inline">Previous</span>
         </Link>
 
         <div className="flex items-center gap-1">
@@ -103,8 +91,7 @@ const SchedulePagination = ({
               : "hover:bg-slate-100 dark:hover:bg-slate-800"
           }`}
         >
-          <span className="hidden sm:inline">Next</span>{" "}
-          <ChevronRight size={14} />
+          <span className="hidden sm:inline">Next</span> <ChevronRight size={14} />
         </Link>
       </nav>
     </div>

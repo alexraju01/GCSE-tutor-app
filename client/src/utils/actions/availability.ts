@@ -1,23 +1,29 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+
+import { ROUTES } from "@/constants/routes";
+
 import {
-  api,
   type AvailabilityPayloadItem,
   type OwnAvailabilitySlot,
   type RecurringAvailabilityPayload,
   type TeacherAvailabilitySlot,
+  api,
 } from "@utils/api";
-import { actionError, type ActionResult } from "./result";
+
+import { type ActionResult, actionError } from "./result";
 import { getBackendSession } from "./session";
-import { ROUTES } from "@/constants/routes";
 
 // server actions so the backend token stays on the server
 
 const getTeacherToken = async (): Promise<string | null> =>
   (await getBackendSession("Teacher"))?.token ?? null;
 
-const UNAUTHORIZED = { ok: false as const, error: "Only signed-in tutors can manage availability." };
+const UNAUTHORIZED = {
+  ok: false as const,
+  error: "Only signed-in tutors can manage availability.",
+};
 
 const revalidateSchedulePages = () => {
   revalidatePath(ROUTES.DASHBOARD.AVAILABILITY);

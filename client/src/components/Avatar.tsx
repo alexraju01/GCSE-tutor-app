@@ -1,11 +1,12 @@
 "use client";
 
-import { LayoutDashboard, LogOut, User } from "lucide-react";
 import type { Route } from "next";
-import { signOut } from "next-auth/react";
 import Link from "next/link";
 
-import { dashboardHomeFor, profileRouteFor, ROUTES } from "@/constants/routes";
+import { LayoutDashboard, LogOut, User } from "lucide-react";
+import { signOut } from "next-auth/react";
+
+import { ROUTES, dashboardHomeFor, profileRouteFor } from "@/constants/routes";
 
 interface User {
   name?: string | null;
@@ -19,28 +20,21 @@ interface AvatarProps {
 }
 
 const Avatar = ({ user, setIsOpen }: AvatarProps) => {
-  const formattedRole =
-    user?.role === "Teacher" ? "Teacher Account" : "Student Account";
+  const formattedRole = user?.role === "Teacher" ? "Teacher Account" : "Student Account";
 
-  const dashboardLink = (dashboardHomeFor(user?.role) ??
-    ROUTES.DASHBOARD.ROOT) as Route;
+  const dashboardLink = (dashboardHomeFor(user?.role) ?? ROUTES.DASHBOARD.ROOT) as Route;
   const profileLink = profileRouteFor(user?.role) as Route;
 
   return (
     <>
-      <div
-        className="fixed inset-0 z-10 cursor-default"
-        onClick={() => setIsOpen(false)}
-      />
+      <div className="fixed inset-0 z-10 cursor-default" onClick={() => setIsOpen(false)} />
 
       <div className="absolute top-full right-0 z-20 mt-3 w-60 origin-top-right transform overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl transition-all duration-200">
         <div className="border-b border-slate-100 bg-slate-50 px-4 py-3.5">
           <p className="truncate text-sm font-bold text-slate-900">
             {user?.name || "GCSE Ace User"}
           </p>
-          <p className="mt-0.5 truncate text-xs font-medium text-slate-500">
-            {user?.email}
-          </p>
+          <p className="mt-0.5 truncate text-xs font-medium text-slate-500">{user?.email}</p>
 
           <div className="mt-2 inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-0.5 text-[10px] font-bold tracking-wider text-blue-700 uppercase">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-600" />
@@ -76,10 +70,7 @@ const Avatar = ({ user, setIsOpen }: AvatarProps) => {
             onClick={() => signOut({ callbackUrl: "/" })}
             className="group flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-bold text-red-600 transition-colors hover:bg-red-50"
           >
-            <LogOut
-              size={16}
-              className="text-red-400 transition-colors group-hover:text-red-600"
-            />
+            <LogOut size={16} className="text-red-400 transition-colors group-hover:text-red-600" />
             Logout
           </button>
         </div>

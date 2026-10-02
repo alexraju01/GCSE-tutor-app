@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useTransition } from "react";
+
 import { Check, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Modal } from "@components/ui/modal";
-import { respondToLessonAction } from "@utils/actions/lesson.action";
 import { buttonClass, labelClass, textareaClass } from "@components/ui/styles";
+import { respondToLessonAction } from "@utils/actions/lesson.action";
 
 interface LessonRequestActionsProps {
   lessonId: string;
@@ -21,7 +22,11 @@ const LessonRequestActions = ({ lessonId, lessonLabel }: LessonRequestActionsPro
 
   const respond = (decision: "approve" | "decline") => {
     startTransition(async () => {
-      const result = await respondToLessonAction(lessonId, decision, decision === "decline" ? reason : undefined);
+      const result = await respondToLessonAction(
+        lessonId,
+        decision,
+        decision === "decline" ? reason : undefined,
+      );
       if (!result.ok) {
         toast.error(result.error);
         return;

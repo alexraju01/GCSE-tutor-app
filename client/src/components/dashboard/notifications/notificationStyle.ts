@@ -1,7 +1,16 @@
-import { CalendarCheck, CalendarX, CircleCheck, CircleX, Inbox, type LucideIcon } from "lucide-react";
 import type { Route } from "next";
 
-import { lessonRoute, ROUTES } from "@/constants/routes";
+import {
+  CalendarCheck,
+  CalendarX,
+  CircleCheck,
+  CircleX,
+  Inbox,
+  type LucideIcon,
+} from "lucide-react";
+
+import { ROUTES, lessonRoute } from "@/constants/routes";
+
 import type { AppNotification } from "@utils/api";
 
 interface NotificationStyle {
@@ -17,13 +26,15 @@ export const NOTIFICATION_STYLES: Record<AppNotification["type"], NotificationSt
   LessonBooked: {
     label: "New booking",
     icon: CalendarCheck,
-    iconClass: "bg-blue-50 text-blue-600 ring-blue-100 dark:bg-blue-500/15 dark:text-blue-300 dark:ring-blue-500/20",
+    iconClass:
+      "bg-blue-50 text-blue-600 ring-blue-100 dark:bg-blue-500/15 dark:text-blue-300 dark:ring-blue-500/20",
     accentClass: "bg-blue-600",
   },
   LessonRequested: {
     label: "Booking request",
     icon: Inbox,
-    iconClass: "bg-amber-50 text-amber-600 ring-amber-100 dark:bg-amber-500/15 dark:text-amber-300 dark:ring-amber-500/20",
+    iconClass:
+      "bg-amber-50 text-amber-600 ring-amber-100 dark:bg-amber-500/15 dark:text-amber-300 dark:ring-amber-500/20",
     accentClass: "bg-amber-500",
   },
   LessonConfirmed: {
@@ -36,13 +47,15 @@ export const NOTIFICATION_STYLES: Record<AppNotification["type"], NotificationSt
   LessonDeclined: {
     label: "Request declined",
     icon: CircleX,
-    iconClass: "bg-slate-100 text-slate-600 ring-slate-200 dark:bg-slate-500/15 dark:text-slate-300 dark:ring-slate-500/20",
+    iconClass:
+      "bg-slate-100 text-slate-600 ring-slate-200 dark:bg-slate-500/15 dark:text-slate-300 dark:ring-slate-500/20",
     accentClass: "bg-slate-400",
   },
   LessonCancelled: {
     label: "Lesson cancelled",
     icon: CalendarX,
-    iconClass: "bg-rose-50 text-rose-600 ring-rose-100 dark:bg-rose-500/15 dark:text-rose-300 dark:ring-rose-500/20",
+    iconClass:
+      "bg-rose-50 text-rose-600 ring-rose-100 dark:bg-rose-500/15 dark:text-rose-300 dark:ring-rose-500/20",
     accentClass: "bg-rose-500",
   },
 };

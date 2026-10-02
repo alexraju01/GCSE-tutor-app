@@ -1,4 +1,5 @@
 import { FeaturesSection, HeroSection } from "@components";
+
 const HomePage = async () => {
   return (
     <div className="flex min-h-screen flex-col overflow-x-hidden bg-slate-50 text-slate-900 antialiased transition-colors duration-500 selection:bg-blue-500/30 dark:bg-[#0b0f19] dark:text-slate-200">

@@ -1,6 +1,9 @@
-import { Check, Clock } from "lucide-react";
 import { useSyncExternalStore } from "react";
+
+import { Check, Clock } from "lucide-react";
+
 import { formatUkTimeRange, viewerIsOutsideUk } from "@utils/ukTime";
+
 import type { BookingState } from "./useBookLessonModal";
 
 const subscribeNever = () => () => {};
@@ -16,7 +19,7 @@ const TimeSlotPicker = ({ booking }: { booking: BookingState }) => {
 
   return (
     <div>
-      <span className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
+      <span className="mb-3 block text-xs font-semibold tracking-wider text-slate-400 uppercase">
         2. Select Time Slots (pick as many as you like)
       </span>
 
@@ -36,38 +39,33 @@ const TimeSlotPicker = ({ booking }: { booking: BookingState }) => {
                   type="button"
                   onClick={() => onToggleSlot(slot)}
                   aria-pressed={isSelected}
-                  className={`w-full flex items-center justify-between p-3 rounded-xl border text-xs transition-all cursor-pointer ${
+                  className={`flex w-full cursor-pointer items-center justify-between rounded-xl border p-3 text-xs transition-all ${
                     isSelected
-                      ? "border-transparent bg-linear-to-r from-blue-600 to-indigo-600 text-white shadow-sm font-semibold"
-                      : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-slate-800 dark:text-slate-200 bg-slate-50/50 dark:bg-slate-950/50"
+                      ? "border-transparent bg-linear-to-r from-blue-600 to-indigo-600 font-semibold text-white shadow-sm"
+                      : "border-slate-200 bg-slate-50/50 text-slate-800 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-950/50 dark:text-slate-200 dark:hover:border-slate-700"
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
-                    <Clock
-                      size={14}
-                      className={isSelected ? "text-white" : "text-slate-400"}
-                    />
+                    <Clock size={14} className={isSelected ? "text-white" : "text-slate-400"} />
                     <span>
                       {formatUkTimeRange(start, end)}
                       {showLocal && (
-                        <span className={`ml-1.5 font-normal ${isSelected ? "text-blue-100" : "text-slate-400"}`}>
+                        <span
+                          className={`ml-1.5 font-normal ${isSelected ? "text-blue-100" : "text-slate-400"}`}
+                        >
                           ({localTime(start)} your time)
                         </span>
                       )}
                     </span>
                   </div>
-                  {isSelected && (
-                    <Check size={14} className="text-white shrink-0" />
-                  )}
+                  {isSelected && <Check size={14} className="shrink-0 text-white" />}
                 </button>
               );
             })}
           </div>
         ) : (
           <div className="flex h-full items-center justify-center">
-            <p className="text-xs text-slate-400">
-              Select a highlighted date to view time slots.
-            </p>
+            <p className="text-xs text-slate-400">Select a highlighted date to view time slots.</p>
           </div>
         )}
       </div>

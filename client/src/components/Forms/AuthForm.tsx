@@ -1,24 +1,9 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Field,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+
+import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import {
   Controller,
   type DefaultValues,
@@ -29,6 +14,18 @@ import {
 } from "react-hook-form";
 import { toast } from "sonner";
 import type { ZodType } from "zod";
+
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 
 interface AuthFormProps<T extends FieldValues> {
   // Specify both output and input generic types for ZodType
@@ -57,10 +54,7 @@ const AuthForm = <T extends FieldValues>({
 
     if (result?.status === "success") {
       toast.success("Success", {
-        description:
-          formType === "SIGN-IN"
-            ? "Signed in successfully!"
-            : "Signed up successfully!",
+        description: formType === "SIGN-IN" ? "Signed in successfully!" : "Signed up successfully!",
       });
       router.push("/");
     } else {
@@ -81,15 +75,11 @@ const AuthForm = <T extends FieldValues>({
   };
 
   const humanizeFieldName = (fieldName: string): string =>
-    fieldName
-      .replace(/([A-Z])/g, " $1")
-      .replace(/^./, (char) => char.toUpperCase());
+    fieldName.replace(/([A-Z])/g, " $1").replace(/^./, (char) => char.toUpperCase());
 
   const buttonText = isSignIn ? "Login In" : "Sign Up";
   const loadingText = isSignIn ? "Signing In..." : "Signing Up...";
-  const displayButtonContent = form.formState.isSubmitting
-    ? loadingText
-    : buttonText;
+  const displayButtonContent = form.formState.isSubmitting ? loadingText : buttonText;
 
   return (
     <Card className="w-full ring-0 sm:max-w-md">
@@ -109,25 +99,18 @@ const AuthForm = <T extends FieldValues>({
                 control={form.control}
                 render={({ field, fieldState }) => {
                   let inputType = "text";
-                  if (
-                    fieldName === "password" ||
-                    fieldName === "confirmPassword"
-                  ) {
+                  if (fieldName === "password" || fieldName === "confirmPassword") {
                     inputType = "password";
                   } else if (fieldName === "email") {
                     inputType = "email";
                   }
 
                   const fieldLabel =
-                    fieldName === "email"
-                      ? "Email Address"
-                      : humanizeFieldName(fieldName);
+                    fieldName === "email" ? "Email Address" : humanizeFieldName(fieldName);
 
                   return (
                     <Field data-invalid={fieldState.invalid}>
-                      <FieldLabel htmlFor={`auth-field-${fieldName}`}>
-                        {fieldLabel}
-                      </FieldLabel>
+                      <FieldLabel htmlFor={`auth-field-${fieldName}`}>{fieldLabel}</FieldLabel>
                       <Input
                         {...field}
                         id={`auth-field-${fieldName}`}
@@ -135,9 +118,7 @@ const AuthForm = <T extends FieldValues>({
                         className="w-full rounded-md border border-gray-300 px-4 py-6 transition outline-none focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-blue-500 data-[invalid=true]:border-red-500"
                         aria-invalid={fieldState.invalid}
                         placeholder={
-                          fieldName === "email"
-                            ? "Email Address"
-                            : humanizeFieldName(fieldName)
+                          fieldName === "email" ? "Email Address" : humanizeFieldName(fieldName)
                         }
                         autoComplete={getAutoComplete(fieldName)}
                       />
@@ -167,20 +148,14 @@ const AuthForm = <T extends FieldValues>({
         {isSignIn ? (
           <p className="text-sm text-gray-600">
             Don&apos;t have an account?{" "}
-            <Link
-              href="/sign-up"
-              className="font-medium text-blue-600 hover:underline"
-            >
+            <Link href="/sign-up" className="font-medium text-blue-600 hover:underline">
               Sign Up
             </Link>
           </p>
         ) : (
           <p className="text-sm text-gray-600">
             Already have an account?{" "}
-            <Link
-              href="/sign-in"
-              className="font-medium text-blue-600 hover:underline"
-            >
+            <Link href="/sign-in" className="font-medium text-blue-600 hover:underline">
               Login In
             </Link>
           </p>

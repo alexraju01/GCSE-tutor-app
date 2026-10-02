@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+
 import type { BookingPolicy, Teacher } from "@/types/teacher";
+
 import { isAllowedLessonDuration } from "@constants/index";
 import { bookLessonsAction } from "@utils/actions/lesson.action";
-import { api, type BookingConflict, type TeacherAvailabilitySlot } from "@utils/api";
+import { type BookingConflict, type TeacherAvailabilitySlot, api } from "@utils/api";
 import { slotMinutes } from "@utils/date";
 import { addDaysToKey, toUkDateKey, ukMinutesOfDay, ukWeekStartKey } from "@utils/ukTime";
 
@@ -73,11 +75,14 @@ export const useBookLessonModal = ({ isOpen, teacher }: UseBookLessonModalParams
   const [details, setDetails] = useState<Record<string, LessonDetails>>({});
   const [activeSlotId, setActiveSlotId] = useState<string | null>(null);
   // details new picks start with (copied from the last one)
-  const [template, setTemplate] = useState<LessonDetails>({ subject: defaultSubject, topic: "", notes: "" });
+  const [template, setTemplate] = useState<LessonDetails>({
+    subject: defaultSubject,
+    topic: "",
+    notes: "",
+  });
 
   // same key while the booking is unchanged so retries can't double-book
   const idempotencyRef = useRef<{ signature: string; key: string } | null>(null);
-
 
   // select the slot's day and move the window only if the day isn't already in view
   const selectSlotView = (slot: RawAvailability) => {
@@ -176,10 +181,12 @@ export const useBookLessonModal = ({ isOpen, teacher }: UseBookLessonModalParams
   );
 
   const thisWeekKey = ukWeekStartKey(new Date());
-  const lastSlotKey = slots.length > 0 ? toUkDateKey(new Date(slots[slots.length - 1].startTime)) : null;
+  const lastSlotKey =
+    slots.length > 0 ? toUkDateKey(new Date(slots[slots.length - 1].startTime)) : null;
   // can't go back before this week, or forward past the last bookable slot
   const canGoPrev = windowStartKey > thisWeekKey;
-  const canGoNext = lastSlotKey !== null && lastSlotKey >= addDaysToKey(windowStartKey, CALENDAR_DAYS);
+  const canGoNext =
+    lastSlotKey !== null && lastSlotKey >= addDaysToKey(windowStartKey, CALENDAR_DAYS);
 
   const nextAvailable = useMemo(() => slots.slice(0, NEXT_AVAILABLE_COUNT), [slots]);
 
@@ -263,7 +270,10 @@ export const useBookLessonModal = ({ isOpen, teacher }: UseBookLessonModalParams
     addSlots(toAdd, getDetails(slot.id));
 
     const parts = [`Added ${toAdd.length} more ${toAdd.length === 1 ? "week" : "weeks"}.`];
-    if (missing > 0) parts.push(`${missing} ${missing === 1 ? "week isn't" : "weeks aren't"} available at that time.`);
+    if (missing > 0)
+      parts.push(
+        `${missing} ${missing === 1 ? "week isn't" : "weeks aren't"} available at that time.`,
+      );
     if (found.length > toAdd.length) parts.push(`Stopped at the ${MAX_BATCH_SIZE}-lesson limit.`);
     setNoticeMessage(parts.join(" "));
   };
@@ -271,7 +281,10 @@ export const useBookLessonModal = ({ isOpen, teacher }: UseBookLessonModalParams
   const updateActiveDetails = (patch: Partial<LessonDetails>) => {
     setTemplate((prev) => ({ ...prev, ...patch }));
     if (activeSlotId) {
-      setDetails((prev) => ({ ...prev, [activeSlotId]: { ...getDetails(activeSlotId), ...patch } }));
+      setDetails((prev) => ({
+        ...prev,
+        [activeSlotId]: { ...getDetails(activeSlotId), ...patch },
+      }));
     }
   };
 
@@ -300,7 +313,8 @@ export const useBookLessonModal = ({ isOpen, teacher }: UseBookLessonModalParams
   const getConfirmButtonLabel = (): string => {
     if (isSubmitting) return requiresApproval ? "Sending..." : "Booking...";
     const noun = selectedSlots.length > 1 ? `${selectedSlots.length} ` : "";
-    if (requiresApproval) return `Request ${noun}${selectedSlots.length > 1 ? "lessons" : "lesson"}`;
+    if (requiresApproval)
+      return `Request ${noun}${selectedSlots.length > 1 ? "lessons" : "lesson"}`;
     return `Confirm ${noun}${selectedSlots.length > 1 ? "bookings" : "booking"}`;
   };
 
@@ -329,12 +343,16 @@ export const useBookLessonModal = ({ isOpen, teacher }: UseBookLessonModalParams
     setSelectedSlots((prev) => prev.filter((s) => !conflictIds.has(s.id)));
 
     const unbookable = new Set(
-      conflicts.filter((c) => c.reason !== "subject" && c.reason !== "student_overlap").map((c) => c.availabilityId),
+      conflicts
+        .filter((c) => c.reason !== "subject" && c.reason !== "student_overlap")
+        .map((c) => c.availabilityId),
     );
     setSlots((prev) => prev.filter((s) => !unbookable.has(s.id)));
 
     const summary =
-      lost.length === 1 ? conflicts[0].message : `${lost.length} of your lessons couldn't be booked: ${conflicts[0].message}`;
+      lost.length === 1
+        ? conflicts[0].message
+        : `${lost.length} of your lessons couldn't be booked: ${conflicts[0].message}`;
     setErrorMessage(
       remaining > 0
         ? `${summary} We've removed ${lost.length === 1 ? "it" : "them"} — ${remaining} ${remaining === 1 ? "lesson is" : "lessons are"} still selected.`

@@ -17,7 +17,8 @@ export const pastTimeStripes = (spacingPx = 9) =>
 
 // a window is only usable if one lesson length fills it exactly - no spare time
 export const fitsWholeLessons = (windowMinutes: number): boolean =>
-  windowMinutes >= LESSON_DURATIONS[0] && LESSON_DURATIONS.some((length) => windowMinutes % length === 0);
+  windowMinutes >= LESSON_DURATIONS[0] &&
+  LESSON_DURATIONS.some((length) => windowMinutes % length === 0);
 
 // smallest window >= minutes (in 30 min steps) that fits whole lessons, e.g. 150 -> 180
 export const snapWindowUp = (minutes: number): number => {

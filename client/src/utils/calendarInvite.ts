@@ -9,7 +9,11 @@ export interface CalendarEvent {
 }
 
 // iCal UTC timestamp: 20261005T160000Z
-const toIcsDate = (date: Date) => date.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+const toIcsDate = (date: Date) =>
+  date
+    .toISOString()
+    .replace(/[-:]/g, "")
+    .replace(/\.\d{3}/, "");
 
 // ics text values need , ; \ and newlines escaped
 const escapeText = (value: string) =>

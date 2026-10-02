@@ -1,9 +1,10 @@
 "use client";
 
+import { ReactNode } from "react";
+
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ReactNode } from "react";
 
 interface ActiveLinkProps {
   href: Route;
@@ -22,8 +23,7 @@ const ActiveLink = ({
   onClick,
 }: ActiveLinkProps) => {
   const pathname = usePathname();
-  const isActive =
-    pathname === href || (!exact && pathname.startsWith(`${href}/`));
+  const isActive = pathname === href || (!exact && pathname.startsWith(`${href}/`));
 
   return (
     <Link
@@ -31,9 +31,7 @@ const ActiveLink = ({
       onClick={onClick}
       aria-current={isActive ? "page" : undefined}
       className={`group flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-        isActive
-          ? "bg-blue-600 text-white"
-          : "text-slate-600 hover:bg-slate-50 hover:text-blue-600"
+        isActive ? "bg-blue-600 text-white" : "text-slate-600 hover:bg-slate-50 hover:text-blue-600"
       } ${className}`}
     >
       {children}

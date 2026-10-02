@@ -1,30 +1,21 @@
-import {
-  BookOpen,
-  Calendar,
-  CheckCircle,
-  Clock,
-  Plus,
-  UserCheck,
-} from "lucide-react";
+import Link from "next/link";
+
+import { BookOpen, Calendar, CheckCircle, Clock, Plus, UserCheck } from "lucide-react";
 
 import { ROUTES } from "@/constants/routes";
-import { api } from "@utils/api";
-import { requireRole } from "@utils/actions/session";
 import { UserRole } from "@/types/role";
-import QuickToolsList from "@components/QuickToolsList";
-import StatsGrid, {
-  STAT_ACCENTS,
-  type StatItem,
-} from "@components/dashboard/StatsGrid";
-import UpcomingSessions from "@components/dashboard/UpcomingSessions";
+
 import { WelcomeBanner } from "@components";
-import Link from "next/link";
+import QuickToolsList from "@components/QuickToolsList";
+import StatsGrid, { STAT_ACCENTS, type StatItem } from "@components/dashboard/StatsGrid";
+import UpcomingSessions from "@components/dashboard/UpcomingSessions";
+import { requireRole } from "@utils/actions/session";
+import { api } from "@utils/api";
 
 const StudentDashboardPage = async () => {
   const { user, token } = await requireRole(UserRole.Student);
 
-  const { data: studentDashboard } =
-    await api.dashboard.studentDashboard(token);
+  const { data: studentDashboard } = await api.dashboard.studentDashboard(token);
 
   const upcomingLessons = studentDashboard?.upcomingLessons ?? [];
 
@@ -33,39 +24,28 @@ const StudentDashboardPage = async () => {
       label: "Active Tutors",
       value: String(studentDashboard?.activeTeachers ?? 0),
       caption: "Current active tutors",
-      icon: (
-        <UserCheck size={16} className="text-blue-600 dark:text-blue-400" />
-      ),
+      icon: <UserCheck size={16} className="text-blue-600 dark:text-blue-400" />,
       ...STAT_ACCENTS.blue,
     },
     {
       label: "Learning Hours",
       value: `${studentDashboard?.totalHoursLearned ?? 0} hrs`,
       caption: "Total logged study time",
-      icon: (
-        <Clock size={16} className="text-emerald-600 dark:text-emerald-400" />
-      ),
+      icon: <Clock size={16} className="text-emerald-600 dark:text-emerald-400" />,
       ...STAT_ACCENTS.emerald,
     },
     {
       label: "Completed Lessons",
       value: String(studentDashboard?.completedLessons ?? 0),
       caption: "Successfully attended",
-      icon: (
-        <CheckCircle
-          size={16}
-          className="text-indigo-600 dark:text-indigo-400"
-        />
-      ),
+      icon: <CheckCircle size={16} className="text-indigo-600 dark:text-indigo-400" />,
       ...STAT_ACCENTS.indigo,
     },
     {
       label: "Subjects",
       value: String(studentDashboard?.subjects?.length ?? 0),
       caption: "Currently enrolled in",
-      icon: (
-        <BookOpen size={16} className="text-amber-600 dark:text-amber-400" />
-      ),
+      icon: <BookOpen size={16} className="text-amber-600 dark:text-amber-400" />,
       ...STAT_ACCENTS.amber,
     },
   ];
@@ -115,7 +95,7 @@ const StudentDashboardPage = async () => {
 
           {/* QUICK TOOLS */}
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+            <p className="text-[11px] font-bold tracking-wider text-slate-400 uppercase dark:text-slate-500">
               Quick Tools
             </p>
             <QuickToolsList />

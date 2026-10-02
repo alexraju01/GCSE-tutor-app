@@ -1,16 +1,15 @@
 "use client";
 
+import { useMemo } from "react";
+
+import { type VariantProps, cva } from "class-variance-authority";
+
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { cva, type VariantProps } from "class-variance-authority";
-import { useMemo } from "react";
 
 import { cn } from "@utils/cn";
 
-const FieldSet = ({
-  className,
-  ...props
-}: React.ComponentProps<"fieldset">) => {
+const FieldSet = ({ className, ...props }: React.ComponentProps<"fieldset">) => {
   return (
     <fieldset
       data-slot="field-set"
@@ -54,23 +53,20 @@ const FieldGroup = ({ className, ...props }: React.ComponentProps<"div">) => {
   );
 };
 
-const fieldVariants = cva(
-  "group/field flex w-full gap-3 data-[invalid=true]:text-destructive",
-  {
-    variants: {
-      orientation: {
-        vertical: "flex-col *:w-full [&>.sr-only]:w-auto",
-        horizontal:
-          "flex-row items-center has-[>[data-slot=field-content]]:items-start *:data-[slot=field-label]:flex-auto has-[>[data-slot=field-content]]:[&>[role=checkbox],[role=radio]]:mt-px",
-        responsive:
-          "flex-col *:w-full @md/field-group:flex-row @md/field-group:items-center @md/field-group:*:w-auto @md/field-group:has-[>[data-slot=field-content]]:items-start @md/field-group:*:data-[slot=field-label]:flex-auto [&>.sr-only]:w-auto @md/field-group:has-[>[data-slot=field-content]]:[&>[role=checkbox],[role=radio]]:mt-px",
-      },
-    },
-    defaultVariants: {
-      orientation: "vertical",
+const fieldVariants = cva("group/field data-[invalid=true]:text-destructive flex w-full gap-3", {
+  variants: {
+    orientation: {
+      vertical: "flex-col *:w-full [&>.sr-only]:w-auto",
+      horizontal:
+        "flex-row items-center has-[>[data-slot=field-content]]:items-start *:data-[slot=field-label]:flex-auto has-[>[data-slot=field-content]]:[&>[role=checkbox],[role=radio]]:mt-px",
+      responsive:
+        "flex-col *:w-full @md/field-group:flex-row @md/field-group:items-center @md/field-group:*:w-auto @md/field-group:has-[>[data-slot=field-content]]:items-start @md/field-group:*:data-[slot=field-label]:flex-auto [&>.sr-only]:w-auto @md/field-group:has-[>[data-slot=field-content]]:[&>[role=checkbox],[role=radio]]:mt-px",
     },
   },
-);
+  defaultVariants: {
+    orientation: "vertical",
+  },
+});
 
 const Field = ({
   className,
@@ -92,19 +88,13 @@ const FieldContent = ({ className, ...props }: React.ComponentProps<"div">) => {
   return (
     <div
       data-slot="field-content"
-      className={cn(
-        "group/field-content flex flex-1 flex-col gap-1 leading-snug",
-        className,
-      )}
+      className={cn("group/field-content flex flex-1 flex-col gap-1 leading-snug", className)}
       {...props}
     />
   );
 };
 
-const FieldLabel = ({
-  className,
-  ...props
-}: React.ComponentProps<typeof Label>) => {
+const FieldLabel = ({ className, ...props }: React.ComponentProps<typeof Label>) => {
   return (
     <Label
       data-slot="field-label"
@@ -131,10 +121,7 @@ const FieldTitle = ({ className, ...props }: React.ComponentProps<"div">) => {
   );
 };
 
-const FieldDescription = ({
-  className,
-  ...props
-}: React.ComponentProps<"p">) => {
+const FieldDescription = ({ className, ...props }: React.ComponentProps<"p">) => {
   return (
     <p
       data-slot="field-description"
@@ -168,10 +155,7 @@ const FieldSeparator = ({
     >
       <Separator className="absolute inset-0 top-1/2" />
       {children && (
-        <span
-          className=" relative mx-auto block w-fit  px-2"
-          data-slot="field-separator-content"
-        >
+        <span className="relative mx-auto block w-fit px-2" data-slot="field-separator-content">
           {children}
         </span>
       )}
@@ -196,9 +180,7 @@ const FieldError = ({
       return null;
     }
 
-    const uniqueErrors = [
-      ...new Map(errors.map((error) => [error?.message, error])).values(),
-    ];
+    const uniqueErrors = [...new Map(errors.map((error) => [error?.message, error])).values()];
 
     if (uniqueErrors?.length === 1) {
       return uniqueErrors[0]?.message;
@@ -206,10 +188,7 @@ const FieldError = ({
 
     return (
       <ul className="ml-4 flex list-disc flex-col gap-1">
-        {uniqueErrors.map(
-          (error, index) =>
-            error?.message && <li key={index}>{error.message}</li>,
-        )}
+        {uniqueErrors.map((error, index) => error?.message && <li key={index}>{error.message}</li>)}
       </ul>
     );
   }, [children, errors]);

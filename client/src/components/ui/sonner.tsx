@@ -1,7 +1,8 @@
 "use client";
 
-import { CircleCheck, Info, Loader2, OctagonX, TriangleAlert } from "lucide-react";
 import type { ReactNode } from "react";
+
+import { CircleCheck, Info, Loader2, OctagonX, TriangleAlert } from "lucide-react";
 import { Toaster as Sonner, type ToasterProps } from "sonner";
 
 import { cn } from "@utils/cn";

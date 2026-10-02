@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
+
 import { CalendarPlus } from "lucide-react";
 
 import { Modal } from "@components/ui/modal";
 import { Select } from "@components/ui/select";
+import { buttonClass } from "@components/ui/styles";
+import { inputClass, labelClass } from "@components/ui/styles";
 import { LESSON_DURATIONS, lessonLengthForWindow, lessonLengthLabel } from "@constants/index";
 import {
   createRecurringAvailabilityAction,
@@ -22,8 +25,6 @@ import {
   toUkDateKey,
   ukInstant,
 } from "@utils/ukTime";
-import { buttonClass } from "@components/ui/styles";
-import { inputClass, labelClass } from "@components/ui/styles";
 
 // prefill from dragging on the week grid
 export interface AvailabilityDraft {
@@ -107,7 +108,10 @@ const changeLength = (form: FormState, lessonLength: number): Partial<FormState>
   const wanted = Math.max(1, Math.floor(windowMinutes / form.lessonLength));
   const fits = Math.max(1, Math.floor((DAY_MINUTES - 1 - start) / lessonLength));
   const count = Math.min(wanted, fits);
-  return { lessonLength, to: minutesToHHMM(Math.min(start + count * lessonLength, DAY_MINUTES - 1)) };
+  return {
+    lessonLength,
+    to: minutesToHHMM(Math.min(start + count * lessonLength, DAY_MINUTES - 1)),
+  };
 };
 
 // every lesson the form would create, back to back inside from–to, repeated weekly
@@ -123,13 +127,15 @@ const buildSlots = ({ date, from, to, lessonLength, weeks }: FormState): Slot[] 
     for (let start = fromMinutes; start + lessonLength <= toMinutes; start += lessonLength) {
       const startMs = ukInstant(day, start).getTime();
       if (startMs <= now) continue;
-      slots.push({ key: `${day}|${minutesToHHMM(start)}`, start: startMs, end: startMs + lessonLength * 60_000 });
+      slots.push({
+        key: `${day}|${minutesToHHMM(start)}`,
+        start: startMs,
+        end: startMs + lessonLength * 60_000,
+      });
     }
   }
   return slots;
 };
-
-
 
 const SetAvailabilityModal = ({ open, onClose, draft, onSaved }: SetAvailabilityModalProps) => {
   const [isPending, startTransition] = useTransition();
@@ -169,7 +175,9 @@ const SetAvailabilityModal = ({ open, onClose, draft, onSaved }: SetAvailability
   }, [open, spanKey]);
 
   const allSlots = useMemo(() => buildSlots(form), [form]);
-  const clashes = allSlots.filter((slot) => existing.some((e) => e.start < slot.end && slot.start < e.end));
+  const clashes = allSlots.filter((slot) =>
+    existing.some((e) => e.start < slot.end && slot.start < e.end),
+  );
   const newSlots = allSlots.filter((slot) => !clashes.includes(slot));
 
   const windowMinutes = hhmmToMinutes(form.to || "00:00") - hhmmToMinutes(form.from || "00:00");
@@ -183,7 +191,8 @@ const SetAvailabilityModal = ({ open, onClose, draft, onSaved }: SetAvailability
   const problem = (() => {
     if (!form.date || !form.from || !form.to) return "Pick a date and times.";
     if (windowMinutes <= 0) return "The end time must be after the start time.";
-    if (lessonsPerDay === 0) return `That's shorter than a ${lessonLengthLabel(form.lessonLength)} lesson.`;
+    if (lessonsPerDay === 0)
+      return `That's shorter than a ${lessonLengthLabel(form.lessonLength)} lesson.`;
     // no spare time allowed - suggest the nearest end times that fit whole lessons
     if (leftover > 0) {
       const start = hhmmToMinutes(form.from);
@@ -219,7 +228,10 @@ const SetAvailabilityModal = ({ open, onClose, draft, onSaved }: SetAvailability
         setError(result.error);
         return;
       }
-      onSaved({ created: result.data.created.length, skipped: result.data.skipped.length + clashes.length });
+      onSaved({
+        created: result.data.created.length,
+        skipped: result.data.skipped.length + clashes.length,
+      });
       onClose();
     });
   };
@@ -350,7 +362,8 @@ const SetAvailabilityModal = ({ open, onClose, draft, onSaved }: SetAvailability
           {error ?? problem ?? (
             <>
               <p className="font-semibold">
-                {pluralise(lessonsPerDay, `${lessonLengthLabel(form.lessonLength)} lesson`)}: {firstDayTimes.join(", ")}
+                {pluralise(lessonsPerDay, `${lessonLengthLabel(form.lessonLength)} lesson`)}:{" "}
+                {firstDayTimes.join(", ")}
               </p>
               <p className="mt-0.5 opacity-80">
                 {form.weeks > 1

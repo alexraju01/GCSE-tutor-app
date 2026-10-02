@@ -1,13 +1,20 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
+
 import { pastTimeStripes } from "@constants/index";
 import { cn } from "@utils/cn";
 import { addDaysToKey, formatDayKey } from "@utils/ukTime";
+
 import type { BookingState } from "./useBookLessonModal";
 
 const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-const getDayCellClasses = (isPast: boolean, hasAvailability: boolean, isSelected: boolean): string => {
-  if (isPast) return "cursor-not-allowed bg-slate-50/80 text-slate-300 dark:bg-slate-900/50 dark:text-slate-700";
+const getDayCellClasses = (
+  isPast: boolean,
+  hasAvailability: boolean,
+  isSelected: boolean,
+): string => {
+  if (isPast)
+    return "cursor-not-allowed bg-slate-50/80 text-slate-300 dark:bg-slate-900/50 dark:text-slate-700";
   if (!hasAvailability) {
     return "cursor-not-allowed bg-slate-50/50 text-slate-400 dark:bg-slate-900/50 dark:text-slate-600";
   }
@@ -41,16 +48,30 @@ const BookingCalendar = ({ booking }: { booking: BookingState }) => {
   )}`;
 
   return (
-    <div className="border-b border-slate-100 pb-6 dark:border-slate-800 lg:col-span-7 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-6">
+    <div className="border-b border-slate-100 pb-6 lg:col-span-7 lg:border-r lg:border-b-0 lg:pr-6 lg:pb-0 dark:border-slate-800">
       <div className="mb-5 flex items-center justify-between gap-3">
-        <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">1. Select Date</span>
+        <span className="text-xs font-semibold tracking-wider text-slate-400 uppercase">
+          1. Select Date
+        </span>
         <div className="flex items-center gap-3">
           <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{rangeLabel}</span>
           <div className="flex items-center gap-1">
-            <button type="button" onClick={onPrev} disabled={!canGoPrev} aria-label="Earlier dates" className={navButton}>
+            <button
+              type="button"
+              onClick={onPrev}
+              disabled={!canGoPrev}
+              aria-label="Earlier dates"
+              className={navButton}
+            >
               <ChevronLeft size={16} />
             </button>
-            <button type="button" onClick={onNext} disabled={!canGoNext} aria-label="Later dates" className={navButton}>
+            <button
+              type="button"
+              onClick={onNext}
+              disabled={!canGoNext}
+              aria-label="Later dates"
+              className={navButton}
+            >
               <ChevronRight size={16} />
             </button>
           </div>
@@ -59,7 +80,7 @@ const BookingCalendar = ({ booking }: { booking: BookingState }) => {
 
       <div className="mb-2 grid grid-cols-7 gap-2 text-center">
         {WEEKDAY_LABELS.map((day) => (
-          <span key={day} className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+          <span key={day} className="text-xs font-semibold tracking-wide text-slate-400 uppercase">
             {day}
           </span>
         ))}
@@ -84,7 +105,9 @@ const BookingCalendar = ({ booking }: { booking: BookingState }) => {
               disabled={!hasAvailability}
               onClick={() => onSelectDate(dateKey)}
               aria-label={`${formatDayKey(dateKey, { weekday: "long", day: "numeric", month: "long" })}${
-                hasAvailability ? `, ${slotCount} ${slotCount === 1 ? "slot" : "slots"}` : ", no slots"
+                hasAvailability
+                  ? `, ${slotCount} ${slotCount === 1 ? "slot" : "slots"}`
+                  : ", no slots"
               }`}
               style={isPast ? { backgroundImage: pastTimeStripes(7) } : undefined}
               className={cn(
@@ -96,7 +119,7 @@ const BookingCalendar = ({ booking }: { booking: BookingState }) => {
               {showMonth && (
                 <span
                   className={cn(
-                    "absolute left-1.5 top-1 text-[8px] font-bold uppercase tracking-wide",
+                    "absolute top-1 left-1.5 text-[8px] font-bold tracking-wide uppercase",
                     isSelected ? "text-blue-100" : "text-blue-600 dark:text-blue-400",
                     isPast && "text-slate-300",
                   )}
@@ -116,10 +139,12 @@ const BookingCalendar = ({ booking }: { booking: BookingState }) => {
                 </span>
               )}
               {isToday && !hasAvailability && (
-                <span className="mt-0.5 text-[9px] font-semibold text-blue-600 dark:text-blue-400">Today</span>
+                <span className="mt-0.5 text-[9px] font-semibold text-blue-600 dark:text-blue-400">
+                  Today
+                </span>
               )}
               {pickedCount > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-emerald-500 px-1 text-[9px] font-bold text-white shadow-sm">
+                <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-emerald-500 px-1 text-[9px] font-bold text-white shadow-sm">
                   {pickedCount}
                 </span>
               )}

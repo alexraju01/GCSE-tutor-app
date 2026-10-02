@@ -1,11 +1,14 @@
-import { AlertCircle, CalendarX, Check } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
-import type { BookingPolicy } from "@/types/teacher";
-import AddToCalendarButton from "@components/dashboard/schedule/AddToCalendarButton";
-import { formatSubject } from "@utils/format";
-import { buttonClass } from "@components/ui/styles";
+
+import { AlertCircle, CalendarX, Check } from "lucide-react";
+
 import { ROUTES } from "@/constants/routes";
+import type { BookingPolicy } from "@/types/teacher";
+
+import AddToCalendarButton from "@components/dashboard/schedule/AddToCalendarButton";
+import { buttonClass } from "@components/ui/styles";
+import { formatSubject } from "@utils/format";
 
 export const LoadingState = () => (
   <div role="status" className="py-20 text-center text-sm text-slate-500 dark:text-slate-400">
@@ -31,11 +34,7 @@ export const ErrorState = ({
       Something went wrong while fetching {teacherName ? `${teacherName}'s` : "this teacher's"} time
       slots. Please try again.
     </p>
-    <button
-      type="button"
-      onClick={onRetry}
-      className={buttonClass("primary", "md", "mt-5")}
-    >
+    <button type="button" onClick={onRetry} className={buttonClass("primary", "md", "mt-5")}>
       Try again
     </button>
   </div>
@@ -61,12 +60,12 @@ export const EmptyState = ({
     </p>
     {policy && policy.minNoticeHours > 0 && (
       <p className="mt-1 max-w-sm text-xs text-slate-400">
-        This tutor needs at least {policy.minNoticeHours} hours&apos; notice and takes bookings up to{" "}
-        {policy.maxAdvanceDays} days ahead.
+        This tutor needs at least {policy.minNoticeHours} hours&apos; notice and takes bookings up
+        to {policy.maxAdvanceDays} days ahead.
       </p>
     )}
     <div className="mt-5 w-full max-w-sm rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 text-left dark:border-slate-800 dark:bg-slate-800/30">
-      <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+      <span className="block text-[10px] font-semibold tracking-wider text-slate-400 uppercase">
         In the meantime
       </span>
       <ul className="mt-1.5 space-y-1 text-xs text-slate-600 dark:text-slate-300">
@@ -140,11 +139,7 @@ export const SuccessState = ({
         >
           View my schedule
         </Link>
-        <button
-          type="button"
-          onClick={onDone}
-          className={buttonClass("ghost")}
-        >
+        <button type="button" onClick={onDone} className={buttonClass("ghost")}>
           Done
         </button>
       </div>

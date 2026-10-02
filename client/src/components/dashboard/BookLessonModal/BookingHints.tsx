@@ -1,8 +1,16 @@
 "use client";
 
 import { Clock, Zap } from "lucide-react";
+
 import { cn } from "@utils/cn";
-import { addDaysToKey, formatUkDate, formatUkTime, formatUkTimeRange, toUkDateKey } from "@utils/ukTime";
+import {
+  addDaysToKey,
+  formatUkDate,
+  formatUkTime,
+  formatUkTimeRange,
+  toUkDateKey,
+} from "@utils/ukTime";
+
 import type { BookingState } from "./useBookLessonModal";
 
 // "today at 21:35" / "tomorrow at 09:00" / "Fri 2 Oct at 09:00" (UK time)
@@ -25,8 +33,8 @@ export const MinimumNoticeNote = ({ booking }: { booking: BookingState }) => {
     <p className="flex items-start gap-2 rounded-xl border border-blue-100 bg-blue-50 px-3.5 py-2.5 text-xs text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-200">
       <Clock size={14} className="mt-0.5 shrink-0" />
       <span>
-        {teacher.name ?? "This tutor"} needs at least {policy.minNoticeHours} hours&apos; notice, so the earliest
-        you can book is <strong>{earliestBookable(policy.minNoticeHours)}</strong>.
+        {teacher.name ?? "This tutor"} needs at least {policy.minNoticeHours} hours&apos; notice, so
+        the earliest you can book is <strong>{earliestBookable(policy.minNoticeHours)}</strong>.
       </span>
     </p>
   );
@@ -38,7 +46,7 @@ export const NextAvailable = ({ booking }: { booking: BookingState }) => {
 
   return (
     <div>
-      <span className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-400">
+      <span className="mb-2 flex items-center gap-1.5 text-xs font-semibold tracking-wider text-slate-400 uppercase">
         <Zap size={12} /> Next available
       </span>
       <div className="flex flex-wrap gap-2">

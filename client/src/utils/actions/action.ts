@@ -1,8 +1,10 @@
 "use server";
 
-import type { SessionData } from "@/types/auth";
-import { auth } from "@auth";
 import { ZodError, type ZodType } from "zod";
+
+import { auth } from "@auth";
+
+import type { SessionData } from "@/types/auth";
 
 type ActionOptions<T> = {
   params?: T;
@@ -10,11 +12,7 @@ type ActionOptions<T> = {
   authorize?: boolean;
 };
 
-async function action<T>({
-  params,
-  schema,
-  authorize = false,
-}: ActionOptions<T>) {
+async function action<T>({ params, schema, authorize = false }: ActionOptions<T>) {
   if (schema && params) {
     try {
       schema.parse(params);

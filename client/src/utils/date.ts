@@ -1,5 +1,4 @@
 // @utils/date.ts
-
 import { formatUkDate, formatUkTime } from "@utils/ukTime";
 
 // Lesson times are real server instants, always displayed as UK time.
@@ -27,8 +26,18 @@ export const slotMinutes = (slot: { startTime: string | Date; endTime: string | 
   Math.round((new Date(slot.endTime).getTime() - new Date(slot.startTime).getTime()) / 60_000);
 
 const MONTH_NAMES = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
 
 // Plain numbers picked from a filter, not a real instant — no timezone involved.

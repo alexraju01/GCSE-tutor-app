@@ -1,8 +1,9 @@
 "use client";
 
-import { Filter } from "lucide-react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
+
+import { Filter } from "lucide-react";
 
 import { Select } from "@components/ui/select";
 

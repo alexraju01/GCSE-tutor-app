@@ -24,8 +24,11 @@ const buttonVariants: Record<ButtonVariant, string> = {
   success: "bg-emerald-600 text-white shadow-sm hover:bg-emerald-700",
 };
 
-export const buttonClass = (variant: ButtonVariant = "primary", size: ButtonSize = "md", className?: string) =>
-  cn(buttonBase, buttonSizes[size], buttonVariants[variant], className);
+export const buttonClass = (
+  variant: ButtonVariant = "primary",
+  size: ButtonSize = "md",
+  className?: string,
+) => cn(buttonBase, buttonSizes[size], buttonVariants[variant], className);
 
 // text inputs, date/time inputs and textareas (matches the shared Select)
 export const fieldClass =

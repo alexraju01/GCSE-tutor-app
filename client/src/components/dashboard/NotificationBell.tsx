@@ -1,28 +1,31 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Bell, CheckCheck, GraduationCap } from "lucide-react";
+
+import type { Route } from "next";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+
+import { Bell, CheckCheck, GraduationCap } from "lucide-react";
 import { toast } from "sonner";
 
-import type { AppNotification } from "@utils/api";
+import { ROUTES } from "@/constants/routes";
+
+import { ToastIcon } from "@components/ui/sonner";
 import {
   getNotificationsAction,
   markAllNotificationsReadAction,
   markNotificationReadAction,
 } from "@utils/actions/notification.action";
+import type { AppNotification } from "@utils/api";
 import { cn } from "@utils/cn";
-import { ToastIcon } from "@components/ui/sonner";
+
 import { NOTIFICATION_STYLES, notificationHref, timeAgo } from "./notifications/notificationStyle";
-import type { Route } from "next";
-import { ROUTES } from "@/constants/routes";
 
 // polling + a check on tab focus - good enough for now, could move to SSE later
 const POLL_MS = 15_000;
 // cap toasts if a bunch arrive at once
 const MAX_TOASTS = 3;
-
 
 // toast variant per type, sets the coloured edge on the branded toast
 const TOAST_BY_TYPE: Record<AppNotification["type"], typeof toast.info> = {
@@ -66,7 +69,7 @@ const NotificationBell = () => {
 
       show(
         <span className="block">
-          <span className="block text-[10px] font-semibold uppercase tracking-wider text-blue-600">
+          <span className="block text-[10px] font-semibold tracking-wider text-blue-600 uppercase">
             GCSE Ace · {style.label}
           </span>
           <span className="mt-0.5 block">{notification.title}</span>
@@ -148,7 +151,9 @@ const NotificationBell = () => {
   };
 
   const markAllRead = async () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, readAt: n.readAt ?? new Date().toISOString() })));
+    setNotifications((prev) =>
+      prev.map((n) => ({ ...n, readAt: n.readAt ?? new Date().toISOString() })),
+    );
     setUnreadCount(0);
     await markAllNotificationsReadAction();
   };
@@ -170,7 +175,7 @@ const NotificationBell = () => {
       >
         <Bell size={16} />
         {unreadCount > 0 && (
-          <span className="absolute -right-1.5 -top-1.5 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-linear-to-r from-blue-600 to-indigo-600 px-1 text-[9px] font-bold text-white shadow-sm ring-2 ring-white dark:ring-[#0b0f19]">
+          <span className="absolute -top-1.5 -right-1.5 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-linear-to-r from-blue-600 to-indigo-600 px-1 text-[9px] font-bold text-white shadow-sm ring-2 ring-white dark:ring-[#0b0f19]">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
@@ -180,7 +185,7 @@ const NotificationBell = () => {
         <div
           role="dialog"
           aria-label="Notifications"
-          className="absolute right-0 top-full z-50 mt-2 w-96 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-blue-900/10 dark:border-slate-800 dark:bg-slate-900"
+          className="absolute top-full right-0 z-50 mt-2 w-96 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-blue-900/10 dark:border-slate-800 dark:bg-slate-900"
         >
           <div className="h-1 bg-linear-to-r from-blue-600 to-indigo-600" />
 
@@ -190,7 +195,9 @@ const NotificationBell = () => {
                 <GraduationCap size={16} />
               </span>
               <div>
-                <p className="text-sm font-bold text-slate-900 dark:text-slate-100">Notifications</p>
+                <p className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                  Notifications
+                </p>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   {unreadCount > 0 ? `${unreadCount} unread` : "You're all caught up"}
                 </p>
@@ -212,7 +219,9 @@ const NotificationBell = () => {
               <span className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-300">
                 <Bell size={18} />
               </span>
-              <p className="mt-3 text-sm font-semibold text-slate-800 dark:text-slate-200">No notifications yet</p>
+              <p className="mt-3 text-sm font-semibold text-slate-800 dark:text-slate-200">
+                No notifications yet
+              </p>
               <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                 Bookings, requests and cancellations will show up here.
               </p>
@@ -234,7 +243,9 @@ const NotificationBell = () => {
                         isUnread && "bg-blue-50/40 dark:bg-blue-500/5",
                       )}
                     >
-                      {isUnread && <span className={cn("absolute inset-y-0 left-0 w-1", style.accentClass)} />}
+                      {isUnread && (
+                        <span className={cn("absolute inset-y-0 left-0 w-1", style.accentClass)} />
+                      )}
                       <span
                         className={cn(
                           "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1",
@@ -245,7 +256,7 @@ const NotificationBell = () => {
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="flex items-center justify-between gap-2">
-                          <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                          <span className="text-[10px] font-semibold tracking-wider text-slate-400 uppercase">
                             {style.label}
                           </span>
                           <span className="shrink-0 text-[10px] text-slate-400">
@@ -260,7 +271,7 @@ const NotificationBell = () => {
                         >
                           {notification.title}
                         </span>
-                        <span className="mt-0.5 line-clamp-2 block whitespace-pre-line text-[11px] text-slate-500 dark:text-slate-400">
+                        <span className="mt-0.5 line-clamp-2 block text-[11px] whitespace-pre-line text-slate-500 dark:text-slate-400">
                           {notification.body}
                         </span>
                       </span>

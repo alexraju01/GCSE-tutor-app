@@ -1,20 +1,20 @@
 // UpcomingSessions.tsx
-import { ArrowUpRight, Calendar, Clock, User, Video } from "lucide-react";
 import type { Route } from "next";
 import Image from "next/image";
 import Link from "next/link";
+
+import { ArrowUpRight, Calendar, Clock, User, Video } from "lucide-react";
+
+import { ROUTES, lessonRoute } from "@/constants/routes";
+
 import StatusBadge from "@components/dashboard/StatusBadge";
-import { lessonRoute, ROUTES } from "@/constants/routes";
 
 interface UpcomingSessionsProps {
   isTeacher: boolean;
   sessions?: (StudentSession | StudentUpcomingLesson)[];
 }
 
-const UpcomingSessions = ({
-  isTeacher,
-  sessions = [],
-}: UpcomingSessionsProps) => {
+const UpcomingSessions = ({ isTeacher, sessions = [] }: UpcomingSessionsProps) => {
   const title = "Upcoming Lessons";
   const roleLabel = isTeacher ? "Student" : "Tutor";
 

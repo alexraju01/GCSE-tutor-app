@@ -1,6 +1,7 @@
 import { fetchData } from "@utils/fetchData";
-import type { BookingPolicy, Teacher } from "../types/teacher";
+
 import type { SocialLoginResponse, SocialUserData } from "../types/auth";
+import type { BookingPolicy, Teacher } from "../types/teacher";
 
 export interface AvailabilityPayloadItem {
   startTime: string; // ISO 8601 string
@@ -39,8 +40,7 @@ export interface OwnAvailabilitySlot extends TeacherAvailabilitySlot {
   } | null;
 }
 
-export interface BookableAvailabilityResponse
-  extends APIResponse<TeacherAvailabilitySlot[]> {
+export interface BookableAvailabilityResponse extends APIResponse<TeacherAvailabilitySlot[]> {
   policy: BookingPolicy;
   bookableWindow: { from: string; to: string };
 }
@@ -56,13 +56,7 @@ export interface LessonBookingPayloadItem {
 // comes back in ApiError.details when a booking is rejected, one per bad slot
 export interface BookingConflict {
   availabilityId: string;
-  reason:
-    | "not_found"
-    | "wrong_teacher"
-    | "slot_taken"
-    | "policy"
-    | "subject"
-    | "student_overlap";
+  reason: "not_found" | "wrong_teacher" | "slot_taken" | "policy" | "subject" | "student_overlap";
   message: string;
 }
 
@@ -70,11 +64,7 @@ export interface AppNotification {
   id: string;
   lessonId: string | null;
   type:
-    | "LessonBooked"
-    | "LessonRequested"
-    | "LessonConfirmed"
-    | "LessonDeclined"
-    | "LessonCancelled";
+    "LessonBooked" | "LessonRequested" | "LessonConfirmed" | "LessonDeclined" | "LessonCancelled";
   title: string;
   body: string;
   readAt: string | null;
@@ -89,8 +79,7 @@ export interface DateRange {
 const rangeQuery = ({ from, to }: DateRange) =>
   new URLSearchParams({ from: from.toISOString(), to: to.toISOString() }).toString();
 
-const authHeaders = (token?: string) =>
-  token ? { Authorization: `Bearer ${token}` } : undefined;
+const authHeaders = (token?: string) => (token ? { Authorization: `Bearer ${token}` } : undefined);
 
 export interface GetLessonsParams {
   page?: number;
@@ -141,18 +130,15 @@ export const api = {
         role: role || "Student",
       };
 
-      return fetchData<SocialLoginResponse<SocialUserData>>(
-        "/auth/social-sync",
-        {
-          method: "POST",
-          body: payload,
-          // server-only secret so the backend knows this came from the next.js
-          // server and not a browser (see auth.ts signIn callback)
-          headers: {
-            "x-internal-secret": process.env.BACKEND_INTERNAL_SECRET ?? "",
-          },
+      return fetchData<SocialLoginResponse<SocialUserData>>("/auth/social-sync", {
+        method: "POST",
+        body: payload,
+        // server-only secret so the backend knows this came from the next.js
+        // server and not a browser (see auth.ts signIn callback)
+        headers: {
+          "x-internal-secret": process.env.BACKEND_INTERNAL_SECRET ?? "",
         },
-      );
+      });
     },
   },
 
@@ -194,10 +180,9 @@ export const api = {
   availability: {
     // all slots (booked or not) in the date range
     getMine: (range: DateRange, token?: string) =>
-      fetchData<APIResponse<OwnAvailabilitySlot[]>>(
-        `/availability/me?${rangeQuery(range)}`,
-        { headers: authHeaders(token) },
-      ),
+      fetchData<APIResponse<OwnAvailabilitySlot[]>>(`/availability/me?${rangeQuery(range)}`, {
+        headers: authHeaders(token),
+      }),
 
     // Batch create — all-or-nothing, one transaction on the server.
     createMany: (data: AvailabilityPayloadItem[], token?: string) =>
@@ -238,11 +223,7 @@ export const api = {
 
   lesson: {
     // same idempotencyKey on a retry returns the original booking instead of a duplicate
-    create: (
-      items: LessonBookingPayloadItem[],
-      token: string,
-      idempotencyKey?: string,
-    ) =>
+    create: (items: LessonBookingPayloadItem[], token: string, idempotencyKey?: string) =>
       fetchData<APIResponse<Lesson[]>>("/lessons", {
         method: "POST",
         body: items,
@@ -263,12 +244,7 @@ export const api = {
         headers: authHeaders(token),
       }),
 
-    respond: (
-      lessonId: string,
-      token: string,
-      decision: "approve" | "decline",
-      reason?: string,
-    ) =>
+    respond: (lessonId: string, token: string, decision: "approve" | "decline", reason?: string) =>
       fetchData<void>(`/lessons/${encodeURIComponent(lessonId)}/respond`, {
         method: "PATCH",
         body: { decision, ...(reason && { reason }) },
@@ -277,10 +253,9 @@ export const api = {
 
     // 404s for a lesson the user isn't part of
     getOne: (lessonId: string, token: string) =>
-      fetchData<APIResponse<Lesson>>(
-        `/lessons/${encodeURIComponent(lessonId)}`,
-        { headers: authHeaders(token) },
-      ),
+      fetchData<APIResponse<Lesson>>(`/lessons/${encodeURIComponent(lessonId)}`, {
+        headers: authHeaders(token),
+      }),
 
     getAll: (token: string, params?: GetLessonsParams) => {
       const page = params?.page ?? 1;
@@ -302,10 +277,9 @@ export const api = {
 
   notifications: {
     getMine: (token: string) =>
-      fetchData<APIResponse<AppNotification[]> & { unreadCount: number }>(
-        "/notifications/me",
-        { headers: authHeaders(token) },
-      ),
+      fetchData<APIResponse<AppNotification[]> & { unreadCount: number }>("/notifications/me", {
+        headers: authHeaders(token),
+      }),
 
     markRead: (id: string, token: string) =>
       fetchData<void>(`/notifications/${encodeURIComponent(id)}/read`, {

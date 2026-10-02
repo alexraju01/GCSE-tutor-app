@@ -1,18 +1,14 @@
-import {
-  ArrowRight,
-  BookOpen,
-  ChevronLeft,
-  ChevronRight,
-  Clock,
-} from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 
-import { lessonRoute, ROUTES } from "@/constants/routes";
+import { ArrowRight, BookOpen, ChevronLeft, ChevronRight, Clock } from "lucide-react";
+
+import { ROUTES, lessonRoute } from "@/constants/routes";
+
 import StatusBadge from "@components/dashboard/StatusBadge";
 import { buttonClass } from "@components/ui/styles";
 import { requireSession } from "@utils/actions/session";
-import { api, type GetLessonsParams } from "@utils/api";
+import { type GetLessonsParams, api } from "@utils/api";
 import { formatScheduleDate, formatTimeRange } from "@utils/date";
 import { formatSubject } from "@utils/format";
 
@@ -29,10 +25,7 @@ const TABS = {
     query: { status: "Completed", sort: "desc" },
     empty: "No completed lessons yet.",
   },
-} satisfies Record<
-  string,
-  { label: string; query: GetLessonsParams; empty: string }
->;
+} satisfies Record<string, { label: string; query: GetLessonsParams; empty: string }>;
 
 type Tab = keyof typeof TABS;
 
@@ -103,10 +96,7 @@ const LessonsPage = async ({ searchParams }: LessonsPageProps) => {
             {TABS[activeTab].empty}
           </p>
           {!isTeacher && activeTab === "upcoming" && (
-            <Link
-              href={ROUTES.TEACHERS as Route}
-              className={buttonClass("primary", "md", "mt-4")}
-            >
+            <Link href={ROUTES.TEACHERS as Route} className={buttonClass("primary", "md", "mt-4")}>
               Find a tutor
             </Link>
           )}
@@ -153,13 +143,7 @@ const LessonsPage = async ({ searchParams }: LessonsPageProps) => {
   );
 };
 
-const LessonCard = ({
-  lesson,
-  isTeacher,
-}: {
-  lesson: Lesson;
-  isTeacher: boolean;
-}) => {
+const LessonCard = ({ lesson, isTeacher }: { lesson: Lesson; isTeacher: boolean }) => {
   const { startDate, formattedDate } = formatScheduleDate(lesson.startTime);
   const otherPerson = isTeacher ? lesson.student : lesson.teacher;
 
@@ -188,8 +172,7 @@ const LessonCard = ({
 
       <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-slate-500 dark:border-slate-800/60 dark:text-slate-400">
         <span className="flex items-center gap-1.5">
-          <Clock size={14} /> {formattedDate},{" "}
-          {formatTimeRange(startDate, lesson.duration)}
+          <Clock size={14} /> {formattedDate}, {formatTimeRange(startDate, lesson.duration)}
         </span>
         <span className="inline-flex items-center gap-1 font-semibold text-blue-600 dark:text-blue-400">
           Details <ArrowRight size={14} />

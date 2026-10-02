@@ -1,9 +1,7 @@
 // shown inside the dashboard layout (sidebar/header stay put) while a page's
 // server data loads. generic on purpose so it fits every dashboard page
 const Bar = ({ className }: { className: string }) => (
-  <div
-    className={`animate-pulse rounded-lg bg-slate-200/70 dark:bg-slate-800/70 ${className}`}
-  />
+  <div className={`animate-pulse rounded-lg bg-slate-200/70 dark:bg-slate-800/70 ${className}`} />
 );
 
 const DashboardLoading = () => (

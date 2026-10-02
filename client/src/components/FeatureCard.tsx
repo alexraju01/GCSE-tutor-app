@@ -27,8 +27,7 @@ const FeatureCard = ({
     indigo: {
       hoverBorder: "hover:border-indigo-500/40 dark:hover:border-indigo-500/30",
       hoverShadow: "dark:hover:shadow-[0_0_30px_rgba(99,102,241,0.05)]",
-      bgGlow:
-        "bg-indigo-500/3 dark:bg-indigo-500/5 group-hover:bg-indigo-500/10",
+      bgGlow: "bg-indigo-500/3 dark:bg-indigo-500/5 group-hover:bg-indigo-500/10",
       iconBg:
         "bg-indigo-50 dark:bg-indigo-500/10 border-indigo-100 dark:border-indigo-500/20 text-indigo-400",
       iconHoverBg: "group-hover:bg-indigo-600 dark:group-hover:bg-indigo-600",
@@ -37,8 +36,7 @@ const FeatureCard = ({
     purple: {
       hoverBorder: "hover:border-purple-500/40 dark:hover:border-purple-500/30",
       hoverShadow: "dark:hover:shadow-[0_0_30px_rgba(168,85,247,0.05)]",
-      bgGlow:
-        "bg-purple-500/3 dark:bg-purple-500/5 group-hover:bg-purple-500/10",
+      bgGlow: "bg-purple-500/3 dark:bg-purple-500/5 group-hover:bg-purple-500/10",
       iconBg:
         "bg-purple-50 dark:bg-purple-500/10 border-purple-100 dark:border-purple-500/20 text-purple-400",
       iconHoverBg: "group-hover:bg-purple-600 dark:group-hover:bg-purple-600",
@@ -68,9 +66,7 @@ const FeatureCard = ({
         >
           {title}
         </h3>
-        <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-400">
-          {description}
-        </p>
+        <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-400">{description}</p>
       </div>
     </div>
   );

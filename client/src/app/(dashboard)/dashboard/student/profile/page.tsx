@@ -1,10 +1,12 @@
-import { BookOpen, User } from "lucide-react";
 import type { Route } from "next";
 import Image from "next/image";
 import Link from "next/link";
 
+import { BookOpen, User } from "lucide-react";
+
 import { ROUTES } from "@/constants/routes";
 import { UserRole } from "@/types/role";
+
 import { buttonClass } from "@components/ui/styles";
 import { requireRole } from "@utils/actions/session";
 import { api } from "@utils/api";
@@ -14,9 +16,7 @@ const StudentProfilePage = async () => {
   const { user, token } = await requireRole(UserRole.Student);
 
   // no student profile endpoint yet - the dashboard summary includes subjects
-  const dashboard = await api.dashboard
-    .studentDashboard(token)
-    .catch(() => null);
+  const dashboard = await api.dashboard.studentDashboard(token).catch(() => null);
   const subjects = dashboard?.data?.subjects ?? [];
 
   return (
@@ -48,9 +48,7 @@ const StudentProfilePage = async () => {
           <p className="truncate text-lg font-bold text-slate-900 dark:text-slate-100">
             {user.name || "Student"}
           </p>
-          <p className="truncate text-sm text-slate-500 dark:text-slate-400">
-            {user.email}
-          </p>
+          <p className="truncate text-sm text-slate-500 dark:text-slate-400">{user.email}</p>
         </div>
       </section>
 
@@ -76,10 +74,7 @@ const StudentProfilePage = async () => {
             <p className="text-sm text-slate-500 dark:text-slate-400">
               No subjects on your profile yet.
             </p>
-            <Link
-              href={ROUTES.TEACHERS as Route}
-              className={buttonClass("primary")}
-            >
+            <Link href={ROUTES.TEACHERS as Route} className={buttonClass("primary")}>
               Find a tutor
             </Link>
           </div>

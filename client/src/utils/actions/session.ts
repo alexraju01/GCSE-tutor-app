@@ -1,10 +1,11 @@
-import "server-only";
-
 import type { Route } from "next";
 import { redirect } from "next/navigation";
 
+import "server-only";
+
 import { auth } from "@auth";
-import { dashboardHomeFor, ROUTES } from "@/constants/routes";
+
+import { ROUTES, dashboardHomeFor } from "@/constants/routes";
 import type { UserRole } from "@/types/role";
 
 type AccountRole = "Teacher" | "Student";

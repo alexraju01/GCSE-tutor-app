@@ -1,15 +1,19 @@
 import type { Route } from "next";
 import Link from "next/link";
-import { nowInUk } from "@utils/ukTime";
+
 import {
+  ArrowDownNarrowWide,
+  ArrowUpNarrowWide,
   Calendar as CalendarIcon,
   ChevronLeft,
   ChevronRight,
-  ArrowDownNarrowWide,
-  ArrowUpNarrowWide,
 } from "lucide-react";
-import StatusFilterSelect from "./StatusFilterSelect";
+
 import { ROUTES } from "@/constants/routes";
+
+import { nowInUk } from "@utils/ukTime";
+
+import StatusFilterSelect from "./StatusFilterSelect";
 
 interface ScheduleFiltersProps {
   query: ScheduleQueryState;
@@ -35,9 +39,7 @@ const ScheduleFilters = ({
   // "This month"/"today" always mean UK time, not the viewer's device clock.
   const now = nowInUk();
   const isCurrentMonth =
-    isMonthlyView &&
-    selectedYear === now.getFullYear() &&
-    selectedMonth === now.getMonth();
+    isMonthlyView && selectedYear === now.getFullYear() && selectedMonth === now.getMonth();
 
   const buildUrl = ({
     filter = activeFilter,
@@ -82,31 +84,31 @@ const ScheduleFilters = ({
   const sortUrl = buildUrl({ sort: activeSort === "asc" ? "desc" : "asc" });
 
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 md:flex-row md:items-center md:justify-between">
+    <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between dark:border-slate-800 dark:bg-slate-900">
       {/* Date Navigation & View Toggle */}
       <div className="flex flex-wrap items-center gap-2">
         {/* no year arrows on "Next up" - it always starts from today */}
         {showDateSteppers && (
-        <Link
-          href={prevUrl}
-          aria-label={isMonthlyView ? "Previous month" : "Previous year"}
-          className="rounded-lg border border-slate-200 p-2 text-slate-600 transition-colors hover:bg-slate-100 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800"
-        >
-          <ChevronLeft size={16} />
-        </Link>
+          <Link
+            href={prevUrl}
+            aria-label={isMonthlyView ? "Previous month" : "Previous year"}
+            className="rounded-lg border border-slate-200 p-2 text-slate-600 transition-colors hover:bg-slate-100 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800"
+          >
+            <ChevronLeft size={16} />
+          </Link>
         )}
         <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-200">
           <CalendarIcon size={14} className="text-blue-500" />
           <span>{formattedDateHeader}</span>
         </div>
         {showDateSteppers && (
-        <Link
-          href={nextUrl}
-          aria-label={isMonthlyView ? "Next month" : "Next year"}
-          className="rounded-lg border border-slate-200 p-2 text-slate-600 transition-colors hover:bg-slate-100 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800"
-        >
-          <ChevronRight size={16} />
-        </Link>
+          <Link
+            href={nextUrl}
+            aria-label={isMonthlyView ? "Next month" : "Next year"}
+            className="rounded-lg border border-slate-200 p-2 text-slate-600 transition-colors hover:bg-slate-100 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800"
+          >
+            <ChevronRight size={16} />
+          </Link>
         )}
 
         {isMonthlyView && !isCurrentMonth && (

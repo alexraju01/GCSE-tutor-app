@@ -2,8 +2,8 @@
 
 import { CalendarPlus } from "lucide-react";
 
-import { downloadIcs, type CalendarEvent } from "@utils/calendarInvite";
 import { buttonClass } from "@components/ui/styles";
+import { type CalendarEvent, downloadIcs } from "@utils/calendarInvite";
 
 interface AddToCalendarButtonProps {
   events: CalendarEvent[];

@@ -13,12 +13,7 @@ interface StudentSession extends UpcomingLessonBase {
 
 interface Teaches {
   id: string;
-  subject:
-    | "Biology"
-    | "Physics"
-    | "Chemistry"
-    | "English Literature"
-    | "Computer Science";
+  subject: "Biology" | "Physics" | "Chemistry" | "English Literature" | "Computer Science";
   level: "A LEVEL" | "GCSE";
 }
 

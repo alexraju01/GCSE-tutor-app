@@ -19,9 +19,7 @@ export const SignUpSchema = z
       .min(1, { message: "Name is required." })
       .max(100, { message: "Name cannot exceed 100 characters." }),
 
-    email: z
-      .email({ pattern: z.regexes.html5Email })
-      .min(1, { message: "Email is required." }),
+    email: z.email({ pattern: z.regexes.html5Email }).min(1, { message: "Email is required." }),
 
     password: z
       .string()

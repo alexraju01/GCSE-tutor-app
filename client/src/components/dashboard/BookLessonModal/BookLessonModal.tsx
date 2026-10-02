@@ -1,8 +1,12 @@
 "use client";
 
 import { AlertCircle, Info } from "lucide-react";
+
 import type { Teacher } from "@/types/teacher";
+
 import { Modal } from "@components/ui/modal";
+import { buttonClass } from "@components/ui/styles";
+
 import BookingCalendar from "./BookingCalendar";
 import { MinimumNoticeNote, NextAvailable } from "./BookingHints";
 import BookingSummary from "./BookingSummary";
@@ -10,7 +14,6 @@ import LessonDetailsForm from "./LessonDetailsForm";
 import { EmptyState, ErrorState, LoadingState, SuccessState } from "./ModalStates";
 import TimeSlotPicker from "./TimeSlotPicker";
 import { useBookLessonModal } from "./useBookLessonModal";
-import { buttonClass } from "@components/ui/styles";
 
 interface BookLessonModalProps {
   isOpen: boolean;
@@ -59,27 +62,27 @@ const BookLessonModal = ({ isOpen, onClose, teacher }: BookLessonModalProps) => 
       );
     }
     return (
-    <div className="flex items-center justify-between gap-3">
-      <p className="text-xs text-slate-400">{booking.getConfirmHint()}</p>
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={handleClose}
-          disabled={isSubmitting}
-          className={buttonClass("ghost")}
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          disabled={selectedSlots.length === 0 || isSubmitting || availableSubjects.length === 0}
-          onClick={() => void booking.handleConfirmBooking()}
-          className={buttonClass("primary")}
-        >
-          {booking.getConfirmButtonLabel()}
-        </button>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs text-slate-400">{booking.getConfirmHint()}</p>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={handleClose}
+            disabled={isSubmitting}
+            className={buttonClass("ghost")}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={selectedSlots.length === 0 || isSubmitting || availableSubjects.length === 0}
+            onClick={() => void booking.handleConfirmBooking()}
+            className={buttonClass("primary")}
+          >
+            {booking.getConfirmButtonLabel()}
+          </button>
+        </div>
       </div>
-    </div>
     );
   };
 

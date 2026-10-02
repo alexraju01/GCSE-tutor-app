@@ -1,8 +1,11 @@
-import { BookOpen, CalendarRange, Inbox, Plus, Video } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
-import { buttonClass } from "@components/ui/styles";
+
+import { BookOpen, CalendarRange, Inbox, Plus, Video } from "lucide-react";
+
 import { ROUTES } from "@/constants/routes";
+
+import { buttonClass } from "@components/ui/styles";
 
 interface QuickActionsCardProps {
   openSlots: number;
@@ -14,7 +17,12 @@ interface QuickActionsCardProps {
 const toolLinkClass =
   "flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/50 p-3 text-left text-xs font-medium text-slate-700 transition-all hover:bg-slate-100 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-800/40 dark:text-slate-300 dark:hover:bg-slate-800";
 
-const QuickActionsCard = ({ openSlots, bookedSlots, pendingRequests, lookaheadDays }: QuickActionsCardProps) => (
+const QuickActionsCard = ({
+  openSlots,
+  bookedSlots,
+  pendingRequests,
+  lookaheadDays,
+}: QuickActionsCardProps) => (
   <div className="flex flex-col gap-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
     {pendingRequests > 0 && (
       <Link
@@ -68,7 +76,7 @@ const QuickActionsCard = ({ openSlots, bookedSlots, pendingRequests, lookaheadDa
 
     {/* Quick Tools Section */}
     <div>
-      <h4 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+      <h4 className="mb-3 text-xs font-semibold tracking-wider text-slate-400 uppercase dark:text-slate-500">
         Quick Tools
       </h4>
 

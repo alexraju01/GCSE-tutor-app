@@ -1,11 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { api, type LessonBookingPayloadItem } from "@utils/api";
-import type { BookingPolicy } from "@/types/teacher";
-import { actionError, type ActionResult } from "./result";
-import { getBackendSession } from "./session";
+
 import { ROUTES } from "@/constants/routes";
+import type { BookingPolicy } from "@/types/teacher";
+
+import { type LessonBookingPayloadItem, api } from "@utils/api";
+
+import { type ActionResult, actionError } from "./result";
+import { getBackendSession } from "./session";
 
 const revalidateLessonPages = () => {
   revalidatePath(ROUTES.DASHBOARD.SCHEDULE);

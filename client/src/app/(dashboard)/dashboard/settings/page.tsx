@@ -1,13 +1,10 @@
-import {
-  CalendarRange,
-  ChevronRight,
-  Settings2,
-  UserRound,
-} from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 
-import { profileRouteFor, ROUTES } from "@/constants/routes";
+import { CalendarRange, ChevronRight, Settings2, UserRound } from "lucide-react";
+
+import { ROUTES, profileRouteFor } from "@/constants/routes";
+
 import SignOutButton from "@components/SignOutButton";
 import { requireSession } from "@utils/actions/session";
 
@@ -55,9 +52,7 @@ const SettingsPage = async () => {
         <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl dark:text-slate-100">
           Settings
         </h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          Manage your account.
-        </p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">Manage your account.</p>
       </div>
 
       {/* ACCOUNT */}
@@ -73,20 +68,14 @@ const SettingsPage = async () => {
             </dd>
           </div>
           <div>
-            <dt className="text-xs text-slate-500 dark:text-slate-400">
-              Email
-            </dt>
+            <dt className="text-xs text-slate-500 dark:text-slate-400">Email</dt>
             <dd className="truncate font-semibold text-slate-900 dark:text-slate-100">
               {user.email || "—"}
             </dd>
           </div>
           <div>
-            <dt className="text-xs text-slate-500 dark:text-slate-400">
-              Account type
-            </dt>
-            <dd className="font-semibold text-slate-900 dark:text-slate-100">
-              {role}
-            </dd>
+            <dt className="text-xs text-slate-500 dark:text-slate-400">Account type</dt>
+            <dd className="font-semibold text-slate-900 dark:text-slate-100">{role}</dd>
           </div>
         </dl>
       </section>
@@ -106,9 +95,7 @@ const SettingsPage = async () => {
               <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                 {link.label}
               </p>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {link.description}
-              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">{link.description}</p>
             </div>
             <ChevronRight size={16} className="shrink-0 text-slate-400" />
           </Link>
@@ -118,9 +105,7 @@ const SettingsPage = async () => {
       {/* SIGN OUT */}
       <section className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between dark:border-slate-800 dark:bg-slate-900">
         <div>
-          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-            Sign out
-          </p>
+          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Sign out</p>
           <p className="text-xs text-slate-500 dark:text-slate-400">
             Sign out of GCSE Ace on this device.
           </p>

@@ -85,15 +85,10 @@ export const ukWallClockToIsoString = (
 };
 
 // toLocaleDateString/toLocaleTimeString pinned to UK time.
-export const formatUkDate = (
-  date: Date,
-  options: Intl.DateTimeFormatOptions = {},
-): string => date.toLocaleDateString("en-GB", { ...options, timeZone: UK_TIME_ZONE });
+export const formatUkDate = (date: Date, options: Intl.DateTimeFormatOptions = {}): string =>
+  date.toLocaleDateString("en-GB", { ...options, timeZone: UK_TIME_ZONE });
 
-export const formatUkTime = (
-  date: Date,
-  options: Intl.DateTimeFormatOptions = {},
-): string =>
+export const formatUkTime = (date: Date, options: Intl.DateTimeFormatOptions = {}): string =>
   date.toLocaleTimeString("en-GB", {
     hour: "2-digit",
     minute: "2-digit",

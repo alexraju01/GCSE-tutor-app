@@ -1,10 +1,4 @@
-type LessonStatus =
-  | "Pending"
-  | "Upcoming"
-  | "Confirmed"
-  | "Declined"
-  | "Cancelled"
-  | "Completed";
+type LessonStatus = "Pending" | "Upcoming" | "Confirmed" | "Declined" | "Cancelled" | "Completed";
 
 interface Lesson {
   id: string;

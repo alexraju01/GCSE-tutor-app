@@ -1,10 +1,12 @@
-import { ArrowLeft, Clock, Mail, StickyNote, User, Video } from "lucide-react";
 import type { Route } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { ArrowLeft, Clock, Mail, StickyNote, User, Video } from "lucide-react";
+
 import { ROUTES } from "@/constants/routes";
+
 import StatusBadge from "@components/dashboard/StatusBadge";
 import AddToCalendarButton from "@components/dashboard/schedule/AddToCalendarButton";
 import CancelLessonButton from "@components/dashboard/schedule/CancelLessonButton";
@@ -19,8 +21,7 @@ interface LessonDetailsPageProps {
   params: Promise<{ lessonId: string }>;
 }
 
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const getLesson = async (lessonId: string, token: string) => {
   // skip the round trip for ids that can't exist
@@ -48,11 +49,9 @@ const LessonDetailsPage = async ({ params }: LessonDetailsPageProps) => {
   const subject = formatSubject(lesson.subject);
   const isUpcoming = startDate > new Date();
 
-  const isBooked =
-    lesson.status === "Upcoming" || lesson.status === "Confirmed";
+  const isBooked = lesson.status === "Upcoming" || lesson.status === "Confirmed";
   const isRequest = lesson.status === "Pending";
-  const isReleased =
-    lesson.status === "Cancelled" || lesson.status === "Declined";
+  const isReleased = lesson.status === "Cancelled" || lesson.status === "Declined";
 
   const otherPerson = isTeacher ? lesson.student : lesson.teacher;
   const otherPersonName = otherPerson?.name || "Unknown";
@@ -86,18 +85,13 @@ const LessonDetailsPage = async ({ params }: LessonDetailsPageProps) => {
             <Clock size={15} /> {formattedDate}, {timeRange} (UK)
           </span>
           <span>{lesson.duration} mins</span>
-          {lesson.priceAtBooking !== null && (
-            <span>{formatMoney(lesson.priceAtBooking)}</span>
-          )}
+          {lesson.priceAtBooking !== null && <span>{formatMoney(lesson.priceAtBooking)}</span>}
         </p>
 
         {(isBooked || isRequest) && (
           <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-5 dark:border-slate-800">
             {isTeacher && isRequest && isUpcoming && (
-              <LessonRequestActions
-                lessonId={lesson.id}
-                lessonLabel={lessonLabel}
-              />
+              <LessonRequestActions lessonId={lesson.id} lessonLabel={lessonLabel} />
             )}
             {isBooked && (
               <AddToCalendarButton
@@ -182,9 +176,7 @@ const LessonDetailsPage = async ({ params }: LessonDetailsPageProps) => {
               <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400">
                 <StickyNote size={13} /> Notes from booking
               </p>
-              <p className="text-sm text-slate-700 dark:text-slate-300">
-                {lesson.notes}
-              </p>
+              <p className="text-sm text-slate-700 dark:text-slate-300">{lesson.notes}</p>
             </div>
           )}
         </div>
@@ -220,9 +212,7 @@ const ClassroomStatus = ({
         <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
           The online classroom will open here
         </p>
-        <p className={`mt-1 ${text}`}>
-          Come back to this page just before your lesson starts.
-        </p>
+        <p className={`mt-1 ${text}`}>Come back to this page just before your lesson starts.</p>
       </div>
     );
   }

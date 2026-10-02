@@ -1,9 +1,11 @@
-import { ArrowLeft, User } from "lucide-react";
 import Link from "next/link";
+
+import { ArrowLeft, User } from "lucide-react";
 
 import Logo from "@/components/Logo";
 import UserMenu from "@/components/UserMenu";
 import { ROUTES } from "@/constants/routes";
+
 import Breadcrumb from "@components/Breadcrumb";
 import DashboardNav from "@components/dashboard/DashboardNav";
 import MobileNav from "@components/dashboard/MobileNav";
