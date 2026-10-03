@@ -124,7 +124,7 @@ const BookingSummary = ({ booking }: { booking: BookingState }) => {
                               type="button"
                               onClick={() => onRemoveSlot(slot)}
                               aria-label="Remove lesson"
-                              className="shrink-0 cursor-pointer rounded p-0.5 text-slate-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950/30"
+                              className="shrink-0 cursor-pointer rounded-sm p-0.5 text-slate-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950/30"
                             >
                               <X size={12} />
                             </button>

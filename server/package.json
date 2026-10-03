@@ -15,7 +15,9 @@
     "start:worker": "cross-env NODE_ENV=production node ./dist/workers/availabilityWorker.js",
     "seed": "tsx src/db/seed/seed.ts",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",

@@ -12,6 +12,24 @@ jobs:
     name: Server - Quality & Build
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ci-db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/ci-db"
+
     defaults:
       run:
         working-directory: ./server
@@ -37,8 +55,15 @@ jobs:
 
       - name: Generate Prisma Client
         run: pnpm exec prisma generate
-        env:
-          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/mock-db"
+
+      - name: Apply Migrations to Fresh Database
+        run: pnpm exec prisma migrate deploy
+
+      - name: Check Schema Matches Migrations
+        run: pnpm exec prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
+
+      - name: Check Prettier Formatting
+        run: pnpm run format:check
 
       - name: Run Linter
         run: pnpm run lint
