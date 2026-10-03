@@ -9,7 +9,7 @@ export const HeroSection = () => {
       <div className="pointer-events-none absolute top-[15%] left-1/3 size-100 animate-pulse rounded-full bg-indigo-500/10 blur-[140px] filter [animation-duration:8s] dark:bg-indigo-600/15" />{" "}
       <div className="relative z-10 mx-auto flex max-w-4xl flex-col items-center text-center">
         {/* Headline */}
-        <h1 className="animate-fade-in-up max-w-3xl text-5xl leading-[1.1] font-extrabold tracking-tight text-slate-900 opacity-0 sm:text-6xl md:text-7xl dark:text-white">
+        <h1 className="max-w-3xl animate-fade-in-up text-5xl leading-[1.1] font-extrabold tracking-tight text-slate-900 opacity-0 sm:text-6xl md:text-7xl dark:text-white">
           Master your GCSEs <br />
           with{" "}
           <span className="relative bg-linear-to-r from-blue-600 via-indigo-600 to-cyan-500 bg-clip-text font-black text-transparent dark:from-blue-400 dark:via-cyan-400 dark:to-indigo-400">
@@ -18,18 +18,18 @@ export const HeroSection = () => {
         </h1>
 
         {/* Sub-headline */}
-        <p className="animate-fade-in-up mt-8 max-w-2xl text-lg leading-relaxed text-slate-600 opacity-0 [animation-delay:200ms] [animation-fill-mode:forwards] md:text-xl dark:text-slate-400">
+        <p className="mt-8 max-w-2xl animate-fade-in-up text-lg leading-relaxed text-slate-600 opacity-0 [animation-delay:200ms] [animation-fill-mode:forwards] md:text-xl dark:text-slate-400">
           Personalised 1-on-1 online lessons engineered around your syllabus. Book premium tutors,
           collaborate on live canvases, and dominate your exams.
         </p>
 
         {/* CTAs */}
-        <div className="animate-fade-in-up mt-10 flex w-full flex-col items-center justify-center gap-4 opacity-0 [animation-delay:400ms] [animation-fill-mode:forwards] sm:w-auto sm:flex-row">
+        <div className="mt-10 flex w-full animate-fade-in-up flex-col items-center justify-center gap-4 opacity-0 [animation-delay:400ms] [animation-fill-mode:forwards] sm:w-auto sm:flex-row">
           <Link
             href="/sign-up"
             className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-blue-600 px-8 py-4 text-base font-semibold text-white shadow-[0_0_30px_rgba(37,99,235,0.15)] transition-all duration-300 hover:bg-blue-500 hover:shadow-[0_0_40px_rgba(37,99,235,0.3)] active:scale-[0.98] sm:w-auto dark:shadow-[0_0_30px_rgba(37,99,235,0.2)] dark:hover:shadow-[0_0_40px_rgba(37,99,235,0.4)]"
           >
-            <div className="group-hover:animate-shine absolute inset-0 h-full w-1/2 -translate-x-full -skew-x-12 bg-linear-to-r from-transparent via-white/10 to-transparent" />
+            <div className="absolute inset-0 h-full w-1/2 -translate-x-full -skew-x-12 bg-linear-to-r from-transparent via-white/10 to-transparent group-hover:animate-shine" />
             Book a Free Trial Lesson
             <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
           </Link>
@@ -43,7 +43,7 @@ export const HeroSection = () => {
         </div>
 
         {/* Social proof/Micro-copy */}
-        <div className="animate-fade-in-up mt-8 flex flex-col items-center gap-4 text-xs text-slate-500 opacity-0 [animation-delay:500ms] [animation-fill-mode:forwards] sm:flex-row sm:gap-6 dark:text-slate-500">
+        <div className="mt-8 flex animate-fade-in-up flex-col items-center gap-4 text-xs text-slate-500 opacity-0 [animation-delay:500ms] [animation-fill-mode:forwards] sm:flex-row sm:gap-6 dark:text-slate-500">
           <span className="flex items-center gap-1">
             <CheckCircle2 size={14} className="text-emerald-600 dark:text-emerald-500/80" />
             No credit card required

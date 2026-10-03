@@ -22,10 +22,7 @@ const eslintConfig = defineConfig([
       "better-tailwindcss/enforce-consistent-line-wrapping": "off",
       // Slowest rule by far (~60% of lint time)
       "better-tailwindcss/enforce-canonical-classes": "off",
-      "better-tailwindcss/no-unknown-classes": [
-        "error",
-        { ignore: ["^custom-.*", "^toaster$"] },
-      ],
+      "better-tailwindcss/no-unknown-classes": ["error", { ignore: ["^custom-.*", "^toaster$"] }],
     },
   },
 
