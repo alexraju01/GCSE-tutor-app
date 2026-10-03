@@ -1,26 +1,28 @@
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
-import tailwind from "eslint-plugin-tailwindcss";
+import betterTailwind from "eslint-plugin-better-tailwindcss";
 import { defineConfig, globalIgnores } from "eslint/config";
 
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
-  ...tailwind.configs["flat/recommended"],
 
   globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts"]),
 
   {
+    extends: [betterTailwind.configs.recommended],
     settings: {
-      tailwindcss: {
-        callees: ["classnames", "clsx", "ctl"],
-        config: {},
-        whitelist: [
-          "border-custom-accent", // Matches this specific class
-          "custom-.*",
-          "toaster",
-        ],
+      "better-tailwindcss": {
+        entryPoint: "src/app/globals.css",
       },
+    },
+    rules: {
+      // Prettier (prettier-plugin-tailwindcss) owns class order and wrapping
+      "better-tailwindcss/enforce-consistent-class-order": "off",
+      "better-tailwindcss/enforce-consistent-line-wrapping": "off",
+      // Slowest rule by far (~60% of lint time)
+      "better-tailwindcss/enforce-canonical-classes": "off",
+      "better-tailwindcss/no-unknown-classes": ["error", { ignore: ["^custom-.*", "^toaster$"] }],
     },
   },
 
@@ -42,7 +44,6 @@ const eslintConfig = defineConfig([
       },
     },
     rules: {
-      "tailwindcss/classnames-order": "off",
       // === React Component Structure ===
       "react/function-component-definition": [
         "error",

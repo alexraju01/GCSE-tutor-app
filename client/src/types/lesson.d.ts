@@ -1,13 +1,20 @@
+type LessonStatus = "Pending" | "Upcoming" | "Confirmed" | "Declined" | "Cancelled" | "Completed";
+
 interface Lesson {
   id: string;
   subject: string;
-  topic: string;
-  meetingRoomId: string;
+  topic: string | null;
   startTime: string;
-  // tutorOrStudent: string;
   duration: number;
-  status: StatusType;
-  notes: string;
+  status: LessonStatus;
+  notes: string | null;
+  priceAtBooking: number | null;
+  cancelledAt: string | null;
+  cancelledBy: "Student" | "Teacher" | null;
+  cancelReason: string | null;
+  // worked out on the server from the tutor's cancellation policy
+  canCancel: boolean;
+  cancellationCutoffHours: number;
   student?: Student;
   teacher?: Teacher;
 }
@@ -24,26 +31,16 @@ interface Student {
   email: string;
 }
 
-// interface Lesson {
-// 	id: string;
-// 	subject: string;
-// 	topic: string;
-// 	meetingRoomId: string | null;
-// 	startTime: string;
-// 	duration: number;
-// 	status: string;
-// 	notes?: string;
-// 	student?: Student;
-// 	tutor?: Tutor;
-// }
+// "upcoming" = future requests + bookings (default), "all" = everything
+type StatusType = "all" | "upcoming" | LessonStatus;
+type SortDirection = "asc" | "desc";
 
-type StatusType = "all" | "Upcoming" | "Completed" | "Cancelled";
-
-interface SchedulePageProps {
-  searchParams: Promise<{
-    filter?: string;
-    month?: string;
-    year?: string;
-    page?: string;
-  }>;
+// The schedule page's filter/sort/date state — ScheduleFilters and
+// SchedulePagination both need it to build their links, so it's passed as
+// one object instead of four separate, identically-named props.
+interface ScheduleQueryState {
+  filter: StatusType;
+  sort: SortDirection;
+  year: number;
+  month?: number;
 }

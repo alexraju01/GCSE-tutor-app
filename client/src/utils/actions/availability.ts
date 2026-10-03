@@ -1,84 +1,113 @@
 "use server";
 
-import { auth } from "@auth";
 import { revalidatePath } from "next/cache";
-import { api, AvailabilityPayloadItem } from "@utils/api";
 
-export interface TimeSlot {
-  id: string;
-  dayOfWeek: string; // "Monday" or ISO date "YYYY-MM-DD"
-  startTime: string; // e.g., "10:00"
-  endTime: string; // e.g., "11:00"
-  date?: string; // e.g., "2026-08-17"
-}
+import { ROUTES } from "@/constants/routes";
 
-export interface SetAvailabilityInput {
-  isRecurring: boolean;
-  slots: TimeSlot[];
-}
+import {
+  type AvailabilityPayloadItem,
+  type OwnAvailabilitySlot,
+  type RecurringAvailabilityPayload,
+  type TeacherAvailabilitySlot,
+  api,
+} from "@utils/api";
 
-/**
- * Calculates duration in minutes from start and end time strings (HH:mm)
- */
-const calculateDurationInMinutes = (
-  startTime: string,
-  endTime: string,
-): number => {
-  const [startH, startM] = startTime.split(":").map(Number);
-  const [endH, endM] = endTime.split(":").map(Number);
+import { type ActionResult, actionError } from "./result";
+import { getBackendSession } from "./session";
 
-  const startMinutes = startH * 60 + startM;
-  const endMinutes = endH * 60 + endM;
+// server actions so the backend token stays on the server
 
-  return endMinutes - startMinutes;
+const getTeacherToken = async (): Promise<string | null> =>
+  (await getBackendSession("Teacher"))?.token ?? null;
+
+const UNAUTHORIZED = {
+  ok: false as const,
+  error: "Only signed-in tutors can manage availability.",
 };
 
-/**
- * Converts local date and time string into an ISO 8601 string
- */
-const toISOString = (dateStr: string, timeStr: string): string => {
-  const [hours, minutes] = timeStr.split(":").map(Number);
-  const date = new Date(dateStr);
-  date.setHours(hours, minutes, 0, 0);
-  return date.toISOString();
+const revalidateSchedulePages = () => {
+  revalidatePath(ROUTES.DASHBOARD.AVAILABILITY);
+  revalidatePath(ROUTES.DASHBOARD.TEACHER);
+  revalidatePath(ROUTES.DASHBOARD.SCHEDULE);
 };
 
-export async function setTeacherAvailability(input: SetAvailabilityInput) {
-  const session = await auth();
-
-  if (!session?.user || session.user.role !== "Teacher") {
-    return { success: false, error: "Unauthorized. Teachers only." };
-  }
-
-  // Access user access token from session if available
-  const token = session.backendToken || session.user?.backendJwt;
+export async function getMyAvailabilityAction(
+  fromIso: string,
+  toIso: string,
+): Promise<ActionResult<OwnAvailabilitySlot[]>> {
+  const token = await getTeacherToken();
+  if (!token) return UNAUTHORIZED;
 
   try {
-    const promises = input.slots.map(async (slot) => {
-      const dateString = slot.date || new Date().toISOString().split("T")[0];
-      const isoStartTime = toISOString(dateString, slot.startTime);
-      const durationInMinutes = calculateDurationInMinutes(
-        slot.startTime,
-        slot.endTime,
-      );
+    const response = await api.availability.getMine(
+      { from: new Date(fromIso), to: new Date(toIso) },
+      token,
+    );
+    return { ok: true, data: response.data ?? [] };
+  } catch (error) {
+    return actionError(error, "Couldn't load your availability.");
+  }
+}
 
-      const payload: AvailabilityPayloadItem = {
-        startTime: isoStartTime,
-        durationInMinutes,
-      };
+export async function createAvailabilityAction(
+  items: AvailabilityPayloadItem[],
+): Promise<ActionResult<TeacherAvailabilitySlot[]>> {
+  const token = await getTeacherToken();
+  if (!token) return UNAUTHORIZED;
 
-      return api.availability.create(payload, token);
-    });
+  try {
+    const response = await api.availability.createMany(items, token);
+    revalidateSchedulePages();
+    return { ok: true, data: response.data ?? [] };
+  } catch (error) {
+    return actionError(error, "Failed to save availability.");
+  }
+}
 
-    await Promise.all(promises);
+export async function createRecurringAvailabilityAction(
+  payload: RecurringAvailabilityPayload,
+): Promise<ActionResult<{ created: TeacherAvailabilitySlot[]; skipped: string[] }>> {
+  const token = await getTeacherToken();
+  if (!token) return UNAUTHORIZED;
 
-    revalidatePath("/dashboard/schedule");
+  try {
+    const response = await api.availability.createRecurring(payload, token);
+    revalidateSchedulePages();
+    return { ok: true, data: { created: response.data ?? [], skipped: response.skipped ?? [] } };
+  } catch (error) {
+    return actionError(error, "Failed to save availability.");
+  }
+}
 
-    return { success: true, message: "Availability updated successfully!" };
-  } catch (error: unknown) {
-    console.error("Failed to save availability:", error);
-    const errorMessage =
-      error instanceof Error ? error.message : "Failed to save availability.";
-    return { success: false, error: errorMessage };
+// api allows max 50 ids per delete
+const DELETE_BATCH_SIZE = 50;
+
+export async function removeAvailabilityAction(ids: string[]): Promise<ActionResult> {
+  const token = await getTeacherToken();
+  if (!token) return UNAUTHORIZED;
+
+  try {
+    for (let i = 0; i < ids.length; i += DELETE_BATCH_SIZE) {
+      await api.availability.removeMany(ids.slice(i, i + DELETE_BATCH_SIZE), token);
+    }
+    revalidateSchedulePages();
+    return { ok: true, data: undefined };
+  } catch (error) {
+    return actionError(error, "Failed to remove availability.");
+  }
+}
+
+export async function removeSeriesAction(
+  seriesId: string,
+): Promise<ActionResult<{ deleted: string[]; keptBooked: string[] }>> {
+  const token = await getTeacherToken();
+  if (!token) return UNAUTHORIZED;
+
+  try {
+    const response = await api.availability.removeSeries(seriesId, token);
+    revalidateSchedulePages();
+    return { ok: true, data: response.data ?? { deleted: [], keptBooked: [] } };
+  } catch (error) {
+    return actionError(error, "Failed to remove the series.");
   }
 }

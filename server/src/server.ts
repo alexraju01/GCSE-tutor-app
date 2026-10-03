@@ -1,5 +1,5 @@
-import "dotenv/config";
 import { globalErrorHandler } from "@controllers/error.controller.js";
+import { apiLimiter } from "@middleware";
 import {
   teacherRouter,
   userRouter,
@@ -8,23 +8,36 @@ import {
   socialRouter,
   dashboardRouter,
   lessonRouter,
+  notificationRouter,
 } from "@routes";
 import { AppError } from "@utils/AppError.js";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
+import helmet from "helmet";
 import morgan from "morgan";
+import { env } from "./config/env.js";
 import { BLUE, RESET } from "./utils/colours.js";
 
 const app = express();
-const { PORT } = process.env || 5000;
 
+// we sit behind a proxy/load balancer in prod, need this so req.ip is the
+// actual client and not just the proxy
+app.set("trust proxy", 1);
+
+app.use(helmet());
 app.use(express.json({ limit: "10kb" }));
 app.use(cookieParser());
-app.use(cors());
+app.use(
+  cors({
+    origin: env.CORS_ORIGIN === "*" ? true : env.CORS_ORIGIN.split(","),
+    credentials: true,
+  }),
+);
+app.use(apiLimiter);
 
-if (process.env.NODE_ENV !== "test") {
-  app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
+if (env.NODE_ENV !== "test") {
+  app.use(morgan(env.NODE_ENV === "production" ? "combined" : "dev"));
 }
 
 // Resource Routing
@@ -35,8 +48,7 @@ app.use("/api/v1/availability", availabilityRouter);
 app.use("/api/v1/auth", socialRouter);
 app.use("/api/v1/dashboard", dashboardRouter);
 app.use("/api/v1/lessons", lessonRouter);
-
-app.use(globalErrorHandler);
+app.use("/api/v1/notifications", notificationRouter);
 
 // Unmatched routes
 app.all("/*splat", (req, res, next) => {
@@ -45,8 +57,8 @@ app.all("/*splat", (req, res, next) => {
 
 app.use(globalErrorHandler);
 
-const server = app.listen(PORT, () => {
-  console.info(`${BLUE}Server listening on http://localhost:${PORT}${RESET}`);
+const server = app.listen(env.PORT, () => {
+  console.info(`${BLUE}Server listening on http://localhost:${env.PORT}${RESET}`);
 });
 
 // Graceful shutdown & crash visibility — important for orchestrated environments (k8s, ECS, etc.)

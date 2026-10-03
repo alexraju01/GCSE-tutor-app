@@ -11,8 +11,8 @@ const FeaturesSection = () => {
             Engineered for high-performance learning.
           </h2>
           <p className="mt-4 text-base text-slate-600 md:text-lg dark:text-slate-400">
-            Ditch the fragmented setups. Access an ecosystem crafted
-            deliberately to compress your study hours and maximize grades.
+            Ditch the fragmented setups. Access an ecosystem crafted deliberately to compress your
+            study hours and maximize grades.
           </p>
         </div>
 
@@ -60,8 +60,8 @@ const FeaturesSection = () => {
                 1v1 Tutoring
               </h3>
               <p className="text-xs leading-relaxed text-slate-600 sm:text-sm dark:text-slate-400">
-                No generic streams. Get direct live access to elite educators
-                tailoring every concept to your pace and exam targets.
+                No generic streams. Get direct live access to elite educators tailoring every
+                concept to your pace and exam targets.
               </p>
             </div>
 

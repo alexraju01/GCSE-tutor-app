@@ -1,9 +1,12 @@
 "use client";
 
 import { useState } from "react";
+
+import { ChevronDown, X } from "lucide-react";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { X, ChevronDown } from "lucide-react";
+
 import { TeachesSubject } from "../types/teacher";
 
 interface TeachingInformationSectionProps {
@@ -19,9 +22,7 @@ const formatSubjectName = (rawSubject: string) => {
     .join(" ");
 };
 
-export const TeachingInformationSection = ({
-  teaches = [],
-}: TeachingInformationSectionProps) => {
+export const TeachingInformationSection = ({ teaches = [] }: TeachingInformationSectionProps) => {
   const [subjects, setSubjects] = useState<TeachesSubject[]>(teaches);
 
   const removeSubject = (idToRemove: string) => {
@@ -40,7 +41,7 @@ export const TeachingInformationSection = ({
   const aLevelSubjects = groupedSubjects.aLevel || [];
 
   return (
-    <Card className="border-slate-100 rounded-2xl shadow-sm bg-white">
+    <Card className="rounded-2xl border-slate-100 bg-white shadow-sm">
       <CardHeader className="pb-5">
         <CardTitle className="text-base font-semibold text-slate-900">
           Teaching Information
@@ -49,63 +50,61 @@ export const TeachingInformationSection = ({
       <CardContent className="space-y-5">
         {/* Subjects Grouped by Level */}
         <div className="space-y-4">
-          <Label className="text-xs font-medium text-slate-600 block">
-            Subjects You Teach
-          </Label>
+          <Label className="block text-xs font-medium text-slate-600">Subjects You Teach</Label>
 
           {/* GCSE Nested Row */}
-          <div className="space-y-1.5 pl-2 border-l-2 border-slate-100">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 block">
+          <div className="space-y-1.5 border-l-2 border-slate-100 pl-2">
+            <span className="block text-[11px] font-semibold tracking-wider text-slate-400 uppercase">
               GCSE Level
             </span>
-            <div className="min-h-10 flex flex-wrap items-center gap-1.5 p-1.5 w-full border border-slate-200 rounded-xl bg-white relative pr-8">
+            <div className="relative flex min-h-10 w-full flex-wrap items-center gap-1.5 rounded-xl border border-slate-200 bg-white p-1.5 pr-8">
               {gcseSubjects.length === 0 ? (
-                <span className="text-xs text-slate-400 px-1.5 py-1">
+                <span className="px-1.5 py-1 text-xs text-slate-400">
                   No GCSE subjects selected...
                 </span>
               ) : (
                 gcseSubjects.map((sub) => (
                   <span
                     key={sub.id}
-                    className="inline-flex items-center gap-1 bg-blue-50 text-blue-600 border border-blue-100 px-2 py-1 rounded-lg text-xs font-medium"
+                    className="inline-flex items-center gap-1 rounded-lg border border-blue-100 bg-blue-50 px-2 py-1 text-xs font-medium text-blue-600"
                   >
                     {formatSubjectName(sub.subject)}
                     <X
-                      className="w-3 h-3 cursor-pointer hover:text-blue-800 transition-colors"
+                      className="h-3 w-3 cursor-pointer transition-colors hover:text-blue-800"
                       onClick={() => removeSubject(sub.id)}
                     />
                   </span>
                 ))
               )}
-              <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <ChevronDown className="pointer-events-none absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
             </div>
           </div>
 
           {/* A-Level Nested Row */}
-          <div className="space-y-1.5 pl-2 border-l-2 border-slate-100">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 block">
+          <div className="space-y-1.5 border-l-2 border-slate-100 pl-2">
+            <span className="block text-[11px] font-semibold tracking-wider text-slate-400 uppercase">
               A-Level
             </span>
-            <div className="min-h-10 flex flex-wrap items-center gap-1.5 p-1.5 w-full border border-slate-200 rounded-xl bg-white relative pr-8">
+            <div className="relative flex min-h-10 w-full flex-wrap items-center gap-1.5 rounded-xl border border-slate-200 bg-white p-1.5 pr-8">
               {aLevelSubjects.length === 0 ? (
-                <span className="text-xs text-slate-400 px-1.5 py-1">
+                <span className="px-1.5 py-1 text-xs text-slate-400">
                   No A-Level subjects selected...
                 </span>
               ) : (
                 aLevelSubjects.map((sub) => (
                   <span
                     key={sub.id}
-                    className="inline-flex items-center gap-1 bg-blue-50 text-blue-600 border border-blue-100 px-2 py-1 rounded-lg text-xs font-medium"
+                    className="inline-flex items-center gap-1 rounded-lg border border-blue-100 bg-blue-50 px-2 py-1 text-xs font-medium text-blue-600"
                   >
                     {formatSubjectName(sub.subject)}
                     <X
-                      className="w-3 h-3 cursor-pointer hover:text-blue-800 transition-colors"
+                      className="h-3 w-3 cursor-pointer transition-colors hover:text-blue-800"
                       onClick={() => removeSubject(sub.id)}
                     />
                   </span>
                 ))
               )}
-              <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <ChevronDown className="pointer-events-none absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
             </div>
           </div>
         </div>

@@ -7,6 +7,11 @@ export const teacherSelect = {
   bio: true,
   qualifications: true,
   hourlyRate: true,
+  // booking rules are public so students see them before booking
+  requireApproval: true,
+  minNoticeHours: true,
+  maxAdvanceDays: true,
+  cancellationCutoffHours: true,
   // Excluded: totalEarnings, totalHours, rating
   user: {
     select: { id: true, name: true, email: true, image: true },

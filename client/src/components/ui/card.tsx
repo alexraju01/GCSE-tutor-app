@@ -12,7 +12,7 @@ const Card = ({
       data-slot="card"
       data-size={size}
       className={cn(
-        "group/card bg-card text-card-foreground flex flex-col gap-(--card-spacing) overflow-hidden rounded-xl py-(--card-spacing) text-sm shadow-xs ring-1 ring-foreground/10 [--card-spacing:--spacing(6)] has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(4)] *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
+        "group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-xl bg-card py-(--card-spacing) text-sm text-card-foreground shadow-xs ring-1 ring-foreground/10 [--card-spacing:--spacing(6)] has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(4)] *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
         className,
       )}
       {...props}
@@ -46,14 +46,11 @@ const CardTitle = ({ className, ...props }: React.ComponentProps<"div">) => {
   );
 };
 
-const CardDescription = ({
-  className,
-  ...props
-}: React.ComponentProps<"div">) => {
+const CardDescription = ({ className, ...props }: React.ComponentProps<"div">) => {
   return (
     <div
       data-slot="card-description"
-      className={cn("text-muted-foreground text-sm", className)}
+      className={cn("text-sm text-muted-foreground", className)}
       {...props}
     />
   );
@@ -63,10 +60,7 @@ const CardAction = ({ className, ...props }: React.ComponentProps<"div">) => {
   return (
     <div
       data-slot="card-action"
-      className={cn(
-        "col-start-2 row-span-2 row-start-1 self-start justify-self-end",
-        className,
-      )}
+      className={cn("col-start-2 row-span-2 row-start-1 self-start justify-self-end", className)}
       {...props}
     />
   );
@@ -74,11 +68,7 @@ const CardAction = ({ className, ...props }: React.ComponentProps<"div">) => {
 
 const CardContent = ({ className, ...props }: React.ComponentProps<"div">) => {
   return (
-    <div
-      data-slot="card-content"
-      className={cn("px-(--card-spacing)", className)}
-      {...props}
-    />
+    <div data-slot="card-content" className={cn("px-(--card-spacing)", className)} {...props} />
   );
 };
 
@@ -95,12 +85,4 @@ const CardFooter = ({ className, ...props }: React.ComponentProps<"div">) => {
   );
 };
 
-export {
-  Card,
-  CardHeader,
-  CardFooter,
-  CardTitle,
-  CardAction,
-  CardDescription,
-  CardContent,
-};
+export { Card, CardHeader, CardFooter, CardTitle, CardAction, CardDescription, CardContent };

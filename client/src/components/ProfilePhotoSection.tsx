@@ -1,4 +1,5 @@
 import Image from "next/image";
+
 import { Upload } from "lucide-react";
 
 interface ProfilePhotoSectionProps {
@@ -7,25 +8,26 @@ interface ProfilePhotoSectionProps {
 
 export const ProfilePhotoSection = ({ image }: ProfilePhotoSectionProps) => {
   return (
-    <section className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm flex flex-col items-center text-center">
-      <h2 className="text-base font-semibold text-slate-900 w-full text-left mb-5">
+    <section className="flex flex-col items-center rounded-2xl border border-slate-100 bg-white p-6 text-center shadow-sm">
+      <h2 className="mb-5 w-full text-left text-base font-semibold text-slate-900">
         Profile Photo
       </h2>
 
-      <div className="relative inline-block mb-4">
+      <div className="relative mb-4 inline-block">
         <Image
+          referrerPolicy="no-referrer"
           src={image || "/default-profile.png"}
           alt="Profile Preview"
           width={144}
           height={144}
           priority
           loading="eager"
-          className="w-36 h-36 rounded-full object-cover border border-slate-100"
+          className="h-36 w-36 rounded-full border border-slate-100 object-cover"
         />
 
-        <button className="absolute bottom-1 right-1 p-1.5 bg-white border border-slate-200 rounded-full shadow-sm hover:bg-slate-50 text-slate-600">
+        <button className="absolute right-1 bottom-1 rounded-full border border-slate-200 bg-white p-1.5 text-slate-600 shadow-sm hover:bg-slate-50">
           <svg
-            className="w-3.5 h-3.5"
+            className="h-3.5 w-3.5"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -40,12 +42,10 @@ export const ProfilePhotoSection = ({ image }: ProfilePhotoSectionProps) => {
         </button>
       </div>
 
-      <p className="text-[11px] text-slate-400 mb-4">
-        JPG, PNG or WebP. Max size 2MB.
-      </p>
+      <p className="mb-4 text-[11px] text-slate-400">JPG, PNG or WebP. Max size 2MB.</p>
 
-      <button className="flex items-center gap-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-xl text-sm font-medium transition shadow-sm w-full justify-center">
-        <Upload className="w-4 h-4 text-slate-500" />
+      <button className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50">
+        <Upload className="h-4 w-4 text-slate-500" />
         Change Photo
       </button>
     </section>

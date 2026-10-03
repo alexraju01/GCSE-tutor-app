@@ -1,20 +1,19 @@
 "use server";
 
-import { signIn, signOut } from "@auth";
-import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
+
+import { AuthError } from "next-auth";
+
+import { signIn, signOut } from "@auth";
+
+import { ROUTES } from "@/constants/routes";
 
 import action from "@utils/actions/action";
 import { api } from "@utils/api";
-import {
-  type AuthCredentials,
-  SignInSchema,
-  SignUpSchema,
-} from "@utils/validation";
+import { getAuthErrorMessage } from "@utils/authError";
+import { type AuthCredentials, SignInSchema, SignUpSchema } from "@utils/validation";
 
-export async function signUpWithCredentials(
-  params: AuthCredentials,
-): Promise<APIResponse> {
+export async function signUpWithCredentials(params: AuthCredentials): Promise<APIResponse> {
   const validationResult = await action({ params, schema: SignUpSchema });
 
   if (validationResult instanceof Error) {
@@ -24,15 +23,9 @@ export async function signUpWithCredentials(
     };
   }
 
-  const {
-    name,
-    email,
-    password,
-    confirmPassword = "",
-  } = validationResult.params!;
+  const { name, email, password, confirmPassword = "" } = validationResult.params!;
 
   try {
-    // 1. CREATE USER IN EXPRESS BACKEND
     const res = await api.auth.signUp({
       name,
       email,
@@ -44,21 +37,30 @@ export async function signUpWithCredentials(
       return { status: "error", message: res.message || "Signup failed" };
     }
 
-    // 2. AUTO-LOGIN WRAPPED SAFELY FOR AUTH.JS V5
     try {
-      await signIn("credentials", {
+      const loginResult = await signIn("credentials", {
         email,
         password,
         redirect: false,
       });
+
+      // A failed login returns `error` here, it doesn't throw.
+      if (!loginResult || loginResult.error) {
+        return {
+          status: "error",
+          message: "Account created, but automatic sign-in failed. Please log in manually.",
+        };
+      }
 
       return { status: "success", message: "Account created successfully!" };
     } catch (loginError: unknown) {
       if (loginError instanceof AuthError) {
         return {
           status: "error",
-          message:
+          message: getAuthErrorMessage(
+            loginError,
             "Account created, but automatic sign-in failed. Please log in manually.",
+          ),
         };
       }
       throw loginError;
@@ -66,8 +68,7 @@ export async function signUpWithCredentials(
   } catch (error: unknown) {
     return {
       status: "error",
-      message:
-        error instanceof Error ? error.message : "An unexpected error occurred",
+      message: error instanceof Error ? error.message : "An unexpected error occurred",
     };
   }
 }
@@ -98,9 +99,10 @@ export async function signInWithCredentials(
     });
 
     if (!loginResult || loginResult.error) {
+      // Defensive fallback — no exception here means no API error to unwrap.
       return {
         status: "error",
-        message: loginResult?.error || "Invalid email or password",
+        message: "Invalid email or password.",
       };
     }
 
@@ -109,14 +111,14 @@ export async function signInWithCredentials(
     if (error instanceof Error && error.message === "NEXT_REDIRECT") {
       throw error;
     }
+
     return {
       status: "error",
-      message:
-        error instanceof Error ? error.message : "Unexpected error occurred",
+      message: getAuthErrorMessage(error, "Invalid email or password."),
     };
   }
 
-  if (isSuccess) redirect("/dashboard");
+  if (isSuccess) redirect(ROUTES.DASHBOARD.ROOT);
 
   return {
     status: "error",

@@ -1,11 +1,11 @@
-import { auth } from "@auth";
 import ScheduleHeader from "@components/dashboard/calendar/ScheduleHeader";
-import ScheduleFilters from "@components/dashboard/schedule/ScheduleFilters";
+import ScheduleFilters, { FILTER_OPTIONS } from "@components/dashboard/schedule/ScheduleFilters";
 import ScheduleItemCard from "@components/dashboard/schedule/ScheduleItemCard";
 import SchedulePagination from "@components/dashboard/schedule/SchedulePagination";
-import type { TimeSlot } from "@utils/actions/availability";
+import { requireSession } from "@utils/actions/session";
 import { api } from "@utils/api";
 import { formatHeaderDate } from "@utils/date";
+import { nowInUk } from "@utils/ukTime";
 
 interface SchedulePageProps {
   searchParams: Promise<{
@@ -13,117 +13,105 @@ interface SchedulePageProps {
     month?: string;
     year?: string;
     page?: string;
+    sort?: string;
   }>;
 }
 
-const resolveInitialAvailability = (
-  availabilityResponse: unknown,
-): TimeSlot[] => {
-  if (
-    typeof availabilityResponse === "object" &&
-    availabilityResponse !== null &&
-    "data" in availabilityResponse &&
-    Array.isArray((availabilityResponse as { data: unknown }).data)
-  ) {
-    return (availabilityResponse as { data: TimeSlot[] }).data;
-  }
+// A "past" filter reads more naturally most-recent-first; anything still
+// ahead of you reads more naturally soonest-first.
+const DEFAULT_SORT_BY_FILTER: Record<StatusType, SortDirection> = {
+  all: "asc",
+  upcoming: "asc",
+  Pending: "asc",
+  Upcoming: "asc",
+  Confirmed: "asc",
+  Completed: "desc",
+  Cancelled: "desc",
+  Declined: "desc",
+};
 
-  if (Array.isArray(availabilityResponse)) {
-    return availabilityResponse as TimeSlot[];
-  }
-
-  return [];
+const normalizeFilter = (raw?: string): StatusType => {
+  const match = FILTER_OPTIONS.find((option) => option.value.toLowerCase() === raw?.toLowerCase());
+  return match?.value ?? "upcoming";
 };
 
 const SchedulePage = async ({ searchParams }: SchedulePageProps) => {
   const params = await searchParams;
-  const activeFilter = (params.filter?.toLowerCase() as StatusType) || "all";
+  const activeFilter = normalizeFilter(params.filter);
+  const activeSort: SortDirection =
+    params.sort === "asc" || params.sort === "desc"
+      ? params.sort
+      : DEFAULT_SORT_BY_FILTER[activeFilter];
   const currentPage = params.page ? parseInt(params.page, 10) : 1;
-  const currentDate = new Date();
-  const selectedYear = params.year
-    ? parseInt(params.year, 10)
-    : currentDate.getFullYear();
-  const selectedMonth = params.month
-    ? parseInt(params.month, 10) - 1
-    : undefined;
+  // Server's own clock isn't necessarily UK time.
+  const currentDate = nowInUk();
+  const selectedYear = params.year ? parseInt(params.year, 10) : currentDate.getFullYear();
+  const selectedMonth = params.month ? parseInt(params.month, 10) - 1 : undefined;
 
   const formattedDateHeader =
-    selectedMonth !== undefined
-      ? formatHeaderDate(selectedYear, selectedMonth)
-      : formatHeaderDate(selectedYear);
+    activeFilter === "upcoming" && selectedMonth === undefined
+      ? "From today"
+      : formatHeaderDate(selectedYear, selectedMonth);
 
-  const session = await auth();
-  const isTeacher = session?.user?.role === "Teacher";
-  const teacherId = session?.user?.id ?? "";
-  const token = session?.backendToken ?? "";
+  const query: ScheduleQueryState = {
+    filter: activeFilter,
+    sort: activeSort,
+    year: selectedYear,
+    month: selectedMonth,
+  };
 
-  const lessonStatus = activeFilter !== "all" ? activeFilter : undefined;
-  const lessonMonth =
-    selectedMonth !== undefined ? selectedMonth + 1 : undefined;
+  const { isTeacher, token } = await requireSession();
 
-  // Parallel data fetching on the server
-  const [lessonsResponse, availabilityResponse] = await Promise.all([
-    api.lesson.getAll(token, {
-      page: currentPage,
-      status: lessonStatus,
-      year: selectedYear,
-      month: lessonMonth,
-    }),
-    isTeacher && teacherId
-      ? api.availability.getByTeacherId(teacherId, token)
-      : null,
-  ]);
+  const isUpcomingView = activeFilter === "upcoming";
+  const lessonStatus = activeFilter !== "all" && !isUpcomingView ? activeFilter : undefined;
+  const lessonMonth = selectedMonth !== undefined ? selectedMonth + 1 : undefined;
+
+  const lessonsResponse = await api.lesson.getAll(token, {
+    page: currentPage,
+    status: lessonStatus,
+    // "Next up" isn't limited to this year unless a month is picked
+    year: isUpcomingView && lessonMonth === undefined ? undefined : selectedYear,
+    month: lessonMonth,
+    scope: isUpcomingView ? "upcoming" : undefined,
+    sort: activeSort,
+  });
 
   const lessons = lessonsResponse?.data ?? [];
-  const totalPages = lessonsResponse?.totalPages ?? 1;
-  const totalResults = lessonsResponse?.totalResults ?? lessons.length;
+  const totalPages = lessonsResponse?.pagination?.totalPages ?? 1;
+  const totalResults = lessonsResponse?.pagination?.totalResults ?? lessons.length;
 
-  // Extract initial availability without nested ternaries
-  const initialAvailability = resolveInitialAvailability(availabilityResponse);
-
-  const filterLabel = activeFilter !== "all" ? `${activeFilter} ` : "";
+  const filterLabel = FILTER_OPTIONS.find(
+    (o) => o.value === activeFilter && o.value !== "all",
+  )?.label.toLowerCase();
 
   return (
     <div className="mx-auto max-w-6xl space-y-8">
-      <ScheduleHeader
-        isTeacher={isTeacher}
-        token={token}
-        initialSlots={initialAvailability}
-      />
+      <ScheduleHeader isTeacher={isTeacher} />
 
-      <ScheduleFilters
-        activeFilter={activeFilter}
-        selectedYear={selectedYear}
-        selectedMonth={selectedMonth}
-        formattedDateHeader={formattedDateHeader}
-      />
+      <ScheduleFilters query={query} formattedDateHeader={formattedDateHeader} />
 
       <div className="space-y-4">
         {lessons.length === 0 ? (
-          <div className="rounded-xl border border-slate-200/80 bg-white py-12 text-center shadow-xs dark:border-slate-800/80 dark:bg-slate-900/50">
+          <div className="rounded-2xl border border-dashed border-slate-200 bg-white py-12 text-center dark:border-slate-800 dark:bg-slate-900/50">
             <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
-              No {filterLabel}scheduled lessons found for {formattedDateHeader}.
+              {isUpcomingView && lessonMonth === undefined
+                ? "Nothing coming up yet — new requests and bookings will appear here."
+                : `No ${filterLabel ? `${filterLabel} ` : ""}lessons found for ${formattedDateHeader}.`}
             </p>
           </div>
         ) : (
           lessons.map((lesson) => (
-            <ScheduleItemCard
-              key={lesson.id}
-              lesson={lesson}
-              isTeacher={isTeacher}
-            />
+            <ScheduleItemCard key={lesson.id} lesson={lesson} isTeacher={isTeacher} />
           ))
         )}
       </div>
 
       {totalPages > 1 && (
         <SchedulePagination
+          query={query}
           currentPage={currentPage}
           totalPages={totalPages}
           totalResults={totalResults}
-          activeFilter={activeFilter}
-          selectedYear={selectedYear}
-          selectedMonth={selectedMonth}
         />
       )}
     </div>

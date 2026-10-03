@@ -19,9 +19,18 @@ const baseAuthFields = {
 
 const credentialsFields = {
   provider: z.literal("credentials"),
+  // Mirrors the client's SignUpSchema — the client check is UX only, this is
+  // what actually enforces the policy against a direct API call.
   password: z
     .string({ error: "Password is required" })
-    .min(8, { message: "Password must be at least 8 characters long" }),
+    .min(8, { message: "Password must be at least 8 characters long" })
+    .max(150, { message: "Password cannot exceed 150 characters" })
+    .regex(/[A-Z]/, { message: "Password must contain at least one uppercase letter" })
+    .regex(/[a-z]/, { message: "Password must contain at least one lowercase letter" })
+    .regex(/[0-9]/, { message: "Password must contain at least one number" })
+    .regex(/[^a-zA-Z0-9]/, {
+      message: "Password must contain at least one special character",
+    }),
   confirmPassword: z.string({ error: "Confirm password is required" }),
 };
 
@@ -90,12 +99,29 @@ export const registrationSchema = z
   })
   .pipe(baseDiscriminatedUnion);
 
+// No complexity rules at login, just bounds against a huge payload.
+export const loginSchema = z.object({
+  email: emailSchema,
+  password: z
+    .string({ error: "Password is required" })
+    .min(1, { message: "Password is required" })
+    .max(255, { message: "Password cannot exceed 255 characters" }),
+});
+
+export type LoginInput = z.infer<typeof loginSchema>;
+
 export const socialSyncSchema = z.object({
   ...baseAuthFields,
   ...socialFields,
   role: z.enum([Role.Student, Role.Teacher]),
+  image: z.url({ message: "Image must be a valid URL" }).optional(),
+  providerId: z
+    .string({ error: "providerId is required" })
+    .min(1, { message: "providerId is required" }),
 });
 
 export type SocialSyncInput = z.infer<typeof socialSyncSchema>;
 
 export type UserInput = z.infer<typeof registrationSchema>;
+
+export type CredentialsInput = Extract<UserInput, { provider: "credentials" }>;

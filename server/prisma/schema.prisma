@@ -13,9 +13,17 @@ enum Role {
   Admin
 }
 
+// Pending   - waiting on teacher approval (holds the slot)
+// Upcoming  - booked, no approval needed
+// Confirmed - pending request the teacher accepted
+// Declined  - teacher turned the request down (frees the slot)
+// Cancelled - cancelled by either side (frees the slot)
+// Completed - set by the worker once the lesson ends
 enum LessonStatus {
+  Pending
   Upcoming
   Confirmed
+  Declined
   Cancelled
   Completed
 }
@@ -50,6 +58,8 @@ model User {
   teacher Teacher?
   student Student?
 
+  notifications Notification[]
+
   @@map("users")
 }
 
@@ -65,6 +75,11 @@ model Teacher {
   totalHours      Float    @default(0.0)
 
   requireApproval Boolean  @default(false)
+
+  // booking rules
+  minNoticeHours          Int @default(12)
+  maxAdvanceDays          Int @default(90)
+  cancellationCutoffHours Int @default(24)
 
   teaches        Teaches[]
   availabilities Availability[]
@@ -113,35 +128,59 @@ model Availability {
   teacherId String
   teacher   Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
 
-  startTime DateTime 
-  endTime   DateTime 
+  startTime DateTime
+  endTime   DateTime
+
+  // groups slots created from the same weekly pattern, null for one-offs
+  seriesId  String?  @db.Uuid
 
   lessons   Lesson[]
 
+  // overlaps blocked by availabilities_no_overlap (raw sql in migration)
+  @@index([teacherId, startTime])
+  @@index([seriesId])
   @@map("availabilities")
 }
 
 model Lesson {
   id             String       @id @default(uuid())
   teacherId      String
-  teacher        Teacher      @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  // Restrict so deleting a user/teacher can't wipe lesson history
+  teacher        Teacher       @relation(fields: [teacherId], references: [id], onDelete: Restrict)
   studentId      String
-  student        Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  availabilityId String
-  availability   Availability @relation(fields: [availabilityId], references: [id], onDelete: Cascade)
+  student        Student       @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  // SetNull - lesson has its own copy of the times, so purging old slots is fine
+  availabilityId String?
+  availability   Availability? @relation(fields: [availabilityId], references: [id], onDelete: SetNull)
+  // = availabilityId while the lesson holds the slot, null once cancelled/declined.
+  // unique so there can only ever be one live booking per slot
+  activeAvailabilityId String? @unique
 
   subject        Subject
   topic          String?      @db.VarChar(255)
-  meetingRoomId  String?      @db.Uuid
+  // meeting room lives on Classroom (one per lesson), not here
   startTime      DateTime
   duration       Int          @default(60)
   status         LessonStatus @default(Upcoming)
 
   notes          String?      @db.VarChar(255)
+  // price at the time of booking, hourlyRate can change later
+  priceAtBooking Decimal?     @db.Decimal(10, 2)
+  // Idempotency-Key from the client, so a retried booking isn't created twice
+  bookingRef     String?      @db.VarChar(64)
+
+  cancelledAt    DateTime?
+  cancelledBy    Role?
+  cancelReason   String?      @db.VarChar(255)
+  respondedAt    DateTime?
+
   createdAt      DateTime     @default(now())
 
   classroom      Classroom?
+  notifications  Notification[]
 
+  // student double-booking blocked by lessons_student_no_overlap (raw sql in migration)
+  @@index([studentId, bookingRef])
   @@index([studentId, startTime])
   @@index([teacherId, startTime])
   @@index([teacherId, startTime, status])
@@ -163,4 +202,43 @@ model Classroom {
   updatedAt       DateTime  @updatedAt
 
   @@map("classrooms")
+}
+
+enum NotificationType {
+  LessonBooked
+  LessonRequested
+  LessonConfirmed
+  LessonDeclined
+  LessonCancelled
+}
+
+enum NotificationStatus {
+  Pending
+  Sent
+  Failed
+}
+
+// written in the same transaction as the booking change, then sent by the
+// worker. also used as the in-app notification feed (readAt)
+model Notification {
+  id        String             @id @default(uuid())
+  userId    String
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessonId  String?
+  lesson    Lesson?            @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+
+  type      NotificationType
+  title     String             @db.VarChar(255)
+  body      String             @db.Text
+
+  status    NotificationStatus @default(Pending)
+  attempts  Int                @default(0)
+  lastError String?            @db.Text
+  sentAt    DateTime?
+  readAt    DateTime?
+  createdAt DateTime           @default(now())
+
+  @@index([status, createdAt])
+  @@index([userId, createdAt])
+  @@map("notifications")
 }

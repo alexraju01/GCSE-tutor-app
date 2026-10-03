@@ -1,12 +1,7 @@
 export interface TeachesSubject {
   id: string;
   subject:
-    | "MATHEMATICS"
-    | "PHYSICS"
-    | "CHEMISTRY"
-    | "BIOLOGY"
-    | "ENGLISH_LITERATURE"
-    | "COMPUTER_SCIENCE";
+    "MATHEMATICS" | "PHYSICS" | "CHEMISTRY" | "BIOLOGY" | "ENGLISH_LITERATURE" | "COMPUTER_SCIENCE";
   level: "GCSE" | "A_LEVEL";
 }
 
@@ -21,7 +16,17 @@ export interface Teacher {
   qualifications: string;
   hourlyRate: number;
   teaches: TeachesSubject[];
+  // Booking policy
+  requireApproval: boolean;
+  minNoticeHours: number;
+  maxAdvanceDays: number;
+  cancellationCutoffHours: number;
 }
+
+export type BookingPolicy = Pick<
+  Teacher,
+  "requireApproval" | "minNoticeHours" | "maxAdvanceDays" | "cancellationCutoffHours"
+>;
 
 export interface TeachersAPIResponse {
   status: string;

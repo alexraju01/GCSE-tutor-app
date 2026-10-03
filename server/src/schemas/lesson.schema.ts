@@ -31,6 +31,76 @@ export const getLessonsQuerySchema = z.object({
   limit: z.coerce.number().int().positive().max(100).default(5),
   status: createEnumTransformer(LessonStatus, "status"),
   subject: createEnumTransformer(Subject, "subject"),
+  year: z.coerce.number().int().min(2000).max(2100).optional(),
+  // 1-12. Only meaningful alongside year — filtering by month alone with no
+  // year would be ambiguous about which year's month is meant.
+  month: z.coerce.number().int().min(1).max(12).optional(),
+  sort: z.enum(["asc", "desc"]).default("asc"),
+  // "upcoming" = future requests + booked lessons
+  scope: z.enum(["upcoming"]).optional(),
 });
 
 export type GetLessonsQuery = z.infer<typeof getLessonsQuerySchema>;
+
+// no startTime/endTime here on purpose - we pull those off the Availability
+// row by availabilityId instead. otherwise a student could book any time or
+// duration they want as long as the id belonged to the right teacher
+export const lessonBookingItemSchema = z.object({
+  teacherProfileId: z.uuid({ message: "Invalid teacherProfileId format" }),
+  availabilityId: z.uuid({ message: "Invalid availabilityId format" }),
+  subject: z.enum(Subject, {
+    message: `Invalid subject. Available options: ${Object.values(Subject).join(", ")}`,
+  }),
+  topic: z.string().trim().max(255).optional(),
+  notes: z.string().trim().max(255).optional(),
+});
+
+// Accepts either a single booking or a batch (e.g. booking the same weekly
+// slot across several weeks at once). The response mirrors whichever shape
+// was sent.
+export const createLessonSchema = z.union([
+  lessonBookingItemSchema,
+  z
+    .array(lessonBookingItemSchema)
+    .min(1, { message: "Provide at least one lesson to book." })
+    .max(20, { message: "You can book at most 20 lessons in a single request." })
+    .refine((items) => new Set(items.map((item) => item.availabilityId)).size === items.length, {
+      error: "Cannot book the same availability slot twice in one request.",
+    }),
+]);
+
+export const lessonIdParamSchema = z.object({
+  lessonId: z.uuid({ message: "Invalid lesson id format" }),
+});
+
+// body is optional, a plain DELETE still works
+export const cancelLessonSchema = z
+  .object({
+    reason: z.string().trim().max(255).optional(),
+    // teacher only - reopen the slot for other students
+    reopenSlot: z.boolean().optional(),
+  })
+  .strict()
+  .default({});
+
+export const respondToLessonSchema = z
+  .object({
+    decision: z.enum(["approve", "decline"], {
+      message: "Decision must be either 'approve' or 'decline'.",
+    }),
+    reason: z.string().trim().max(255).optional(),
+  })
+  .strict();
+
+// Idempotency-Key header (client sends a uuid)
+export const idempotencyKeySchema = z
+  .string()
+  .trim()
+  .min(8, { message: "Idempotency-Key must be at least 8 characters." })
+  .max(64, { message: "Idempotency-Key must be at most 64 characters." })
+  .optional();
+
+export type LessonBookingItem = z.infer<typeof lessonBookingItemSchema>;
+export type CreateLessonInput = z.infer<typeof createLessonSchema>;
+export type CancelLessonInput = z.infer<typeof cancelLessonSchema>;
+export type RespondToLessonInput = z.infer<typeof respondToLessonSchema>;

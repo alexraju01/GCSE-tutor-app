@@ -1,3 +1,4 @@
+import { getTeacherAvailabilities } from "@controllers/availability.controller.js";
 import {
   getAllTeachers,
   getOneTeacher,
@@ -9,11 +10,13 @@ import { Role } from "@generated/enums.js";
 import { protect, authorize } from "@middleware";
 import { Router } from "express";
 import { validate } from "../middleware/validate.js";
+import { availabilityRangeQuerySchema } from "../schemas/availability.schema.js";
 import { updateTeacherFieldsSchema } from "../schemas/teacher.schema.js";
+
 export const teacherRouter = Router();
 
 // -----------------------------------------------------------------------------
-// Specific / Static Routes (Must come BEFORE dynamic /:id parameter routes)
+// 1. Authenticated / Specific Static Routes
 // -----------------------------------------------------------------------------
 teacherRouter
   .route("/me")
@@ -23,9 +26,20 @@ teacherRouter
   .delete(deleteTeacher);
 
 // -----------------------------------------------------------------------------
-// Public & Generic Routes
+// 2. Public Collection Routes
 // -----------------------------------------------------------------------------
 teacherRouter.route("/").get(getAllTeachers);
 
-// Dynamic parameter route captures everything else at the end
+// -----------------------------------------------------------------------------
+// 3. Sub-resource Routes (Must come BEFORE pure dynamic /:id routes) Public Routes for teacher availabilities
+// -----------------------------------------------------------------------------
+teacherRouter.get(
+  "/:teacherId/availabilities",
+  validate(availabilityRangeQuerySchema, "query"),
+  getTeacherAvailabilities,
+);
+
+// -----------------------------------------------------------------------------
+// 4. Pure Dynamic Parameter Routes (Catch-all for single resource lookup)
+// -----------------------------------------------------------------------------
 teacherRouter.route("/:id").get(getOneTeacher);

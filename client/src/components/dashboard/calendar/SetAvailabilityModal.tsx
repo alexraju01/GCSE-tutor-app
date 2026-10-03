@@ -1,396 +1,381 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { Clock, Plus, Trash2, X } from "lucide-react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 
-import { api } from "@utils/api";
-import { TimeSlot } from "@utils/actions/availability";
+import { CalendarPlus } from "lucide-react";
 
-export interface AvailabilityPayloadItem {
-  startTime: string;
-  durationInMinutes: number;
+import { Modal } from "@components/ui/modal";
+import { Select } from "@components/ui/select";
+import { buttonClass } from "@components/ui/styles";
+import { inputClass, labelClass } from "@components/ui/styles";
+import { LESSON_DURATIONS, lessonLengthForWindow, lessonLengthLabel } from "@constants/index";
+import {
+  createRecurringAvailabilityAction,
+  getMyAvailabilityAction,
+} from "@utils/actions/availability";
+import { cn } from "@utils/cn";
+import { pluralise } from "@utils/format";
+import {
+  addDaysToKey,
+  dayIndexOfKey,
+  formatDayKey,
+  getUkDateParts,
+  hhmmToMinutes,
+  minutesToHHMM,
+  toUkDateKey,
+  ukInstant,
+} from "@utils/ukTime";
+
+// prefill from dragging on the week grid
+export interface AvailabilityDraft {
+  date: string; // UK "YYYY-MM-DD"
+  from: string; // "HH:mm"
+  to: string; // "HH:mm"
 }
 
 interface SetAvailabilityModalProps {
-  isOpen: boolean;
+  open: boolean;
   onClose: () => void;
-  token?: string;
-
-  initialSlot?: {
-    dayOfWeek: string;
-    startTime: string;
-    endTime: string;
-    date?: string;
-  } | null;
-
-  onSuccess?: (newSlots: TimeSlot[]) => void;
+  draft?: AvailabilityDraft | null;
+  onSaved: (result: { created: number; skipped: number }) => void;
 }
 
-const DAYS = [
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-  "Sunday",
+// keep in sync with the recurring availability schema on the server
+const REPEAT_OPTIONS = [
+  { weeks: 1, label: "Just this once" },
+  { weeks: 2, label: "Every week for 2 weeks" },
+  { weeks: 4, label: "Every week for 4 weeks" },
+  { weeks: 8, label: "Every week for 8 weeks" },
+  { weeks: 12, label: "Every week for 12 weeks" },
 ];
 
-interface EditableSlot {
-  date: string;
-  dayOfWeek: string;
-  startTime: string;
-  endTime: string;
+interface Slot {
+  key: string; // "YYYY-MM-DD|HH:mm" - the server's exclude format
+  start: number; // epoch ms
+  end: number;
 }
 
-const getNextDateForDay = (dayName: string, baseDateStr?: string): string => {
-  const dayIndex = DAYS.indexOf(dayName);
-  const base = baseDateStr ? new Date(`${baseDateStr}T00:00:00`) : new Date();
-  const currentDayIndex = (base.getDay() + 6) % 7;
-  const distance = dayIndex - currentDayIndex;
+interface FormState {
+  date: string;
+  from: string;
+  to: string;
+  lessonLength: number;
+  weeks: number;
+}
 
-  const targetDate = new Date(base);
-  targetDate.setDate(base.getDate() + distance);
-
-  const yyyy = targetDate.getFullYear();
-  const mm = String(targetDate.getMonth() + 1).padStart(2, "0");
-  const dd = String(targetDate.getDate()).padStart(2, "0");
-
-  return `${yyyy}-${mm}-${dd}`;
+// next full hour at least an hour away, or tomorrow 16:00 if it's getting late
+const defaultForm = (): FormState => {
+  const now = new Date();
+  const { hour, minute } = getUkDateParts(now);
+  const nextHour = hour + (minute > 0 ? 2 : 1);
+  const useToday = nextHour <= 19;
+  const start = useToday ? nextHour * 60 : 16 * 60;
+  return {
+    date: useToday ? toUkDateKey(now) : addDaysToKey(toUkDateKey(now), 1),
+    from: minutesToHHMM(start),
+    to: minutesToHHMM(start + 120),
+    lessonLength: 60,
+    weeks: 1,
+  };
 };
 
-const calculateDuration = (start: string, end: string): number => {
-  const [startHours, startMinutes] = start.split(":").map(Number);
-  const [endHours, endMinutes] = end.split(":").map(Number);
-
-  const startTotal = startHours * 60 + startMinutes;
-  const endTotal = endHours * 60 + endMinutes;
-  const duration = endTotal - startTotal;
-
-  return duration > 0 ? duration : 60;
-};
-
-const SetAvailabilityModal = ({
-  isOpen,
-  onClose,
-  token,
-  initialSlot,
-  onSuccess,
-}: SetAvailabilityModalProps) => {
-  const [isPending, startTransition] = useTransition();
-
-  const [prevInitialSlot, setPrevInitialSlot] = useState(initialSlot);
-  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
-
-  const [slots, setSlots] = useState<EditableSlot[]>(() => {
-    if (initialSlot) {
-      return [
-        {
-          date: initialSlot.date || getNextDateForDay(initialSlot.dayOfWeek),
-          dayOfWeek: initialSlot.dayOfWeek,
-          startTime: initialSlot.startTime,
-          endTime: initialSlot.endTime,
-        },
-      ];
-    }
-    return [
-      {
-        date: getNextDateForDay("Monday"),
-        dayOfWeek: "Monday",
-        startTime: "09:00",
-        endTime: "10:00",
-      },
-    ];
-  });
-
-  const [error, setError] = useState<string | null>(null);
-
-  if (isOpen !== prevIsOpen || initialSlot !== prevInitialSlot) {
-    setPrevIsOpen(isOpen);
-    setPrevInitialSlot(initialSlot);
-    setError(null);
-
-    if (isOpen) {
-      if (initialSlot) {
-        setSlots([
-          {
-            date: initialSlot.date || getNextDateForDay(initialSlot.dayOfWeek),
-            dayOfWeek: initialSlot.dayOfWeek,
-            startTime: initialSlot.startTime,
-            endTime: initialSlot.endTime,
-          },
-        ]);
-      } else {
-        setSlots([
-          {
-            date: getNextDateForDay("Monday"),
-            dayOfWeek: "Monday",
-            startTime: "09:00",
-            endTime: "10:00",
-          },
-        ]);
+// lesson length matches the dragged box (2h drag = one 2h lesson)
+const formFromDraft = (draft?: AvailabilityDraft | null): FormState =>
+  draft
+    ? {
+        ...draft,
+        lessonLength: lessonLengthForWindow(hhmmToMinutes(draft.to) - hhmmToMinutes(draft.from)),
+        weeks: 1,
       }
+    : defaultForm();
+
+const DAY_MINUTES = 24 * 60;
+
+// changing the start moves the whole window, keeping its length
+const moveStart = (form: FormState, from: string): Partial<FormState> => {
+  if (!from || !form.from || !form.to) return { from };
+  const length = Math.max(hhmmToMinutes(form.to) - hhmmToMinutes(form.from), form.lessonLength);
+  const start = hhmmToMinutes(from);
+  return { from, to: minutesToHHMM(Math.min(start + length, DAY_MINUTES - 1)) };
+};
+
+// changing the lesson length keeps the same number of lessons, so To follows
+// (e.g. 16:00–17:00 at 1h -> 2h gives 16:00–18:00), trimmed to fit before midnight
+const changeLength = (form: FormState, lessonLength: number): Partial<FormState> => {
+  if (!form.from || !form.to) return { lessonLength };
+  const start = hhmmToMinutes(form.from);
+  const windowMinutes = hhmmToMinutes(form.to) - start;
+  const wanted = Math.max(1, Math.floor(windowMinutes / form.lessonLength));
+  const fits = Math.max(1, Math.floor((DAY_MINUTES - 1 - start) / lessonLength));
+  const count = Math.min(wanted, fits);
+  return {
+    lessonLength,
+    to: minutesToHHMM(Math.min(start + count * lessonLength, DAY_MINUTES - 1)),
+  };
+};
+
+// every lesson the form would create, back to back inside from–to, repeated weekly
+const buildSlots = ({ date, from, to, lessonLength, weeks }: FormState): Slot[] => {
+  if (!date || !from || !to) return [];
+  const fromMinutes = hhmmToMinutes(from);
+  const toMinutes = hhmmToMinutes(to);
+  const now = Date.now();
+  const slots: Slot[] = [];
+
+  for (let week = 0; week < weeks; week++) {
+    const day = addDaysToKey(date, week * 7);
+    for (let start = fromMinutes; start + lessonLength <= toMinutes; start += lessonLength) {
+      const startMs = ukInstant(day, start).getTime();
+      if (startMs <= now) continue;
+      slots.push({
+        key: `${day}|${minutesToHHMM(start)}`,
+        start: startMs,
+        end: startMs + lessonLength * 60_000,
+      });
     }
   }
+  return slots;
+};
 
-  if (!isOpen) return null;
+const SetAvailabilityModal = ({ open, onClose, draft, onSaved }: SetAvailabilityModalProps) => {
+  const [isPending, startTransition] = useTransition();
+  // the planner remounts this per open (key), so initial state is always the latest draft
+  const [form, setForm] = useState<FormState>(() => formFromDraft(draft));
+  const [existing, setExisting] = useState<{ start: number; end: number }[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleAddSlot = () => {
-    setSlots((previous) => [
-      ...previous,
-      {
-        date: getNextDateForDay("Monday"),
-        dayOfWeek: "Monday",
-        startTime: "09:00",
-        endTime: "10:00",
-      },
-    ]);
+  const update = (patch: Partial<FormState>) => {
+    setError(null);
+    setForm((previous) => ({ ...previous, ...patch }));
   };
 
-  const handleRemoveSlot = (index: number) => {
-    setSlots((previous) => previous.filter((_, i) => i !== index));
-  };
+  // load existing slots in the range so clashes are counted before saving
+  const spanKey = form.date ? `${form.date}|${form.weeks}` : "";
+  useEffect(() => {
+    if (!open || !form.date) return;
+    let ignore = false;
+    const from = ukInstant(form.date).toISOString();
+    const to = ukInstant(addDaysToKey(form.date, form.weeks * 7)).toISOString();
 
-  const handleSlotChange = (
-    index: number,
-    field: keyof EditableSlot,
-    value: string,
-  ) => {
-    setSlots((previous) =>
-      previous.map((slot, slotIndex) => {
-        if (slotIndex !== index) {
-          return slot;
-        }
+    void getMyAvailabilityAction(from, to).then((result) => {
+      if (ignore || !result.ok) return;
+      setExisting(
+        result.data.map((slot) => ({
+          start: new Date(slot.startTime).getTime(),
+          end: new Date(slot.endTime).getTime(),
+        })),
+      );
+    });
 
-        const updated = {
-          ...slot,
-          [field]: value,
-        };
+    return () => {
+      ignore = true;
+    };
+    // spanKey covers date + weeks
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, spanKey]);
 
-        if (field === "dayOfWeek") {
-          updated.date = getNextDateForDay(value, slot.date);
-        }
+  const allSlots = useMemo(() => buildSlots(form), [form]);
+  const clashes = allSlots.filter((slot) =>
+    existing.some((e) => e.start < slot.end && slot.start < e.end),
+  );
+  const newSlots = allSlots.filter((slot) => !clashes.includes(slot));
 
-        return updated;
-      }),
-    );
-  };
+  const windowMinutes = hhmmToMinutes(form.to || "00:00") - hhmmToMinutes(form.from || "00:00");
+  const lessonsPerDay = windowMinutes > 0 ? Math.floor(windowMinutes / form.lessonLength) : 0;
+  const leftover = lessonsPerDay > 0 ? windowMinutes % form.lessonLength : 0;
+  const firstDayTimes = Array.from({ length: lessonsPerDay }, (_, i) => {
+    const start = hhmmToMinutes(form.from) + i * form.lessonLength;
+    return `${minutesToHHMM(start)}–${minutesToHHMM(start + form.lessonLength)}`;
+  });
+
+  const problem = (() => {
+    if (!form.date || !form.from || !form.to) return "Pick a date and times.";
+    if (windowMinutes <= 0) return "The end time must be after the start time.";
+    if (lessonsPerDay === 0)
+      return `That's shorter than a ${lessonLengthLabel(form.lessonLength)} lesson.`;
+    // no spare time allowed - suggest the nearest end times that fit whole lessons
+    if (leftover > 0) {
+      const start = hhmmToMinutes(form.from);
+      const earlier = minutesToHHMM(start + lessonsPerDay * form.lessonLength);
+      const later = start + (lessonsPerDay + 1) * form.lessonLength;
+      const laterText = later < DAY_MINUTES ? ` or ${minutesToHHMM(later)}` : "";
+      return `${form.from}–${form.to} doesn't fit whole ${lessonLengthLabel(form.lessonLength)} lessons. End at ${earlier}${laterText} instead.`;
+    }
+    if (allSlots.length === 0) return "These times have already passed.";
+    if (newSlots.length === 0) return "You already have availability at all of these times.";
+    return null;
+  })();
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    setError(null);
-
-    if (slots.length === 0) {
-      setError("Please add at least one availability slot.");
+    if (problem) {
+      setError(problem);
       return;
     }
 
-    for (const slot of slots) {
-      if (!slot.date || !slot.startTime || !slot.endTime) {
-        setError("Please complete all availability fields.");
-        return;
-      }
-
-      if (calculateDuration(slot.startTime, slot.endTime) <= 0) {
-        setError("End time must be after start time.");
-        return;
-      }
-    }
-
     startTransition(async () => {
-      try {
-        const payloads: AvailabilityPayloadItem[] = slots.map((slot) => {
-          const [hours, minutes] = slot.startTime.split(":").map(Number);
-          const [year, month, day] = slot.date.split("-").map(Number);
-
-          const isoStartTime = new Date(
-            Date.UTC(year, month - 1, day, hours, minutes),
-          ).toISOString();
-
-          return {
-            startTime: isoStartTime,
-            durationInMinutes: calculateDuration(slot.startTime, slot.endTime),
-          };
-        });
-
-        const responses = await Promise.all(
-          payloads.map((payload) => api.availability.create(payload, token)),
-        );
-
-        const createdTimeSlots: TimeSlot[] = responses.map(
-          (response, index) => {
-            const rawSlot = slots[index];
-
-            return {
-              ...response,
-              id: `${rawSlot.date}-${rawSlot.startTime}`,
-              date: rawSlot.date,
-              dayOfWeek: rawSlot.dayOfWeek,
-              startTime: rawSlot.startTime,
-              endTime: rawSlot.endTime,
-            } as TimeSlot;
-          },
-        );
-
-        onSuccess?.(createdTimeSlots);
-        onClose();
-      } catch (err: unknown) {
-        console.error("Availability submission error:", err);
-        const message =
-          err instanceof Error
-            ? err.message
-            : "Failed to save availability slot.";
-        setError(message);
+      const result = await createRecurringAvailabilityAction({
+        days: [dayIndexOfKey(form.date)],
+        startDate: form.date,
+        from: form.from,
+        to: form.to,
+        lessonLength: form.lessonLength,
+        weeks: form.weeks,
+        // skip known clashes up front
+        exclude: clashes.map((slot) => slot.key),
+      });
+      if (!result.ok) {
+        setError(result.error);
+        return;
       }
+      onSaved({
+        created: result.data.created.length,
+        skipped: result.data.skipped.length + clashes.length,
+      });
+      onClose();
     });
   };
 
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs">
-      <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-4 dark:border-slate-800">
-          <div>
-            <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
-              Set Teaching Availability
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Specify when students can book lessons with you.
-            </p>
-          </div>
+  const weekday = form.date ? formatDayKey(form.date, { weekday: "long" }) : "";
 
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      dismissible={!isPending}
+      size="max-w-md"
+      title="Add availability"
+      description="Times are UK time."
+      footer={
+        <div className="flex justify-end gap-2">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+            disabled={isPending}
+            className={buttonClass("ghost")}
           >
-            <X size={18} />
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form="set-availability-form"
+            disabled={isPending || !!problem}
+            className={buttonClass("primary")}
+          >
+            <CalendarPlus size={14} />
+            {isPending ? "Saving..." : `Add ${pluralise(newSlots.length, "slot")}`}
           </button>
         </div>
+      }
+    >
+      <form id="set-availability-form" onSubmit={handleSubmit} className="space-y-5">
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <label htmlFor="availability-date" className={labelClass}>
+              Date
+            </label>
+            <input
+              id="availability-date"
+              type="date"
+              min={toUkDateKey(new Date())}
+              value={form.date}
+              onChange={(e) => update({ date: e.target.value })}
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label htmlFor="availability-from" className={labelClass}>
+              From
+            </label>
+            <input
+              id="availability-from"
+              type="time"
+              step={1800}
+              value={form.from}
+              onChange={(e) => update(moveStart(form, e.target.value))}
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label htmlFor="availability-to" className={labelClass}>
+              To
+            </label>
+            <input
+              id="availability-to"
+              type="time"
+              step={1800}
+              value={form.to}
+              onChange={(e) => update({ to: e.target.value })}
+              className={inputClass}
+            />
+          </div>
+        </div>
 
-        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-          {error && (
-            <div className="rounded-lg bg-red-500/10 p-3 text-xs font-medium text-red-600 dark:text-red-400">
-              {error}
-            </div>
-          )}
-
-          <div className="max-h-60 space-y-3 overflow-y-auto pr-1">
-            {slots.map((slot, index) => (
-              <div
-                key={index}
-                className="rounded-xl border border-slate-200/80 p-3 dark:border-slate-800"
+        <div role="radiogroup" aria-label="Lesson length">
+          <span className={labelClass}>Lesson length</span>
+          <div className="grid grid-cols-3 gap-1 rounded-xl bg-slate-100 p-1 dark:bg-slate-800/60">
+            {LESSON_DURATIONS.map((minutes) => (
+              <button
+                key={minutes}
+                type="button"
+                role="radio"
+                aria-checked={form.lessonLength === minutes}
+                onClick={() => update(changeLength(form, minutes))}
+                className={cn(
+                  "cursor-pointer rounded-lg py-1.5 text-xs font-semibold transition-colors",
+                  form.lessonLength === minutes
+                    ? "bg-white text-blue-600 shadow-sm dark:bg-slate-900 dark:text-blue-400"
+                    : "text-slate-500 hover:text-slate-700 dark:text-slate-400",
+                )}
               >
-                <div className="flex items-center gap-2">
-                  <select
-                    value={slot.dayOfWeek}
-                    onChange={(event) =>
-                      handleSlotChange(index, "dayOfWeek", event.target.value)
-                    }
-                    className="flex-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs font-medium text-slate-800 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
-                  >
-                    {DAYS.map((day) => (
-                      <option key={day} value={day}>
-                        {day}
-                      </option>
-                    ))}
-                  </select>
-
-                  {slots.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveSlot(index)}
-                      className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950/20"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  )}
-                </div>
-
-                <div className="mt-2">
-                  <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                    Date
-                  </label>
-                  <input
-                    type="date"
-                    value={slot.date}
-                    onChange={(event) =>
-                      handleSlotChange(index, "date", event.target.value)
-                    }
-                    className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-800 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
-                  />
-                </div>
-
-                <div className="mt-2 flex items-center gap-2">
-                  <div className="flex-1">
-                    <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                      Start
-                    </label>
-                    <div className="flex items-center gap-1">
-                      <Clock size={14} className="text-slate-400" />
-                      <input
-                        type="time"
-                        value={slot.startTime}
-                        onChange={(event) =>
-                          handleSlotChange(
-                            index,
-                            "startTime",
-                            event.target.value,
-                          )
-                        }
-                        className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-800 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
-                      />
-                    </div>
-                  </div>
-
-                  <span className="mt-5 text-xs text-slate-400">to</span>
-
-                  <div className="flex-1">
-                    <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                      End
-                    </label>
-                    <input
-                      type="time"
-                      value={slot.endTime}
-                      onChange={(event) =>
-                        handleSlotChange(index, "endTime", event.target.value)
-                      }
-                      className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-800 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
-                    />
-                  </div>
-                </div>
-              </div>
+                {lessonLengthLabel(minutes)}
+              </button>
             ))}
           </div>
+        </div>
 
-          <button
-            type="button"
-            onClick={handleAddSlot}
-            className="inline-flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-dashed border-slate-300 py-2 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800/50"
-          >
-            <Plus size={14} />
-            Add Another Slot
-          </button>
+        <div>
+          <label htmlFor="availability-repeat" className={labelClass}>
+            Repeat
+          </label>
+          <Select
+            id="availability-repeat"
+            value={form.weeks}
+            onChange={(weeks) => update({ weeks })}
+            options={REPEAT_OPTIONS.map((option) => ({
+              value: option.weeks,
+              label: option.weeks === 1 ? option.label : `${option.label} (${weekday}s)`,
+            }))}
+          />
+        </div>
 
-          <div className="flex items-center justify-end gap-3 border-t border-slate-100 pt-4 dark:border-slate-800">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg border cursor-pointer border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800"
-            >
-              Cancel
-            </button>
-
-            <button
-              type="submit"
-              disabled={isPending}
-              className="rounded-lg bg-blue-600 cursor-pointer px-4 py-2 text-xs font-semibold text-white transition-all hover:bg-blue-500 disabled:opacity-50"
-            >
-              {isPending ? "Saving..." : "Save Availability"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        {/* one-line summary of what gets created */}
+        <div
+          role="status"
+          className={cn(
+            "rounded-xl border px-4 py-3 text-xs",
+            error || problem
+              ? "border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+              : "border-blue-100 bg-blue-50 text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-200",
+          )}
+        >
+          {error ?? problem ?? (
+            <>
+              <p className="font-semibold">
+                {pluralise(lessonsPerDay, `${lessonLengthLabel(form.lessonLength)} lesson`)}:{" "}
+                {firstDayTimes.join(", ")}
+              </p>
+              <p className="mt-0.5 opacity-80">
+                {form.weeks > 1
+                  ? `Every ${weekday} for ${form.weeks} weeks · ${pluralise(newSlots.length, "slot")} in total`
+                  : formatDayKey(form.date, { weekday: "long", day: "numeric", month: "long" })}
+                {clashes.length > 0 && ` · ${clashes.length} already set, skipped`}
+              </p>
+            </>
+          )}
+        </div>
+      </form>
+    </Modal>
   );
 };
 

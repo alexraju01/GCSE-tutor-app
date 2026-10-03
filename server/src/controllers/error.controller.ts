@@ -1,5 +1,6 @@
 import { Prisma } from "@generated/client.js";
 import { AppError } from "@utils/AppError.js";
+import { DB_CONSTRAINTS, isConstraintViolation } from "@utils/dbErrors.js";
 import { ZodError } from "zod";
 import type { NextFunction, Request, Response } from "express";
 
@@ -10,6 +11,7 @@ interface ErrorMiddleware extends Error {
   stack?: string;
   name: string;
   isOperational?: boolean;
+  details?: Record<string, unknown>;
 }
 
 const handleZodError = (err: ZodError) => {
@@ -41,6 +43,7 @@ const sendErrorDev = (err: ErrorMiddleware, res: Response) => {
   res.status(err.statusCode || 500).json({
     status: err.status,
     message: err.message,
+    ...(err.details && { details: err.details }),
     error: err,
     stack: err.stack,
   });
@@ -51,6 +54,7 @@ const sendErrorProd = (err: ErrorMiddleware, req: Request, res: Response) => {
     return res.status(err.statusCode).json({
       status: err.status,
       message: err.message,
+      ...(err.details && { details: err.details }),
     });
   }
 
@@ -102,6 +106,49 @@ const handleRecordNotFoundErrorDB = (err: Prisma.PrismaClientKnownRequestError) 
   return new AppError(`No ${modelName?.toLowerCase()} with this id`, 404);
 };
 
+// fires if a serializable transaction loses a race and postgres aborts it
+const handleWriteConflictErrorDB = () => {
+  return new AppError("That action conflicted with another request. Please try again.", 409);
+};
+
+// db-level booking constraints. services check these first, so hitting one
+// here means another request got there first
+const handleSchedulingConstraintError = (err: unknown): AppError | null => {
+  if (isConstraintViolation(err, DB_CONSTRAINTS.activeSlotBooking)) {
+    return new AppError(
+      "Sorry — that slot was just booked by someone else. Please pick another time.",
+      409,
+      { reason: "slot_taken" },
+    );
+  }
+  if (isConstraintViolation(err, DB_CONSTRAINTS.studentLessonOverlap)) {
+    return new AppError("You already have a lesson booked at that time.", 409, {
+      reason: "student_overlap",
+    });
+  }
+  if (
+    isConstraintViolation(err, DB_CONSTRAINTS.availabilityLength) ||
+    isConstraintViolation(err, DB_CONSTRAINTS.lessonDuration)
+  ) {
+    return new AppError("Lessons must be 1 hour, 1.5 hours or 2 hours long.", 400, {
+      reason: "invalid_duration",
+    });
+  }
+  if (isConstraintViolation(err, DB_CONSTRAINTS.availabilityOverlap)) {
+    return new AppError("This time overlaps with availability you've already scheduled.", 409, {
+      reason: "availability_overlap",
+    });
+  }
+  return null;
+};
+
+// lessons use onDelete: Restrict, so deleting something they reference fails
+const handleForeignKeyRestrictErrorDB = () =>
+  new AppError(
+    "This can't be deleted because lesson history still refers to it. Please contact support.",
+    409,
+  );
+
 export const globalErrorHandler = (
   err: ErrorMiddleware,
   req: Request,
@@ -114,7 +161,11 @@ export const globalErrorHandler = (
   error.status = err.status || "error";
 
   // 2. INTERCEPT & RE-FORMAT CRITICAL INTERFACES FIRST
-  if (err instanceof ZodError) {
+  const schedulingError = handleSchedulingConstraintError(err);
+
+  if (schedulingError) {
+    error = schedulingError;
+  } else if (err instanceof ZodError) {
     error = handleZodError(err);
   } else if (err instanceof Prisma.PrismaClientValidationError) {
     error = handlePrismaValidationError();
@@ -123,6 +174,10 @@ export const globalErrorHandler = (
       error = handleUniqueConstraintViolationErrorDB(err);
     } else if (err.code === "P2025") {
       error = handleRecordNotFoundErrorDB(err);
+    } else if (err.code === "P2034") {
+      error = handleWriteConflictErrorDB();
+    } else if (err.code === "P2003") {
+      error = handleForeignKeyRestrictErrorDB();
     }
   }
 
